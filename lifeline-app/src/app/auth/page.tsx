@@ -1,0 +1,205 @@
+"use client";
+import { useState } from 'react';
+import { useAuth } from '@/contexts/ClientAuthContext';
+import Link from 'next/link';
+
+export default function AuthPage() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const { login, register, isAuthenticated, logout, isLoading, isOnline, user, refreshOnlineStatus } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+    try {
+      if (isLogin) {
+        await login(username, password);
+        setMessage('Logged in successfully!');
+      } else {
+        await register(username, password);
+        setMessage('Registration successful! You are now logged in.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred.');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-md mx-auto bg-white/70 backdrop-blur-sm rounded-2xl p-8 border border-gray-200/60 shadow-lg text-center">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return (
+      <div className="max-w-md mx-auto bg-white/70 backdrop-blur-sm rounded-2xl p-8 border border-gray-200/60 shadow-lg">
+        <h1 className="text-3xl font-bold text-center text-gray-900 mb-6">Profile</h1>
+        
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full mb-4">
+            <span className="text-white font-bold text-xl">👤</span>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome back!</h2>
+          <p className="text-gray-600">Logged in as: <span className="font-medium text-blue-600">{user?.username}</span></p>
+        </div>
+
+        <div className="space-y-4 mb-8">
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <span className="text-gray-700">Account Status</span>
+            <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">Active</span>
+          </div>
+          
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <span className="text-gray-700">Connection</span>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              isOnline 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-amber-100 text-amber-800'
+            }`}>
+              {isOnline ? 'Online' : 'Offline'}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <Link 
+            href="/"
+            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+          >
+            Go to Dashboard
+          </Link>
+          
+          <button
+            onClick={logout}
+            className="w-full flex justify-center py-3 px-4 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-md mx-auto bg-white/70 backdrop-blur-sm rounded-2xl p-8 border border-gray-200/60 shadow-lg">
+      {/* Online/Offline Status */}
+      <div className={`mb-6 text-center px-4 py-2 rounded-lg text-sm font-medium ${
+        isOnline 
+          ? 'bg-green-100 text-green-800 border border-green-200' 
+          : 'bg-amber-100 text-amber-800 border border-amber-200'
+      }`}>
+        <div className="flex items-center justify-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+          {isOnline ? 'Online' : 'Offline'}
+          {!isOnline && (
+            <button
+              onClick={refreshOnlineStatus}
+              className="ml-2 text-xs underline hover:no-underline"
+            >
+              Refresh
+            </button>
+          )}
+        </div>
+        {!isOnline && !isLogin && (
+          <p className="mt-2 text-xs">
+            Registration requires internet connection. Please connect to register.
+          </p>
+        )}
+        <div className="mt-2 text-xs text-gray-500">
+          <button
+            onClick={async () => {
+              console.log('Testing backend connection...');
+              try {
+                const response = await fetch('http://localhost:4004/health');
+                console.log('Backend test response:', response.status, await response.text());
+                // Force refresh online status
+                await refreshOnlineStatus();
+              } catch (error) {
+                console.log('Backend test error:', error);
+              }
+            }}
+            className="underline hover:no-underline"
+          >
+            Test Backend & Refresh
+          </button>
+        </div>
+      </div>
+
+      <h1 className="text-3xl font-bold text-center text-gray-900 mb-6">
+        {isLogin ? 'Login' : 'Register'}
+      </h1>
+      
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <span className="block sm:inline">{error}</span>
+        </div>
+      )}
+      {message && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <span className="block sm:inline">{message}</span>
+        </div>
+      )}
+      
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="username" className="block text-sm font-medium text-gray-900 mb-1">
+            Username
+          </label>
+          <input
+            type="text"
+            id="username"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 bg-white"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-1">
+            Password
+          </label>
+          <input
+            type="password"
+            id="password"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 bg-white"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={!isOnline && !isLogin}
+          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLogin ? 'Login' : 'Register'}
+        </button>
+      </form>
+      
+      <div className="mt-6 text-center">
+        <button
+          onClick={() => setIsLogin(!isLogin)}
+          disabled={!isOnline && isLogin} // Disable only when offline AND on login page (trying to go to register)
+          className="text-sm text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLogin ? 'Need an account? Register' : 'Already have an account? Login'}
+        </button>
+      </div>
+      
+      {!isOnline && (
+        <div className="mt-4 text-center">
+          <p className="text-xs text-gray-500">
+            Offline mode: Only login is available. Connect to internet for registration.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
