@@ -62,6 +62,10 @@
 - **Fixed Sync Status Accuracy**: Status page now correctly displays "Synced"/"Offline" status
   - Previously always showed "Offline" despite successful sync
   - Now reads from actual PouchDB data
+- **Automatic Sync on Reconnect**: App now automatically syncs when coming back online
+  - Triggers sync when `isOnline` changes from false to true
+  - Fixes issue where status remained "Offline" after reconnecting to internet
+  - No more manual sync needed after going offline and back online
 - **Offline Detection**: Improved online/offline status detection across all pages
   - Periodic checks every 5 seconds
   - Consistent API URL usage (WiFi IP)
