@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { usePouchDB } from "@/hooks/usePouchDB";
 import { useAuth } from "@/contexts/ClientAuthContext";
+import { useSync } from "@/hooks/useSync";
 
 type LocalStatus = {
   status: "safe" | "help";
@@ -13,6 +14,7 @@ export default function MyStatusPage() {
   const [last, setLast] = useState<LocalStatus | null>(null);
   const { isClient, localDB } = usePouchDB();
   const { user } = useAuth();
+  const { manualSync } = useSync();
 
   useEffect(() => {
     (async () => {
@@ -132,6 +134,16 @@ export default function MyStatusPage() {
                       <span>↻</span>
                       Update Status
                     </a>
+                    <button
+                      onClick={() => {
+                        console.log('Force sync button clicked');
+                        manualSync();
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium text-sm rounded-lg transition-colors"
+                    >
+                      <span>📡</span>
+                      Force Sync
+                    </button>
                     <button
                       onClick={async () => {
                         if (confirm("This will clear all saved data. Are you sure?")) {

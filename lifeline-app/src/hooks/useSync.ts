@@ -104,11 +104,20 @@ export const useSync = () => {
 
   // Trigger sync when coming back online
   useEffect(() => {
-    if (isOnline && localDB && remoteDB && token && syncStatus === 'idle') {
-      console.log('Came back online, triggering sync...');
-      manualSync();
+    console.log('Sync trigger check:', { isOnline, hasLocalDB: !!localDB, hasRemoteDB: !!remoteDB, hasToken: !!token, syncStatus });
+    
+    if (isOnline && localDB && remoteDB && token) {
+      console.log('All conditions met for sync, current status:', syncStatus);
+      
+      // If we're idle or in error state, trigger sync
+      if (syncStatus === 'idle' || syncStatus === 'error') {
+        console.log('Came back online, triggering sync...');
+        manualSync();
+      } else {
+        console.log('Sync already in progress, skipping automatic trigger');
+      }
     }
-  }, [isOnline, localDB, remoteDB, token]);
+  }, [isOnline, localDB, remoteDB, token, syncStatus]);
 
   useEffect(() => {
     if (!localDB || !remoteDB || !token) return;
