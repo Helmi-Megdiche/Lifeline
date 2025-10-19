@@ -6,8 +6,8 @@
 }
 
 .dark {
-  --background: #0f172a;
-  --foreground: #f8fafc;
+  --background: #1a1f2e;
+  --foreground: #f1f5f9;
 }
 
 @theme inline {
@@ -24,14 +24,14 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Dark mode specific styles for emergency app */
+/* Dark mode specific styles for emergency app - softer gradient */
 .dark body {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+  background: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
 }
 
 /* Override the inline style for dark mode */
 .dark body[style] {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+  background: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
 }
 
 /* Ensure proper contrast for emergency elements in dark mode */
@@ -47,17 +47,17 @@ body {
   background-color: #2563eb !important;
 }
 
-/* Dark mode backdrop blur adjustments */
+/* Dark mode backdrop blur adjustments - softer backgrounds */
 .dark .backdrop-blur-sm {
   backdrop-filter: blur(8px);
-  background-color: rgba(30, 41, 59, 0.8);
+  background-color: rgba(37, 43, 59, 0.85);
 }
 
-/* Dark mode border adjustments */
+/* Dark mode border adjustments - softer borders */
 .dark .border-gray-200 {
-  border-color: #334155;
+  border-color: #374151;
 }
 
 .dark .border-gray-300 {
-  border-color: #475569;
+  border-color: #4b5563;
 }

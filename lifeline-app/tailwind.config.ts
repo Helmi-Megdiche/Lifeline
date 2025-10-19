@@ -47,31 +47,31 @@ const config: Config = {
           800: '#166534',
           900: '#14532d',
         },
-        // Dark mode specific colors
+        // Dark mode specific colors - softer, more pleasant palette
         'dark-bg': {
-          primary: '#0f172a',    // slate-900
-          secondary: '#1e293b',   // slate-800
-          tertiary: '#334155',    // slate-700
+          primary: '#1a1f2e',    // Softer dark blue-gray (less harsh than slate-900)
+          secondary: '#242938',   // Slightly lighter background
+          tertiary: '#2d3548',    // Even lighter for layering
         },
         'dark-text': {
-          primary: '#f8fafc',     // slate-50
-          secondary: '#e2e8f0',   // slate-200
-          tertiary: '#94a3b8',   // slate-400
+          primary: '#f1f5f9',     // Soft white (easier on eyes)
+          secondary: '#cbd5e1',   // Light gray-blue (better contrast)
+          tertiary: '#94a3b8',    // Muted gray (unchanged)
         },
         'dark-border': {
-          primary: '#334155',    // slate-700
-          secondary: '#475569',  // slate-600
+          primary: '#374151',    // Softer border (gray-700)
+          secondary: '#4b5563',  // Medium gray border (gray-600)
         },
         'dark-surface': {
-          primary: '#1e293b',     // slate-800
-          secondary: '#334155',   // slate-700
-          tertiary: '#475569',   // slate-600
+          primary: '#252b3b',     // Soft card background
+          secondary: '#2d3548',   // Interactive elements
+          tertiary: '#374151',    // Hover states
         }
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'emergency-gradient': 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+        'emergency-gradient': 'linear-gradient(135deg, #242938 0%, #1a1f2e 100%)',
         'emergency-gradient-light': 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
       },
       animation: {
