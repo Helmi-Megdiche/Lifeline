@@ -2,12 +2,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { useTheme } from "@/contexts/ThemeContext";
 
 export const ConditionalHeader = () => {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { theme } = useTheme();
   
   // Hide header on auth pages for better UX
   if (pathname === '/auth') {
@@ -33,7 +31,7 @@ export const ConditionalHeader = () => {
   ];
 
       return (
-        <header className="sticky top-0 z-20 bg-white/90 dark:bg-dark-surface-primary/90 backdrop-blur-md border-b border-gray-200/60 dark:border-dark-border-primary/60 shadow-sm">
+        <header className="sticky top-0 z-20 bg-white/90 dark:bg-dark-surface-primary/90 backdrop-blur-md border-b border-gray-200/60 dark:border-dark-border-primary/60 shadow-sm transition-colors duration-300">
       <nav className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -49,24 +47,24 @@ export const ConditionalHeader = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex gap-6 text-sm font-medium">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`text-gray-600 hover:text-blue-600 transition-colors px-3 py-2 rounded-lg hover:bg-blue-50 ${
-                  pathname === item.href ? 'text-blue-600 bg-blue-50' : ''
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
+              <div className="hidden md:flex gap-6 text-sm font-medium">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`text-gray-600 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-emergency-blue-400 transition-colors px-3 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-dark-surface-secondary ${
+                      pathname === item.href ? 'text-blue-600 dark:text-emergency-blue-400 bg-blue-50 dark:bg-dark-surface-secondary' : ''
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
 
           {/* Mobile Menu Button */}
           <button
             onClick={toggleMobileMenu}
-            className="md:hidden p-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            className="md:hidden p-2 rounded-lg text-gray-600 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-emergency-blue-400 hover:bg-blue-50 dark:hover:bg-dark-surface-secondary transition-colors"
             aria-label="Toggle mobile menu"
           >
             <svg
@@ -94,27 +92,27 @@ export const ConditionalHeader = () => {
           </button>
         </div>
 
-        {/* Mobile Navigation Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200/60 bg-white/95 backdrop-blur-md">
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`block px-3 py-3 rounded-lg text-base font-medium transition-colors ${
-                    pathname === item.href
-                      ? 'text-blue-600 bg-blue-50'
-                      : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-                  }`}
-                  onClick={closeMobileMenu}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
+            {/* Mobile Navigation Menu */}
+            {isMobileMenuOpen && (
+              <div className="md:hidden border-t border-gray-200/60 dark:border-dark-border-primary/60 bg-white/95 dark:bg-dark-surface-primary/95 backdrop-blur-md">
+                <div className="px-2 pt-2 pb-3 space-y-1">
+                  {navItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`block px-3 py-3 rounded-lg text-base font-medium transition-colors ${
+                        pathname === item.href
+                          ? 'text-blue-600 dark:text-emergency-blue-400 bg-blue-50 dark:bg-dark-surface-secondary'
+                          : 'text-gray-600 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-emergency-blue-400 hover:bg-blue-50 dark:hover:bg-dark-surface-secondary'
+                      }`}
+                      onClick={closeMobileMenu}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
       </nav>
     </header>
   );

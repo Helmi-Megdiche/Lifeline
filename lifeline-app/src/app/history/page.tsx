@@ -122,11 +122,11 @@ export default function HistoryPage() {
   };
 
   if (isLoading) {
-    return <div className="text-center text-gray-600">Loading history...</div>;
+    return <div className="text-center text-gray-600 dark:text-dark-text-secondary">Loading history...</div>;
   }
 
   if (!isClient) {
-    return <div className="text-center text-gray-600">Initializing...</div>;
+    return <div className="text-center text-gray-600 dark:text-dark-text-secondary">Initializing...</div>;
   }
 
   return (
@@ -135,20 +135,20 @@ export default function HistoryPage() {
         <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
           <span className="text-white text-2xl">📜</span>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-3">
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-dark-text-primary dark:to-dark-text-secondary bg-clip-text text-transparent mb-3">
           My Status History
         </h1>
-        <p className="text-lg text-gray-600">
+        <p className="text-lg text-gray-600 dark:text-dark-text-secondary">
           View your past emergency check-ins, both local and synced.
         </p>
       </div>
 
       {/* Sync Status */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-gray-200/60 shadow-lg">
+      <div className="bg-white/70 dark:bg-dark-surface-primary/70 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-gray-200/60 dark:border-dark-border-primary/60 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-sm font-medium text-gray-700">Sync Status</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-dark-text-secondary">Sync Status</span>
           </div>
           <button
             onClick={handleManualSync}
@@ -166,7 +166,7 @@ export default function HistoryPage() {
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             activeTab === 'all'
               ? 'bg-blue-500 text-white'
-              : 'bg-white/70 text-gray-600 hover:bg-blue-50'
+              : 'bg-white/70 dark:bg-dark-surface-primary/70 text-gray-600 dark:text-dark-text-secondary hover:bg-blue-50 dark:hover:bg-dark-surface-secondary'
           }`}
         >
           All Statuses ({statuses.length})
@@ -176,7 +176,7 @@ export default function HistoryPage() {
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             activeTab === 'unsynced'
               ? 'bg-orange-500 text-white'
-              : 'bg-white/70 text-gray-600 hover:bg-orange-50'
+              : 'bg-white/70 dark:bg-dark-surface-primary/70 text-gray-600 dark:text-dark-text-secondary hover:bg-orange-50 dark:hover:bg-dark-surface-secondary'
           }`}
         >
           Unsynced ({unsyncedStatuses.length})
@@ -184,10 +184,10 @@ export default function HistoryPage() {
       </div>
 
       {/* Status List */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200/60 shadow-lg">
+      <div className="bg-white/70 dark:bg-dark-surface-primary/70 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-dark-border-primary/60 shadow-lg">
         {activeTab === 'all' ? (
           statuses.length > 0 ? (
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-gray-200 dark:divide-dark-border-primary">
               {statuses.map((status) => (
                 <div key={status._id} className="p-6">
                   <div className="flex items-center justify-between">
@@ -195,21 +195,21 @@ export default function HistoryPage() {
                       <div className={`w-3 h-3 rounded-full ${
                         status.status === 'safe' ? 'bg-green-500' : 'bg-red-500'
                       }`}></div>
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-gray-900 dark:text-dark-text-primary">
                         {status.status === 'safe' ? 'I\'m Safe' : 'Need Help'}
                       </span>
                       <span className={`px-2 py-1 text-xs rounded-full ${
-                        status.synced ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                        status.synced ? 'bg-green-100 dark:bg-emergency-green-900 text-green-700 dark:text-emergency-green-100' : 'bg-orange-100 dark:bg-emergency-yellow-900 text-orange-700 dark:text-emergency-yellow-100'
                       }`}>
                         {status.synced ? 'Synced' : 'Local Only'}
                       </span>
                     </div>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-500 dark:text-dark-text-tertiary">
                       {new Date(status.timestamp).toLocaleString()}
                     </span>
                   </div>
                   {status.latitude && status.longitude && (
-                    <div className="mt-2 text-sm text-gray-600">
+                    <div className="mt-2 text-sm text-gray-600 dark:text-dark-text-secondary">
                       📍 Location: {status.latitude.toFixed(4)}, {status.longitude.toFixed(4)}
                     </div>
                   )}
@@ -217,13 +217,13 @@ export default function HistoryPage() {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500">
-              No statuses found. <Link href="/" className="text-blue-600 hover:text-blue-700">Create your first check-in</Link>
+            <div className="p-8 text-center text-gray-500 dark:text-dark-text-tertiary">
+              No statuses found. <Link href="/" className="text-blue-600 dark:text-emergency-blue-400 hover:text-blue-700 dark:hover:text-emergency-blue-600">Create your first check-in</Link>
             </div>
           )
         ) : (
           unsyncedStatuses.length > 0 ? (
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-gray-200 dark:divide-dark-border-primary">
               {unsyncedStatuses.map((status) => (
                 <div key={status._id} className="p-6">
                   <div className="flex items-center justify-between">
@@ -231,19 +231,19 @@ export default function HistoryPage() {
                       <div className={`w-3 h-3 rounded-full ${
                         status.status === 'safe' ? 'bg-green-500' : 'bg-red-500'
                       }`}></div>
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-gray-900 dark:text-dark-text-primary">
                         {status.status === 'safe' ? 'I\'m Safe' : 'Need Help'}
                       </span>
-                      <span className="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-700">
+                      <span className="px-2 py-1 text-xs rounded-full bg-orange-100 dark:bg-emergency-yellow-900 text-orange-700 dark:text-emergency-yellow-100">
                         Pending Sync
                       </span>
                     </div>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-500 dark:text-dark-text-tertiary">
                       {new Date(status.timestamp).toLocaleString()}
                     </span>
                   </div>
                   {status.latitude && status.longitude && (
-                    <div className="mt-2 text-sm text-gray-600">
+                    <div className="mt-2 text-sm text-gray-600 dark:text-dark-text-secondary">
                       📍 Location: {status.latitude.toFixed(4)}, {status.longitude.toFixed(4)}
                     </div>
                   )}
@@ -251,7 +251,7 @@ export default function HistoryPage() {
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-gray-500 dark:text-dark-text-tertiary">
               All statuses are synced! 🎉
             </div>
           )

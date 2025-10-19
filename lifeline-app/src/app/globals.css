@@ -26,7 +26,12 @@ body {
 
 /* Dark mode specific styles for emergency app */
 .dark body {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+}
+
+/* Override the inline style for dark mode */
+.dark body[style] {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
 }
 
 /* Ensure proper contrast for emergency elements in dark mode */
