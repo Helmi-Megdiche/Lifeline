@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
 import { setupLeafletDefaultIcon } from "@/lib/leafletIcons";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const Map = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false }) as any;
 const TileLayer = dynamic(() => import("react-leaflet").then(m => m.TileLayer), { ssr: false });
@@ -14,6 +15,7 @@ export default function LiveMapPage() {
   const [accuracy, setAccuracy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPrefetching, setIsPrefetching] = useState(false);
+  const { theme } = useTheme();
 
   useEffect(() => {
     setupLeafletDefaultIcon().catch(() => {});
@@ -65,12 +67,12 @@ export default function LiveMapPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="text-center mb-6">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl mb-3 shadow-lg">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 dark:from-emergency-green-500 dark:to-emergency-green-600 rounded-2xl mb-3 shadow-lg">
           <span className="text-white text-2xl">📍</span>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">Live Location</h1>
-        <p className="text-gray-600 mt-2">Your current location updates in real time. Works offline after first load of tiles.</p>
-        {error && <div className="mt-2 text-sm text-red-600">{error}</div>}
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-dark-text-primary dark:to-dark-text-secondary bg-clip-text text-transparent">Live Location</h1>
+        <p className="text-gray-600 dark:text-dark-text-secondary mt-2">Your current location updates in real time. Works offline after first load of tiles.</p>
+        {error && <div className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</div>}
         <div className="flex items-center justify-center gap-2 mt-3">
           {/* Save tiles for offline */}
           <button

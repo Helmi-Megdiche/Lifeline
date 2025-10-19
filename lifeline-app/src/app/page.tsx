@@ -5,6 +5,7 @@ import { saveStatus, queueStatus, type CheckInStatus } from "@/lib/indexedDB";
 import { usePouchDB } from "@/hooks/usePouchDB";
 import { saveStatusToPouch as upsertSingleStatus } from "@/lib/pouchdb";
 import { useAuth } from "@/contexts/ClientAuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { getApiUrl, API_CONFIG } from "@/lib/config";
 
 const AUTO_HIDE_MS = 3000;
@@ -15,6 +16,7 @@ export default function Home() {
   const [locationDenied, setLocationDenied] = useState<boolean>(false);
   const { isClient, localDB } = usePouchDB();
   const { user, token } = useAuth();
+  const { theme } = useTheme();
 
   const saveStatusToPouch = async (status: {
     status: 'safe' | 'help';
@@ -132,7 +134,7 @@ export default function Home() {
             )}
       </div>
 
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-8 mb-6 sm:mb-8 border border-gray-200/60 shadow-lg">
+          <div className="bg-white/70 dark:bg-dark-surface-primary/80 backdrop-blur-sm rounded-2xl p-4 sm:p-8 mb-6 sm:mb-8 border border-gray-200/60 dark:border-dark-border-primary/60 shadow-lg">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full text-sm text-blue-700 mb-4">
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>

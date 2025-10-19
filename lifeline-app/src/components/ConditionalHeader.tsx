@@ -2,10 +2,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export const ConditionalHeader = () => {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { theme } = useTheme();
   
   // Hide header on auth pages for better UX
   if (pathname === '/auth') {
@@ -30,8 +32,8 @@ export const ConditionalHeader = () => {
     { href: "/auth", label: "Profile" },
   ];
 
-  return (
-    <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-gray-200/60 shadow-sm">
+      return (
+        <header className="sticky top-0 z-20 bg-white/90 dark:bg-dark-surface-primary/90 backdrop-blur-md border-b border-gray-200/60 dark:border-dark-border-primary/60 shadow-sm">
       <nav className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}

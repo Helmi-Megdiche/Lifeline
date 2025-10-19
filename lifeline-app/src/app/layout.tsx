@@ -7,6 +7,7 @@ import { ClientSyncProvider } from "@/components/ClientSyncProvider";
 import { AuthGuard } from "@/components/AuthGuard";
 import { ConditionalHeader } from "@/components/ConditionalHeader";
 import InstallPrompt from "./InstallPrompt";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -79,14 +80,16 @@ export default function RootLayout({
           }}
         />
             <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
-              <ClientAuthProvider>
-                <AuthGuard>
-                  <ClientSyncProvider>
-                    <InstallPrompt />
-                    {children}
-                  </ClientSyncProvider>
-                </AuthGuard>
-              </ClientAuthProvider>
+              <ThemeProvider>
+                <ClientAuthProvider>
+                  <AuthGuard>
+                    <ClientSyncProvider>
+                      <InstallPrompt />
+                      {children}
+                    </ClientSyncProvider>
+                  </AuthGuard>
+                </ClientAuthProvider>
+              </ThemeProvider>
             </main>
       </body>
     </html>

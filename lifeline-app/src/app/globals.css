@@ -5,6 +5,11 @@
   --foreground: #171717;
 }
 
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -12,15 +17,42 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode specific styles for emergency app */
+.dark body {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* Ensure proper contrast for emergency elements in dark mode */
+.dark .bg-red-500 {
+  background-color: #dc2626 !important;
+}
+
+.dark .bg-green-500 {
+  background-color: #16a34a !important;
+}
+
+.dark .bg-blue-500 {
+  background-color: #2563eb !important;
+}
+
+/* Dark mode backdrop blur adjustments */
+.dark .backdrop-blur-sm {
+  backdrop-filter: blur(8px);
+  background-color: rgba(30, 41, 59, 0.8);
+}
+
+/* Dark mode border adjustments */
+.dark .border-gray-200 {
+  border-color: #334155;
+}
+
+.dark .border-gray-300 {
+  border-color: #475569;
 }

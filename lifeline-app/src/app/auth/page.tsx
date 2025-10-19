@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { useAuth } from '@/contexts/ClientAuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import Link from 'next/link';
 
 export default function AuthPage() {
@@ -10,6 +11,7 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const { login, register, isAuthenticated, logout, isLoading, isOnline, user, refreshOnlineStatus } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,41 +32,61 @@ export default function AuthPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-md mx-auto bg-white/70 backdrop-blur-sm rounded-2xl p-8 border border-gray-200/60 shadow-lg text-center">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-        <p className="mt-4 text-gray-600">Loading...</p>
+      <div className="max-w-md mx-auto bg-white/70 dark:bg-dark-surface-primary/80 backdrop-blur-sm rounded-2xl p-8 border border-gray-200/60 dark:border-dark-border-primary/60 shadow-lg text-center">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 dark:border-emergency-blue-400 border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+        <p className="mt-4 text-gray-600 dark:text-dark-text-tertiary">Loading...</p>
       </div>
     );
   }
 
   if (isAuthenticated) {
     return (
-      <div className="max-w-md mx-auto bg-white/70 backdrop-blur-sm rounded-2xl p-8 border border-gray-200/60 shadow-lg">
-        <h1 className="text-3xl font-bold text-center text-gray-900 mb-6">Profile</h1>
+      <div className="max-w-md mx-auto bg-white/70 dark:bg-dark-surface-primary/80 backdrop-blur-sm rounded-2xl p-8 border border-gray-200/60 dark:border-dark-border-primary/60 shadow-lg">
+        <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-dark-text-primary mb-6">Profile</h1>
         
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 dark:from-emergency-green-500 dark:to-emergency-green-600 rounded-full mb-4">
             <span className="text-white font-bold text-xl">👤</span>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Welcome back!</h2>
-          <p className="text-gray-600">Logged in as: <span className="font-medium text-blue-600">{user?.username}</span></p>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-dark-text-primary mb-2">Welcome back!</h2>
+          <p className="text-gray-600 dark:text-dark-text-secondary">Logged in as: <span className="font-medium text-blue-600 dark:text-emergency-blue-400">{user?.username}</span></p>
         </div>
 
         <div className="space-y-4 mb-8">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <span className="text-gray-700">Account Status</span>
-            <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">Active</span>
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-surface-secondary rounded-lg">
+            <span className="text-gray-700 dark:text-dark-text-secondary">Account Status</span>
+            <span className="px-3 py-1 bg-green-100 dark:bg-emergency-green-900 text-green-800 dark:text-emergency-green-100 rounded-full text-sm font-medium">Active</span>
           </div>
           
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <span className="text-gray-700">Connection</span>
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-surface-secondary rounded-lg">
+            <span className="text-gray-700 dark:text-dark-text-secondary">Connection</span>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
               isOnline 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-amber-100 text-amber-800'
+                ? 'bg-green-100 dark:bg-emergency-green-900 text-green-800 dark:text-emergency-green-100' 
+                : 'bg-amber-100 dark:bg-yellow-900 text-amber-800 dark:text-yellow-100'
             }`}>
               {isOnline ? 'Online' : 'Offline'}
             </span>
+          </div>
+
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-surface-secondary rounded-lg">
+            <span className="text-gray-700 dark:text-dark-text-secondary">Theme</span>
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-2 px-3 py-1 bg-blue-100 dark:bg-emergency-blue-900 text-blue-800 dark:text-emergency-blue-100 rounded-full text-sm font-medium hover:bg-blue-200 dark:hover:bg-emergency-blue-800 transition-colors"
+            >
+              {theme === 'light' ? (
+                <>
+                  <span>☀️</span>
+                  <span>Light</span>
+                </>
+              ) : (
+                <>
+                  <span>🌙</span>
+                  <span>Dark</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 
