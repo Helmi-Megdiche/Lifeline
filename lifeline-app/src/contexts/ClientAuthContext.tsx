@@ -2,7 +2,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { getApiUrl, API_CONFIG } from '@/lib/config';
-import { isOnline } from '@/lib/pouchdb';
 
 interface User {
   id: string;
@@ -24,6 +23,68 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Client-side only online check function
+const isOnlineClient = async (): Promise<boolean> => {
+  try {
+    // First check navigator.onLine
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      console.log('Navigator reports offline');
+      return false;
+    }
+    
+    // Try to reach the backend
+    const apiUrl = 'http://10.133.250.197:4004';
+    console.log('Checking online status with URL:', apiUrl);
+    
+    // Try with a very short timeout first
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 500);
+    
+    try {
+      const response = await fetch(`${apiUrl}/health`, { 
+        method: "GET", 
+        cache: "no-cache",
+        signal: controller.signal,
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      const isOnline = response.ok;
+      console.log('Online check result:', isOnline, 'Status:', response.status);
+      return isOnline;
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      console.log('First fetch attempt failed:', fetchError);
+      
+      // Try a second time with a different approach
+      try {
+        const response2 = await fetch(`${apiUrl}/health`, { 
+          method: "GET", 
+          cache: "no-cache",
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        const isOnline = response2.ok;
+        console.log('Second online check result:', isOnline, 'Status:', response2.status);
+        return isOnline;
+      } catch (secondError) {
+        console.log('Second fetch attempt also failed:', secondError);
+        return false;
+      }
+    }
+  } catch (error) {
+    console.log('Online check failed:', error);
+    return false;
+  }
+};
+
 export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -38,7 +99,7 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
       const initializeAuth = async () => {
         try {
           // Check online status
-          const online = await isOnline();
+          const online = await isOnlineClient();
           setOnlineStatus(online);
 
           // Load stored user data
@@ -60,7 +121,7 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Check online status periodically
       const interval = setInterval(async () => {
-        const online = await isOnline();
+        const online = await isOnlineClient();
         setOnlineStatus(online);
       }, 5000); // Check every 5 seconds
 
@@ -111,7 +172,7 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshOnlineStatus = async () => {
-    const online = await isOnline();
+    const online = await isOnlineClient();
     setOnlineStatus(online);
   };
 
