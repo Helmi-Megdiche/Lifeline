@@ -110,12 +110,32 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white/70 backdrop-blur-sm rounded-2xl p-8 border border-gray-200/60 shadow-lg">
+    <div className="max-w-md mx-auto bg-white/70 dark:bg-dark-surface-primary/80 backdrop-blur-sm rounded-2xl p-8 border border-gray-200/60 dark:border-dark-border-primary/60 shadow-lg">
+      {/* Theme Toggle */}
+      <div className="mb-6 flex justify-end">
+        <button
+          onClick={toggleTheme}
+          className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-dark-surface-secondary hover:bg-gray-200 dark:hover:bg-dark-surface-primary text-gray-700 dark:text-dark-text-secondary rounded-lg text-sm font-medium transition-colors"
+        >
+          {theme === 'light' ? (
+            <>
+              <span>🌙</span>
+              <span>Dark</span>
+            </>
+          ) : (
+            <>
+              <span>☀️</span>
+              <span>Light</span>
+            </>
+          )}
+        </button>
+      </div>
+
       {/* Online/Offline Status */}
       <div className={`mb-6 text-center px-4 py-2 rounded-lg text-sm font-medium ${
         isOnline 
-          ? 'bg-green-100 text-green-800 border border-green-200' 
-          : 'bg-amber-100 text-amber-800 border border-amber-200'
+          ? 'bg-green-100 dark:bg-emergency-green-900 text-green-800 dark:text-emergency-green-100 border border-green-200 dark:border-emergency-green-700' 
+          : 'bg-amber-100 dark:bg-emergency-yellow-900 text-amber-800 dark:text-emergency-yellow-100 border border-amber-200 dark:border-emergency-yellow-700'
       }`}>
         <div className="flex items-center justify-center gap-2">
           <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-amber-500'}`}></div>
@@ -130,11 +150,11 @@ export default function AuthPage() {
           )}
         </div>
         {!isOnline && !isLogin && (
-          <p className="mt-2 text-xs">
+          <p className="mt-2 text-xs text-gray-600 dark:text-dark-text-secondary">
             Registration requires internet connection. Please connect to register.
           </p>
         )}
-        <div className="mt-2 text-xs text-gray-500">
+        <div className="mt-2 text-xs text-gray-500 dark:text-dark-text-tertiary">
           <button
             onClick={async () => {
               console.log('Testing backend connection...');
@@ -154,43 +174,43 @@ export default function AuthPage() {
         </div>
       </div>
 
-      <h1 className="text-3xl font-bold text-center text-gray-900 mb-6">
+      <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-dark-text-primary mb-6">
         {isLogin ? 'Login' : 'Register'}
       </h1>
       
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+        <div className="bg-red-100 dark:bg-emergency-red-900 border border-red-400 dark:border-emergency-red-700 text-red-700 dark:text-emergency-red-100 px-4 py-3 rounded relative mb-4" role="alert">
           <span className="block sm:inline">{error}</span>
         </div>
       )}
       {message && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+        <div className="bg-green-100 dark:bg-emergency-green-900 border border-green-400 dark:border-emergency-green-700 text-green-700 dark:text-emergency-green-100 px-4 py-3 rounded relative mb-4" role="alert">
           <span className="block sm:inline">{message}</span>
         </div>
       )}
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label htmlFor="username" className="block text-sm font-medium text-gray-900 mb-1">
+          <label htmlFor="username" className="block text-sm font-medium text-gray-900 dark:text-dark-text-primary mb-1">
             Username
           </label>
           <input
             type="text"
             id="username"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 bg-white"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 dark:border-dark-border-primary rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 dark:text-dark-text-primary bg-white dark:bg-dark-surface-secondary"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
           />
         </div>
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-1">
+          <label htmlFor="password" className="block text-sm font-medium text-gray-900 dark:text-dark-text-primary mb-1">
             Password
           </label>
           <input
             type="password"
             id="password"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 bg-white"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 dark:border-dark-border-primary rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 dark:text-dark-text-primary bg-white dark:bg-dark-surface-secondary"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -199,7 +219,7 @@ export default function AuthPage() {
         <button
           type="submit"
           disabled={!isOnline && !isLogin}
-          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-emergency-blue-500 dark:hover:bg-emergency-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLogin ? 'Login' : 'Register'}
         </button>
@@ -209,7 +229,7 @@ export default function AuthPage() {
         <button
           onClick={() => setIsLogin(!isLogin)}
           disabled={!isOnline && isLogin} // Disable only when offline AND on login page (trying to go to register)
-          className="text-sm text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="text-sm text-blue-600 dark:text-emergency-blue-400 hover:text-blue-700 dark:hover:text-emergency-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLogin ? 'Need an account? Register' : 'Already have an account? Login'}
         </button>
@@ -217,7 +237,7 @@ export default function AuthPage() {
       
       {!isOnline && (
         <div className="mt-4 text-center">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-dark-text-tertiary">
             Offline mode: Only login is available. Connect to internet for registration.
           </p>
         </div>
