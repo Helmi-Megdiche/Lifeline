@@ -134,44 +134,6 @@ export default function MyStatusPage() {
                     </a>
                     <button
                       onClick={async () => {
-                        // Force sync the current status
-                        if (last) {
-                          const updatedStatus = { ...last, synced: true };
-                          // Update both localStorage and IndexedDB
-                          localStorage.setItem("lifeline:lastStatus", JSON.stringify(updatedStatus));
-                          
-                          // Also update IndexedDB
-                          try {
-                            const { saveStatus } = await import("@/lib/indexedDB");
-                            await saveStatus(updatedStatus);
-                          } catch (error) {
-                            console.log("IndexedDB update failed:", error);
-                          }
-                          
-                          // Force refresh the component state
-                          setLast(updatedStatus);
-                          
-                          // Also try to actually sync with server
-                          try {
-                            const { getApiUrl, API_CONFIG } = await import("@/lib/config");
-                            await fetch(getApiUrl(API_CONFIG.STATUS_ENDPOINT), {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify(updatedStatus)
-                            });
-                            console.log("Successfully synced with server");
-                          } catch (error) {
-                            console.log("Server sync failed:", error);
-                          }
-                        }
-                      }}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium text-sm rounded-lg transition-colors"
-                    >
-                      <span>🌐</span>
-                      Force Online
-                    </button>
-                    <button
-                      onClick={async () => {
                         if (confirm("This will clear all saved data. Are you sure?")) {
                           // Clear everything
                           localStorage.clear();

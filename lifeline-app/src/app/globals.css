@@ -24,14 +24,25 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Light mode background */
+body {
+  background: radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(239, 68, 68, 0.06) 0%, transparent 50%),
+    linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%);
+  background-attachment: fixed;
+}
+
 /* Dark mode specific styles for emergency app - softer gradient */
 .dark body {
   background: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+  background-attachment: fixed !important;
 }
 
 /* Override the inline style for dark mode */
 .dark body[style] {
   background: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+  background-attachment: fixed !important;
 }
 
 /* Ensure proper contrast for emergency elements in dark mode */
@@ -60,4 +71,113 @@ body {
 
 .dark .border-gray-300 {
   border-color: #4b5563;
+}
+
+/* Force dark mode colors to apply */
+html.dark {
+  background-color: #1a1f2e !important;
+}
+
+html.dark body {
+  background: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+  background-attachment: fixed !important;
+}
+
+/* Force dark mode colors to apply with maximum specificity */
+html.dark body {
+  background-color: #1a1f2e !important;
+  background-image: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+  background-attachment: fixed !important;
+}
+
+html.dark {
+  background-color: #1a1f2e !important;
+  background-image: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+}
+
+/* Nuclear option - force dark mode background */
+html.dark,
+html.dark body,
+body.dark,
+html[class*="dark"] body {
+  background: #1a1f2e !important;
+  background-image: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+  background-attachment: fixed !important;
+}
+
+/* Final override - this should work now */
+html.dark body {
+  background: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+}
+
+/* Force navbar dark mode */
+html.dark header {
+  background-color: #252b3b !important;
+  border-color: #374151 !important;
+}
+
+html.dark header nav {
+  background-color: transparent !important;
+}
+
+/* Force navbar text colors */
+html.dark header a {
+  color: #f1f5f9 !important;
+}
+
+html.dark header button {
+  color: #f1f5f9 !important;
+}
+
+/* Improve text contrast for better readability */
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
+  color: #f1f5f9 !important;
+}
+
+html.dark p,
+html.dark span,
+html.dark div {
+  color: #cbd5e1 !important;
+}
+
+/* Force better contrast for main content */
+html.dark .text-gray-600,
+html.dark .text-gray-700,
+html.dark .text-gray-800 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-gray-900 {
+  color: #f1f5f9 !important;
+}
+
+/* Ensure input text is clear in dark mode */
+html.dark input[type="text"],
+html.dark input[type="password"],
+html.dark input[type="email"],
+html.dark textarea {
+  color: #f1f5f9 !important; /* Light text for dark background */
+  background-color: #2d3548 !important; /* Dark surface background */
+  border-color: #374151 !important; /* Slightly lighter border */
+}
+
+/* Force placeholder text to be visible */
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #94a3b8 !important; /* Light gray placeholder */
+  opacity: 1 !important;
+}
+
+/* Ensure all input elements have proper contrast */
+html.dark input,
+html.dark textarea,
+html.dark select {
+  color: #f1f5f9 !important;
+  background-color: #2d3548 !important;
+  border-color: #374151 !important;
 }
