@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { saveStatus, queueStatus, type CheckInStatus } from "@/lib/indexedDB";
 import { usePouchDB } from "@/hooks/usePouchDB";
+import { saveStatusToPouch as upsertSingleStatus } from "@/lib/pouchdb";
 import { useAuth } from "@/contexts/ClientAuthContext";
 import { getApiUrl, API_CONFIG } from "@/lib/config";
 
@@ -22,36 +23,18 @@ export default function Home() {
     longitude?: number;
     userId?: string;
   }) => {
-    if (!localDB) {
-      console.error('Cannot save to PouchDB: localDB not initialized');
+    if (!localDB || !user?.id) {
+      console.error('Cannot save to PouchDB: DB not ready or user missing');
       return;
     }
-    
-    const doc = {
-      _id: new Date().toISOString(),
+    console.log('Saving to PouchDB (single-doc model):', status);
+    return upsertSingleStatus({
       status: status.status,
       timestamp: status.timestamp,
       latitude: status.latitude,
       longitude: status.longitude,
-      userId: status.userId,
-      synced: false,
-      createdAt: new Date().toISOString(),
-    };
-
-    console.log('Saving to PouchDB:', doc);
-    try {
-      const result = await localDB.put(doc);
-      console.log('Status saved to PouchDB successfully:', result);
-      
-      // Verify it was saved
-      const saved = await localDB.get(doc._id);
-      console.log('Verified saved doc:', saved);
-      
-      return result;
-    } catch (error) {
-      console.error('Error saving status to PouchDB:', error);
-      throw error;
-    }
+      userId: user.id,
+    });
   };
 
   async function buildPayload(status: "safe" | "help"): Promise<CheckInStatus> {
@@ -76,7 +59,8 @@ export default function Home() {
       longitude,
       userId: user?.id
     };
-  }
+  } 
+  
 
   async function isReallyOnline(): Promise<boolean> {
     // More reliable online check - try to actually reach the server
@@ -99,9 +83,16 @@ export default function Home() {
     
             try {
               // Save to both IndexedDB (legacy) and PouchDB (new)
+              const clean = {
+                status: payload.status,
+                timestamp: payload.timestamp,
+                latitude: payload.latitude ?? undefined,
+                longitude: payload.longitude ?? undefined,
+                userId: user?.id,
+              } as const;
               await Promise.all([
                 saveStatus(payload),
-                isClient && localDB ? saveStatusToPouch(payload) : Promise.resolve()
+                isClient && localDB ? saveStatusToPouch(clean) : Promise.resolve()
               ]);
 
           const isOnline = await isReallyOnline();
@@ -127,10 +118,10 @@ export default function Home() {
         <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mb-6 shadow-lg">
           <span className="text-white font-bold text-2xl">L</span>
         </div>
-        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-3">
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-3">
           Emergency Check-In
         </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
               Stay connected with responders. Your status saves offline and syncs automatically when back online.
             </p>
             {user && (
@@ -141,7 +132,7 @@ export default function Home() {
             )}
       </div>
 
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 mb-8 border border-gray-200/60 shadow-lg">
+      <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-8 mb-6 sm:mb-8 border border-gray-200/60 shadow-lg">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full text-sm text-blue-700 mb-4">
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
@@ -149,9 +140,9 @@ export default function Home() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-lg mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-lg mx-auto">
           <button
-            className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-6 px-8 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:transform-none"
+            className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-8 px-6 sm:py-6 sm:px-8 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:transform-none min-h-[80px] sm:min-h-[120px]"
             id="btn-safe"
             disabled={isSaving}
             onClick={() => handleStatusSave("safe")}
@@ -170,7 +161,7 @@ export default function Home() {
             )}
           </button>
           <button
-            className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-6 px-8 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:transform-none"
+            className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-8 px-6 sm:py-6 sm:px-8 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:transform-none min-h-[80px] sm:min-h-[120px]"
             id="btn-help"
             disabled={isSaving}
             onClick={() => handleStatusSave("help")}

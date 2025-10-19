@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req, Res } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { StatusService } from '../status/status.service';
-import { Types } from 'mongoose';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { CheckInStatus } from '../schemas/status.schema';
 import type { Request, Response } from 'express';
 
@@ -15,6 +15,11 @@ interface BulkDocResult {
 @Controller('pouch')
 export class PouchController {
   constructor(private readonly statusService: StatusService) {}
+
+  private computeRevFromStatus(status: any): string {
+    // Always return stored Couch-style _rev
+    return status?._rev;
+  }
 
   // CouchDB-compatible endpoints for PouchDB sync
   @Get()
@@ -33,7 +38,7 @@ export class PouchController {
         rows: statuses.map(status => ({
           id: status._id,
           key: status._id,
-          value: { rev: status._rev || '1-' + Date.now() }
+          value: { rev: this.computeRevFromStatus(status) }
         }))
       };
       
@@ -65,9 +70,11 @@ export class PouchController {
     return this.getDbInfo(res);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('status/_bulk_docs')
-  async bulkDocs(@Body() body: any, @Res() res: Response) {
+  async bulkDocs(@Body() body: any, @Req() req: Request, @Res() res: Response) {
     try {
+      console.log('[_bulk_docs] user:', (req as any)?.user);
       const results: BulkDocResult[] = [];
       
       console.log('PouchDB bulk_docs received:', JSON.stringify(body, null, 2));
@@ -77,63 +84,26 @@ export class PouchController {
           console.log('Processing doc:', JSON.stringify(doc, null, 2));
           
           if (doc._deleted) {
-            // Handle deletion
             await this.statusService.delete(doc._id);
             results.push({ id: doc._id, rev: doc._rev, ok: true });
-          } else {
-            // Validate required fields
-            if (!doc.status || !doc.timestamp) {
-              console.error('Missing required fields:', { status: doc.status, timestamp: doc.timestamp });
-              results.push({
-                id: doc._id,
-                error: 'validation_error',
-                reason: 'Missing required fields: status and timestamp'
-              });
-              continue;
-            }
-            
-            // Check if doc already exists by id or by (timestamp,userId) to avoid duplicates
-            let existingStatus: CheckInStatus | null = null;
-            if (doc._id && Types.ObjectId.isValid(doc._id)) {
-              existingStatus = await this.statusService.findById(doc._id);
-            }
-            if (!existingStatus && doc.timestamp) {
-              existingStatus = await this.statusService.findOneByTimestampAndUserId(doc.timestamp, doc.userId);
-            }
-            
-            if (existingStatus) {
-              // Update existing document
-              const updatedStatus = await this.statusService.update(doc._id, {
-                status: doc.status,
-                timestamp: doc.timestamp,
-                latitude: doc.latitude,
-                longitude: doc.longitude,
-                userId: doc.userId,
-              });
-              if (updatedStatus) {
-                results.push({ 
-                  id: (updatedStatus._id as Types.ObjectId).toString(), 
-                  rev: updatedStatus._rev || '1-' + Date.now(), 
-                  ok: true 
-                });
-              }
-            } else {
-              // Create new document preserving client _id to avoid duplicates
-              const newStatus = await this.statusService.create({
-                _id: doc._id,
-                status: doc.status,
-                timestamp: doc.timestamp,
-                latitude: doc.latitude,
-                longitude: doc.longitude,
-                userId: doc.userId,
-              } as any);
-              results.push({
-                id: (newStatus._id as Types.ObjectId).toString(),
-                rev: newStatus._rev || '1-' + Date.now(),
-                ok: true
-              });
-            }
+            continue;
           }
+
+          const authedUserId = (req as any)?.user?.userId;
+          if (!authedUserId || !doc.status || !doc.timestamp) {
+            results.push({ id: doc._id, error: 'validation_error', reason: 'userId, status, timestamp required' });
+            continue;
+          }
+
+          const updated = await this.statusService.upsertSingleStatus({
+            userId: authedUserId,
+            status: doc.status,
+            timestamp: doc.timestamp,
+            latitude: doc.latitude,
+            longitude: doc.longitude,
+            appendHistory: false,
+          });
+          results.push({ id: (updated._id as any).toString(), rev: updated._rev, ok: true });
         } catch (docError) {
           console.error('Error processing doc in bulk_docs:', doc, docError);
           results.push({
@@ -151,6 +121,7 @@ export class PouchController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('status/_changes')
   async getChanges(@Query() query: any, @Res() res: Response) {
     try {
@@ -161,7 +132,7 @@ export class PouchController {
         results: statuses.map(s => ({
           seq: s.timestamp,
           id: s._id,
-          changes: [{ rev: s._rev || '1-' + Date.now() }],
+          changes: [{ rev: s._rev }],
           doc: s,
         })),
         last_seq: lastSeq,
@@ -174,6 +145,7 @@ export class PouchController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('status/:id')
   async getDoc(@Param('id') id: string, @Res() res: Response) {
     try {
@@ -183,8 +155,8 @@ export class PouchController {
       }
       
       const response = {
-        _id: (status._id as Types.ObjectId).toString(),
-        _rev: status._rev || '1-' + Date.now(),
+        _id: (status._id as any).toString(),
+        _rev: status._rev,
         status: status.status,
         timestamp: status.timestamp,
         latitude: status.latitude,
@@ -202,14 +174,87 @@ export class PouchController {
   }
 
   // Additional endpoints for PouchDB compatibility
+  @UseGuards(JwtAuthGuard)
   @Post('status/_revs_diff')
-  async revsDiff(@Body() body: any, @Res() res: Response) {
-    // Return empty object for now - PouchDB will handle this
-    res.json({});
+  async revsDiff(@Body() body: any, @Req() req: Request, @Res() res: Response) {
+    try {
+      console.log('[_revs_diff] body:', JSON.stringify(body, null, 2));
+      console.log('[_revs_diff] req.user:', JSON.stringify((req as any).user, null, 2));
+      const response: Record<string, { missing: string[] }> = {};
+      const userId = (req as any)?.user?.userId as string | undefined;
+      console.log('[_revs_diff] userId:', userId);
+      const userIdStr = userId?.toString() || userId;
+      console.log('[_revs_diff] userIdStr:', userIdStr);
+      const expectedDocId = userIdStr ? `user_${userIdStr}_status` : undefined;
+      console.log('[_revs_diff] expectedDocId:', expectedDocId);
+
+      const ids = Object.keys(body || {});
+      console.log('[_revs_diff] Processing IDs:', ids);
+      for (const clientDocId of ids) {
+        console.log('[_revs_diff] Processing clientDocId:', clientDocId);
+        // Only allow/consider the authenticated user's single doc
+        if (expectedDocId && clientDocId !== expectedDocId) {
+          console.log('[_revs_diff] Skipping non-user doc:', clientDocId);
+          continue;
+        }
+
+        const value = body[clientDocId];
+        const clientRevs: string[] = Array.isArray(value)
+          ? (value as string[])
+          : Array.isArray(value?.revs)
+            ? (value.revs as string[])
+            : [];
+        console.log('[_revs_diff] clientRevs for', clientDocId, ':', clientRevs);
+
+        let existing;
+        try {
+          existing = expectedDocId
+            ? await this.statusService.findById(expectedDocId)
+            : await this.statusService.findById(clientDocId);
+          console.log('[_revs_diff] existing doc for', clientDocId, ':', existing ? 'found' : 'not found');
+        } catch (error) {
+          console.log('[_revs_diff] Error finding doc for', clientDocId, ':', error);
+          existing = null;
+        }
+
+        if (!existing) {
+          // If doc doesn't exist server-side, all client revisions are missing
+          console.log(`[_revs_diff] Doc ${clientDocId} not found on server, marking client revs as missing:`, clientRevs);
+          response[clientDocId] = { missing: clientRevs.length ? clientRevs : ['1-0'] };
+          continue;
+        }
+
+        // Check if client has revisions that server doesn't have
+        const serverRev = existing._rev || '';
+        if (!serverRev) {
+          // Server has no revision, all client revs are missing
+          console.log(`[_revs_diff] Server has no revision, marking all client revs as missing:`, clientRevs);
+          response[clientDocId] = { missing: clientRevs.length ? clientRevs : ['1-0'] };
+        } else {
+          // Find client revisions that are newer than server revision
+          const missingRevs = clientRevs.filter(clientRev => {
+            // If client rev is not the same as server rev, it's potentially missing
+            return clientRev !== serverRev;
+          });
+          
+          if (missingRevs.length > 0) {
+            console.log(`[_revs_diff] Server rev '${serverRev}' differs from client revs [${clientRevs.join(', ')}], marking newer revs as missing:`, missingRevs);
+            response[clientDocId] = { missing: missingRevs };
+          } else {
+            console.log(`[_revs_diff] Server rev '${serverRev}' matches client revs, no missing revs`);
+          }
+        }
+      }
+      console.log('[_revs_diff] Final response:', JSON.stringify(response, null, 2));
+      return res.json(response);
+    } catch (error) {
+      return res.json({});
+    }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put('status/:id')
-  async updateDoc(@Param('id') id: string, @Body() doc: any, @Res() res: Response) {
+  async updateDoc(@Param('id') id: string, @Body() doc: any, @Req() req: Request, @Res() res: Response) {
     try {
       console.log('PouchDB PUT updateDoc:', { id, doc: JSON.stringify(doc, null, 2) });
       
@@ -218,31 +263,23 @@ export class PouchController {
       // Remove PouchDB-specific fields
       delete updateData._rev;
 
-      // Validate required fields if provided (creation path requires them)
-      const hasRequired = updateData.status && updateData.timestamp;
-
-      // Try update first
-      let status = await this.statusService.update(id, updateData);
-
-      // If not found, create a new one preserving the _id
-      if (!status) {
-        if (!hasRequired) {
-          console.error('Missing required fields in create via PUT:', { status: updateData.status, timestamp: updateData.timestamp });
-          return res.status(400).json({ 
-            error: 'validation_error', 
-            reason: 'Missing required fields: status and timestamp' 
-          });
-        }
-        status = await this.statusService.create({
-          _id: id,
-          ...updateData,
-        } as any);
+      const authedUserId = (req as any)?.user?.userId;
+      if (!authedUserId || !updateData.status || !updateData.timestamp) {
+        return res.status(400).json({ error: 'validation_error', reason: 'userId, status, timestamp required' });
       }
+      const status = await this.statusService.upsertSingleStatus({
+        userId: authedUserId,
+        status: updateData.status,
+        timestamp: updateData.timestamp,
+        latitude: updateData.latitude,
+        longitude: updateData.longitude,
+        appendHistory: false,
+      });
 
       const response = {
         ok: true,
-        id: (status._id as Types.ObjectId).toString(),
-        rev: status._rev || '1-' + Date.now()
+        id: (status._id as any).toString(),
+        rev: status._rev
       };
 
       res.json(response);
@@ -253,8 +290,9 @@ export class PouchController {
   }
 
   // Handle PUT requests without ID (for document creation)
+  @UseGuards(JwtAuthGuard)
   @Put('status')
-  async createDoc(@Body() doc: any, @Res() res: Response) {
+  async createDoc(@Body() doc: any, @Req() req: Request, @Res() res: Response) {
     try {
       console.log('PouchDB PUT createDoc:', JSON.stringify(doc, null, 2));
       // CouchDB semantics: PUT /{db} with empty body is used to create/check database
@@ -270,20 +308,28 @@ export class PouchController {
       delete createData._rev;
 
       // Validate required fields
-      if (!createData.status || !createData.timestamp) {
+      const authedUserId = (req as any)?.user?.userId;
+      if (!authedUserId || !createData.status || !createData.timestamp) {
         console.error('Missing required fields in create:', { status: createData.status, timestamp: createData.timestamp });
         return res.status(400).json({ 
           error: 'validation_error', 
-          reason: 'Missing required fields: status and timestamp' 
+          reason: 'Missing required fields: userId, status and timestamp' 
         });
       }
 
-      const status = await this.statusService.create(createData);
+      const status = await this.statusService.upsertSingleStatus({
+        userId: authedUserId,
+        status: createData.status,
+        timestamp: createData.timestamp,
+        latitude: createData.latitude,
+        longitude: createData.longitude,
+        appendHistory: false,
+      });
 
       const response = {
         ok: true,
-        id: (status._id as Types.ObjectId).toString(),
-        rev: status._rev || '1-' + Date.now()
+        id: (status._id as any).toString(),
+        rev: status._rev
       };
 
       res.json(response);
@@ -294,8 +340,9 @@ export class PouchController {
   }
 
   // Handle POST requests for document creation (alternative to PUT)
+  @UseGuards(JwtAuthGuard)
   @Post('status')
-  async createDocPost(@Body() doc: any, @Res() res: Response) {
+  async createDocPost(@Body() doc: any, @Req() req: Request, @Res() res: Response) {
     try {
       console.log('PouchDB POST createDoc:', JSON.stringify(doc, null, 2));
       
@@ -305,20 +352,28 @@ export class PouchController {
       delete createData._rev;
 
       // Validate required fields
-      if (!createData.status || !createData.timestamp) {
+      const authedUserId = (req as any)?.user?.userId;
+      if (!authedUserId || !createData.status || !createData.timestamp) {
         console.error('Missing required fields in create POST:', { status: createData.status, timestamp: createData.timestamp });
         return res.status(400).json({ 
           error: 'validation_error', 
-          reason: 'Missing required fields: status and timestamp' 
+          reason: 'Missing required fields: userId, status and timestamp' 
         });
       }
 
-      const status = await this.statusService.create(createData);
+      const status = await this.statusService.upsertSingleStatus({
+        userId: authedUserId,
+        status: createData.status,
+        timestamp: createData.timestamp,
+        latitude: createData.latitude,
+        longitude: createData.longitude,
+        appendHistory: false,
+      });
 
       const response = {
         ok: true,
-        id: (status._id as Types.ObjectId).toString(),
-        rev: status._rev || '1-' + Date.now()
+        id: (status._id as any).toString(),
+        rev: status._rev
       };
 
       res.json(response);
@@ -328,12 +383,14 @@ export class PouchController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('status/_local/:id')
   async getLocalDoc(@Param('id') id: string, @Res() res: Response) {
     res.status(404).json({ error: 'not_found', reason: 'missing' });
   }
 
   // Store checkpoint/local docs used by PouchDB sync
+  @UseGuards(JwtAuthGuard)
   @Put('status/_local/:id')
   async putLocalDoc(@Param('id') id: string, @Body() body: any, @Res() res: Response) {
     try {
@@ -345,6 +402,7 @@ export class PouchController {
   }
 
   // Minimal _bulk_get implementation for PouchDB compatibility
+  @UseGuards(JwtAuthGuard)
   @Post('status/_bulk_get')
   async bulkGet(@Body() body: any, @Res() res: Response) {
     try {
@@ -355,8 +413,8 @@ export class PouchController {
             return { id: req.id, docs: [{ error: { error: 'not_found', reason: 'missing' } }] };
           }
           const doc = {
-            _id: (status._id as Types.ObjectId).toString(),
-            _rev: status._rev || '1-' + Date.now(),
+            _id: (status._id as any).toString(),
+            _rev: status._rev,
             status: status.status,
             timestamp: status.timestamp,
             latitude: status.latitude,

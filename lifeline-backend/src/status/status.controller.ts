@@ -9,12 +9,14 @@ export class StatusController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createStatusDto: CreateStatusDto) {
-    console.log('Creating status:', createStatusDto);
-    console.log('Status type:', typeof createStatusDto.status);
-    console.log('Timestamp type:', typeof createStatusDto.timestamp);
-    console.log('Status value:', createStatusDto.status);
-    console.log('Timestamp value:', createStatusDto.timestamp);
-    const status = await this.statusService.create(createStatusDto);
+    const status = await this.statusService.upsertSingleStatus({
+      userId: createStatusDto.userId!,
+      status: createStatusDto.status as any,
+      timestamp: createStatusDto.timestamp,
+      latitude: createStatusDto.latitude,
+      longitude: createStatusDto.longitude,
+      appendHistory: true,
+    });
     return { success: true, data: status };
   }
 

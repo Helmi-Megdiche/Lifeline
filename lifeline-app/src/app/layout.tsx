@@ -6,6 +6,7 @@ import { ClientAuthProvider } from "@/contexts/ClientAuthContext";
 import { ClientSyncProvider } from "@/components/ClientSyncProvider";
 import { AuthGuard } from "@/components/AuthGuard";
 import { ConditionalHeader } from "@/components/ConditionalHeader";
+import InstallPrompt from "./InstallPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -65,10 +66,23 @@ export default function RootLayout({
         ></div>
         
         <ConditionalHeader />
-            <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        {/* Register service worker (once on client) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js').catch(() => {});
+                });
+              }
+            `
+          }}
+        />
+            <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
               <ClientAuthProvider>
                 <AuthGuard>
                   <ClientSyncProvider>
+                    <InstallPrompt />
                     {children}
                   </ClientSyncProvider>
                 </AuthGuard>

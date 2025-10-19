@@ -27,7 +27,7 @@ const withPWA = require('next-pwa')({
       },
     },
     {
-      urlPattern: ({ url }: any) => url.href.includes('localhost:4000/status') || url.pathname.startsWith('/api/status'),
+      urlPattern: ({ url }: any) => url.href.includes('10.133.250.197:4004/status') || url.pathname.startsWith('/api/status'),
       handler: 'NetworkOnly',
       options: {
         backgroundSync: {
@@ -40,7 +40,7 @@ const withPWA = require('next-pwa')({
     },
     // PouchDB sync endpoints
     {
-      urlPattern: ({ url }: any) => url.href.includes('localhost:4000/pouch/'),
+      urlPattern: ({ url }: any) => url.href.includes('10.133.250.197:4004/pouch/'),
       handler: 'NetworkFirst',
       options: {
         cacheName: 'lifeline-pouch-sync',
@@ -78,4 +78,22 @@ const withPWA = require('next-pwa')({
 
 module.exports = withPWA({
   reactStrictMode: true,
+  // Allow cross-origin requests from mobile devices
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'unsafe-none',
+          },
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
+          },
+        ],
+      },
+    ];
+  },
 });

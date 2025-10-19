@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { usePouchDB } from './usePouchDB';
 import { migrateIndexedDBToPouch } from '@/lib/pouchdb';
-import { getAllStatusesFromIDB } from '@/lib/indexedDB';
+import { getAllStatusesFromIDB, deleteStatusByTimestampUser } from '@/lib/indexedDB';
 import { useAuth } from '@/contexts/ClientAuthContext';
 
 export const useSync = () => {
@@ -10,10 +10,10 @@ export const useSync = () => {
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [error, setError] = useState<any>(null);
   const { localDB, remoteDB } = usePouchDB();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   useEffect(() => {
-    if (!localDB || !remoteDB) return;
+    if (!localDB || !remoteDB || !token) return;
 
     let sync: any;
 
@@ -21,42 +21,51 @@ export const useSync = () => {
       setSyncStatus('syncing');
       setError(null);
       try {
-        // Ensure indexes are created before starting sync
-        await localDB.createIndex({ index: { fields: ['timestamp'] } });
-        await localDB.createIndex({ index: { fields: ['synced'] } });
-        await localDB.createIndex({ index: { fields: ['userId'] } });
-        await localDB.createIndex({ index: { fields: ['synced', 'timestamp'] } });
-        await localDB.createIndex({ index: { fields: ['userId', 'timestamp'] } });
-        console.log('PouchDB indexes ensured before sync.');
+        // Indexes are ensured during PouchDB init; no need to re-create here
+        console.log('PouchDB indexes already ensured at init.');
 
-        const markLocalDocsAsSynced = async () => {
+        const markDocsAsSynced = async (docs: any[]) => {
           try {
-            const result = await localDB.allDocs({ include_docs: true });
-            for (const row of (result.rows as any[])) {
-              const doc = row.doc as any;
-              if (doc && !doc._id.startsWith('_') && doc.synced === false) {
+            for (const doc of docs) {
+              if (doc && !doc._id?.startsWith('_') && doc.synced === false) {
                 await localDB.put({ ...doc, synced: true });
               }
             }
             setLastSyncTime(new Date());
           } catch (e) {
-            console.warn('Failed to mark local docs as synced:', e);
+            console.warn('Failed to mark docs as synced:', e);
           }
         };
 
         sync = localDB.sync(remoteDB, {
           live: true,
           retry: true,
+          batch_size: 10, // Smaller batches for better responsiveness
+          batches_limit: 1,
+          heartbeat: 30000, // Check for changes every 30 seconds instead of default 10s
           back_off_function: (delay: number) => {
-            if (delay === 0) return 1000;
-            return Math.min(delay * 2, 10000);
+            if (delay === 0) return 2000; // Start with 2s delay
+            return Math.min(delay * 2, 30000); // Max 30s delay
           },
         })
-          .on('change', (info: any) => {
+          .on('change', async (info: any) => {
             console.log('Sync change:', info);
             setSyncStatus('syncing');
             setLastSyncTime(new Date());
-            markLocalDocsAsSynced();
+            if (info?.direction === 'push' && info?.change?.docs) {
+              await markDocsAsSynced(info.change.docs as any[]);
+            }
+            // Clean legacy IDB for pushed docs
+            try {
+              const docs = (info?.change?.docs || []) as any[];
+              for (const d of docs) {
+                if (info.direction === 'push' && d && !d._deleted && typeof d.timestamp === 'number') {
+                  await deleteStatusByTimestampUser(d.timestamp, d.userId);
+                }
+              }
+            } catch (e) {
+              console.warn('IDB cleanup on change failed:', e);
+            }
           })
           .on('paused', () => {
             console.log('Sync paused');
@@ -75,7 +84,7 @@ export const useSync = () => {
           .on('complete', (info: any) => {
             console.log('Sync complete:', info);
             setSyncStatus('idle');
-            markLocalDocsAsSynced();
+            // no global allDocs flip here
           })
           .on('error', (err: any) => {
             console.error('Sync error:', err);
@@ -97,7 +106,7 @@ export const useSync = () => {
         sync.cancel();
       }
     };
-  }, [localDB, remoteDB]);
+  }, [localDB, remoteDB, token]);
 
   const manualSync = async () => {
     console.log('=== MANUAL SYNC BUTTON CLICKED ===');
@@ -163,38 +172,9 @@ export const useSync = () => {
       console.log('Docs written TO remote:', replicateTo.docs_written);
       console.log('Docs read FROM local:', replicateTo.docs_read);
       
-      // If no docs were written, let's try to force sync by checking what PouchDB thinks needs syncing
+      // If no docs were written, just log – avoid forcing unsynced to reduce churn
       if (replicateTo.docs_written === 0) {
-        console.log('No docs written to remote. Checking what PouchDB thinks needs syncing...');
-        const changes = await localDB.changes({ since: 0, include_docs: true });
-        console.log('Local changes since beginning:', changes.results.length);
-        changes.results.forEach((change: any) => {
-          if (change.doc && !change.doc._id.startsWith('_')) {
-            console.log('Change doc:', change.doc._id, change.doc.synced, change.seq);
-          }
-        });
-        
-        // Force mark all status docs as unsynced and try again
-        console.log('Forcing all status docs to be unsynced and retrying...');
-        for (const row of localDocs.rows) {
-          if (row.doc && !row.doc._id.startsWith('_') && row.doc.status) {
-            const updatedDoc = { ...row.doc, synced: false };
-            await localDB.put(updatedDoc);
-            console.log('Forced unsynced:', row.doc._id);
-          }
-        }
-        
-        // Try replication again
-        console.log('Retrying replication TO remote after forcing unsynced...');
-        const retryReplicateTo = await localDB.replicate.to(remoteDB, {
-          live: false,
-          retry: false,
-          batch_size: 10,
-          batches_limit: 1
-        });
-        console.log('Retry replication TO complete:', retryReplicateTo);
-        console.log('Retry docs written TO remote:', retryReplicateTo.docs_written);
-        console.log('Retry docs read FROM local:', retryReplicateTo.docs_read);
+        console.log('No docs written to remote during manual sync. Nothing new to push.');
       }
 
       console.log('Starting replication FROM remote...');

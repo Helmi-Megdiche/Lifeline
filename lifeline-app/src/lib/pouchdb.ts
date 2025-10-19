@@ -5,12 +5,18 @@ import PouchFind from 'pouchdb-find';
 // Enable PouchDB plugins
 PouchDB.plugin(PouchFind);
 
-// Create local database
-export const localDB = new PouchDB('lifeline-local');
+// Active databases (mutable to support per-user DB switching)
+export let localDB: PouchDB.Database<any> = new PouchDB('lifeline-local');
 
 // Create remote database connection
 const REMOTE_DB_URL = process.env.NEXT_PUBLIC_COUCH_SYNC_URL || 'http://localhost:4004/pouch/status';
-export const remoteDB = new PouchDB(REMOTE_DB_URL);
+export let remoteDB: PouchDB.Database<any> = new PouchDB(REMOTE_DB_URL);
+
+// Allow hooks to switch the active DBs (per-user)
+export const setActiveDatabases = (local: PouchDB.Database<any>, remote: PouchDB.Database<any>) => {
+  localDB = local;
+  remoteDB = remote;
+};
 
 // Database configuration
 export const dbConfig = {
@@ -27,61 +33,76 @@ export const dbConfig = {
 };
 
 // Initialize database indexes
-export const initializeDB = async () => {
+export const initializeDB = async (db?: PouchDB.Database<any>) => {
+  const target = db || localDB;
   try {
-    // Create indexes for efficient querying
-    await localDB.createIndex({
-      index: { fields: ['timestamp'] }
-    });
-    
-    await localDB.createIndex({
-      index: { fields: ['synced'] }
-    });
+    const desired = [
+      { name: 'timestamp-index', fields: ['timestamp'] as string[] },
+      { name: 'synced-index', fields: ['synced'] as string[] },
+      { name: 'userId-index', fields: ['userId'] as string[] },
+      { name: 'synced-timestamp-index', fields: ['synced', 'timestamp'] as string[] },
+      { name: 'userId-timestamp-index', fields: ['userId', 'timestamp'] as string[] },
+    ];
 
-    await localDB.createIndex({
-      index: { fields: ['userId'] }
-    });
+    // Create missing indexes (idempotent by name)
+    const existing = await (target as any).getIndexes();
+    const existingNames = new Set<string>((existing?.indexes || []).map((i: any) => i.name));
+    for (const d of desired) {
+      if (!existingNames.has(d.name)) {
+        await target.createIndex({ index: { fields: d.fields, name: d.name } as any });
+      }
+    }
 
-    await localDB.createIndex({
-      index: { fields: ['synced', 'timestamp'] }
-    });
+    // Remove unused indexes that match our naming convention but aren't desired anymore
+    const desiredNames = new Set(desired.map(d => d.name));
+    for (const idx of existing?.indexes || []) {
+      if (!idx || !idx.name) continue;
+      if (idx.name === '_all_docs') continue; // built-in
+      const isOurs = /^(timestamp|synced|userId)(-|_).+index$/.test(idx.name) || idx.name.endsWith('-index');
+      if (isOurs && !desiredNames.has(idx.name)) {
+        try {
+          await (target as any).deleteIndex(idx);
+        } catch {}
+      }
+    }
 
-    await localDB.createIndex({
-      index: { fields: ['userId', 'timestamp'] }
-    });
-
-    console.log('PouchDB indexes created successfully');
+    console.log('PouchDB indexes ensured.');
   } catch (error) {
-    console.warn('PouchDB index creation failed (may already exist):', error);
+    console.warn('PouchDB index ensure failed:', error);
   }
 };
 
 // Helper functions for status management
 export const saveStatusToPouch = async (status: {
-  _id?: string; // Allow PouchDB to generate if not provided
   status: 'safe' | 'help';
   timestamp: number;
   latitude?: number;
   longitude?: number;
-  userId?: string;
+  userId: string;
 }) => {
-  const doc = {
-    _id: status._id || new Date().toISOString(), // Use provided _id or generate new one
-    status: status.status,
-    timestamp: status.timestamp,
-    latitude: status.latitude,
-    longitude: status.longitude,
-    userId: status.userId,
-    synced: false,
-    createdAt: new Date().toISOString(),
-  };
-
+  const _id = `user_${status.userId}_status`;
   try {
-    const result = await localDB.put(doc);
-    console.log('Status saved to PouchDB:', result);
+    let existing: any;
+    try { existing = await localDB.get(_id); } catch {}
+    const next = {
+      _id,
+      _rev: existing?._rev,
+      userId: status.userId,
+      status: status.status,
+      timestamp: status.timestamp,
+      latitude: status.latitude,
+      longitude: status.longitude,
+      synced: false,
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      statusHistory: Array.isArray(existing?.statusHistory)
+        ? [...existing.statusHistory, { status: status.status, timestamp: status.timestamp }]
+        : [{ status: status.status, timestamp: status.timestamp }],
+    } as any;
+    const result = await localDB.put(next);
+    console.log('Single status upserted to PouchDB:', result);
     return result;
   } catch (error) {
-    console.error('Error saving status to PouchDB:', error);
+    console.error('Error upserting status to PouchDB:', error);
     throw error;
   }
 };
@@ -159,12 +180,13 @@ export const getUnsyncedStatuses = async () => {
   }
 };
 
-export const markStatusAsSynced = async (docId: string, rev: string) => {
+export const markStatusAsSynced = async (docId: string, rev?: string) => {
   try {
     const doc = await localDB.get(docId);
-    const updatedDoc = { ...doc, synced: true };
+    // Only flip the local flag to avoid revision churn
+    const updatedDoc = { ...doc, synced: true } as any;
     await localDB.put(updatedDoc);
-    console.log('Status marked as synced:', docId);
+    console.log('Status marked as synced (flag flipped):', docId);
   } catch (error) {
     console.error('Error marking status as synced:', error);
     throw error;
@@ -176,34 +198,33 @@ export const migrateIndexedDBToPouch = async (getAllFromIDB: () => Promise<any[]
   try {
     const idbStatuses = await getAllFromIDB();
     if (!Array.isArray(idbStatuses) || idbStatuses.length === 0) return 0;
-    let migrated = 0;
-    for (const s of idbStatuses) {
-      try {
-        const existing = await localDB.find({ selector: { timestamp: s.timestamp, userId: currentUserId || s.userId } });
-        if (existing.docs && existing.docs.length > 0) continue;
-      } catch {}
+    // collapse into single status doc for the current user only
+    const userId = currentUserId || (idbStatuses[0]?.userId as string | undefined);
+    if (!userId) return 0;
+    const _id = `user_${userId}_status`;
+    let existing: any;
+    try { existing = await localDB.get(_id); } catch {}
 
-      const _id = s._id || new Date(s.timestamp || Date.now()).toISOString();
-      const doc = {
-        _id,
-        status: s.status,
-        timestamp: s.timestamp,
-        latitude: s.latitude,
-        longitude: s.longitude,
-        userId: currentUserId || s.userId,
-        synced: false,
-        createdAt: new Date().toISOString(),
-      };
-      try {
-        await localDB.put(doc);
-        migrated++;
-      } catch (e: any) {
-        if (!(e && e.status === 409)) {
-          throw e;
-        }
-      }
-    }
-    return migrated;
+    // pick latest status by timestamp and build history
+    const userItems = idbStatuses.filter(s => (s.userId || userId) === userId);
+    if (userItems.length === 0) return 0;
+    userItems.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    const latest = userItems[userItems.length - 1];
+    const history = userItems.map(s => ({ status: s.status, timestamp: s.timestamp }));
+    const nextDoc = {
+      _id,
+      _rev: existing?._rev,
+      userId,
+      status: latest.status,
+      timestamp: latest.timestamp,
+      latitude: latest.latitude,
+      longitude: latest.longitude,
+      synced: false,
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      statusHistory: Array.isArray(existing?.statusHistory) ? [...existing.statusHistory, ...history] : history,
+    } as any;
+    await localDB.put(nextDoc);
+    return 1;
   } catch (e) {
     console.warn('Migration from IndexedDB to Pouch failed:', e);
     return 0;
@@ -311,7 +332,7 @@ export const isOnline = async (): Promise<boolean> => {
     }
     
     // Try multiple approaches to check online status
-    const apiUrl = 'http://localhost:4004'; // Hardcode for now to avoid env issues
+        const apiUrl = 'http://10.133.250.197:4004'; // Use actual WiFi IP for mobile access
     console.log('Checking online status with URL:', apiUrl);
     
     // Try with a very short timeout first

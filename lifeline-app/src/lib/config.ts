@@ -1,6 +1,6 @@
 // Configuration for API endpoints
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:4004', // Hardcode for now to avoid env issues
+  BASE_URL: 'http://10.133.250.197:4004', // Use actual WiFi IP for mobile access
   STATUS_ENDPOINT: '/status',
   HEALTH_ENDPOINT: '/health',
   AUTH_ENDPOINT: '/auth',

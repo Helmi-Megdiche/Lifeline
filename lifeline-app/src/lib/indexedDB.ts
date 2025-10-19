@@ -5,6 +5,7 @@ export type CheckInStatus = {
   latitude?: number | null;
   longitude?: number | null;
   synced?: boolean;
+  userId?: string;
 };
 
 export type StoredResource = {
@@ -112,6 +113,55 @@ export async function getAllStatusesFromIDB(): Promise<CheckInStatus[]> {
     const req = store.getAll();
     req.onsuccess = () => resolve((req.result as CheckInStatus[]) ?? []);
     req.onerror = () => reject(req.error);
+  });
+}
+
+// Delete a single status by timestamp and optional userId
+export async function deleteStatusByTimestampUser(timestamp: number, userId?: string): Promise<boolean> {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_STATUSES, "readwrite");
+    const store = tx.objectStore(STORE_STATUSES);
+    const getAllReq = store.getAll();
+    getAllReq.onsuccess = () => {
+      const all: CheckInStatus[] = (getAllReq.result as CheckInStatus[]) ?? [];
+      const match = all.find((s) => s.timestamp === timestamp && (userId ? s.userId === userId : true));
+      if (!match || typeof match.id !== 'number') {
+        resolve(false);
+        return;
+      }
+      const delReq = store.delete(match.id);
+      delReq.onsuccess = () => resolve(true);
+      delReq.onerror = () => reject(delReq.error);
+    };
+    getAllReq.onerror = () => reject(getAllReq.error);
+  });
+}
+
+// Bulk delete all statuses (use cautiously)
+export async function deleteAllStatusesFromIDB(): Promise<number> {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_STATUSES, "readwrite");
+    const store = tx.objectStore(STORE_STATUSES);
+    const getAllReq = store.getAllKeys();
+    getAllReq.onsuccess = () => {
+      const keys = (getAllReq.result as IDBValidKey[]) ?? [];
+      let deleted = 0;
+      if (keys.length === 0) {
+        resolve(0);
+        return;
+      }
+      keys.forEach((key) => {
+        const delReq = store.delete(key);
+        delReq.onsuccess = () => {
+          deleted++;
+          if (deleted === keys.length) resolve(deleted);
+        };
+        delReq.onerror = () => reject(delReq.error);
+      });
+    };
+    getAllReq.onerror = () => reject(getAllReq.error);
   });
 }
 
