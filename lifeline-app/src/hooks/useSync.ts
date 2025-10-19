@@ -10,7 +10,105 @@ export const useSync = () => {
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [error, setError] = useState<any>(null);
   const { localDB, remoteDB } = usePouchDB();
-  const { user, token } = useAuth();
+  const { user, token, isOnline } = useAuth();
+
+  const manualSync = async () => {
+    console.log('=== MANUAL SYNC BUTTON CLICKED ===');
+    if (!localDB || !remoteDB) {
+      console.error('Manual sync failed: PouchDB not initialized', { localDB: !!localDB, remoteDB: !!remoteDB });
+      return;
+    }
+    
+    console.log('Initiating manual sync...');
+    console.log('Local DB:', localDB.name);
+    console.log('Remote DB URL:', remoteDB.name);
+    setSyncStatus('syncing');
+    setError(null);
+    
+    // Test remote connection first
+    try {
+      console.log('Testing remote connection...');
+      const remoteInfo = await remoteDB.info();
+      console.log('Remote DB info:', remoteInfo);
+    } catch (remoteError) {
+      console.error('Remote connection failed:', remoteError);
+      throw new Error('Cannot connect to remote database');
+    }
+    
+    try {
+      // Migrate any legacy IndexedDB items into Pouch first
+      try {
+        const migrated = await migrateIndexedDBToPouch(getAllStatusesFromIDB, user?.id);
+        if (migrated > 0) {
+          console.log(`Migrated ${migrated} legacy IndexedDB statuses to Pouch before sync.`);
+        }
+      } catch (e) {
+        console.warn('Migration step failed before manual sync:', e);
+      }
+
+      // Check what's in local DB before sync
+      const localDocs = await localDB.allDocs({ include_docs: true });
+      console.log('Local docs before sync:', localDocs.rows.length);
+      console.log('Local docs:', localDocs.rows.map(r => ({ id: r.id, synced: r.doc?.synced })));
+      localDocs.rows.forEach((row: any) => {
+        if (row.doc && !row.doc._id.startsWith('_')) {
+          console.log('Local doc:', row.doc._id, row.doc.status, row.doc.synced);
+        }
+      });
+
+      // Check for unsynced documents specifically
+      const unsyncedDocs = localDocs.rows.filter((row: any) => 
+        row.doc && !row.doc._id.startsWith('_') && row.doc.synced === false
+      );
+      console.log('Unsynced docs found:', unsyncedDocs.length);
+      unsyncedDocs.forEach((row: any) => {
+        console.log('Unsynced doc:', row.doc._id, row.doc.status, row.doc.synced);
+      });
+
+      console.log('Starting replication TO remote...');
+      const replicateTo = await localDB.replicate.to(remoteDB, {
+        live: false,
+        retry: false,
+        batch_size: 10,
+        batches_limit: 1
+      });
+      console.log('Replication TO complete:', replicateTo);
+      console.log('Docs written TO remote:', replicateTo.docs_written);
+      console.log('Docs read FROM local:', replicateTo.docs_read);
+      
+      // If no docs were written, just log – avoid forcing unsynced to reduce churn
+      if (replicateTo.docs_written === 0) {
+        console.log('No docs written to remote during manual sync. Nothing new to push.');
+      }
+
+      console.log('Starting replication FROM remote...');
+      const replicateFrom = await localDB.replicate.from(remoteDB, {
+        live: false,
+        retry: false,
+        batch_size: 10,
+        batches_limit: 1
+      });
+      console.log('Replication FROM complete:', replicateFrom);
+      console.log('Docs written TO local:', replicateFrom.docs_written);
+      console.log('Docs read FROM remote:', replicateFrom.docs_read);
+
+      setSyncStatus('idle');
+      setLastSyncTime(new Date());
+      console.log('Manual sync complete.');
+    } catch (err) {
+      console.error('Manual sync failed:', err);
+      setSyncStatus('error');
+      setError(err);
+    }
+  };
+
+  // Trigger sync when coming back online
+  useEffect(() => {
+    if (isOnline && localDB && remoteDB && token && syncStatus === 'idle') {
+      console.log('Came back online, triggering sync...');
+      manualSync();
+    }
+  }, [isOnline, localDB, remoteDB, token]);
 
   useEffect(() => {
     if (!localDB || !remoteDB || !token) return;
@@ -107,96 +205,6 @@ export const useSync = () => {
       }
     };
   }, [localDB, remoteDB, token]);
-
-  const manualSync = async () => {
-    console.log('=== MANUAL SYNC BUTTON CLICKED ===');
-    if (!localDB || !remoteDB) {
-      console.error('Manual sync failed: PouchDB not initialized', { localDB: !!localDB, remoteDB: !!remoteDB });
-      return;
-    }
-    
-    console.log('Initiating manual sync...');
-    console.log('Local DB:', localDB.name);
-    console.log('Remote DB URL:', remoteDB.name);
-    setSyncStatus('syncing');
-    setError(null);
-    
-    // Test remote connection first
-    try {
-      console.log('Testing remote connection...');
-      const remoteInfo = await remoteDB.info();
-      console.log('Remote DB info:', remoteInfo);
-    } catch (remoteError) {
-      console.error('Remote connection failed:', remoteError);
-      throw new Error('Cannot connect to remote database');
-    }
-    
-    try {
-      // Migrate any legacy IndexedDB items into Pouch first
-      try {
-        const migrated = await migrateIndexedDBToPouch(getAllStatusesFromIDB, user?.id);
-        if (migrated > 0) {
-          console.log(`Migrated ${migrated} legacy IndexedDB statuses to Pouch before sync.`);
-        }
-      } catch (e) {
-        console.warn('Migration step failed before manual sync:', e);
-      }
-
-      // Check what's in local DB before sync
-      const localDocs = await localDB.allDocs({ include_docs: true });
-      console.log('Local docs before sync:', localDocs.rows.length);
-      console.log('Local docs:', localDocs.rows.map(r => ({ id: r.id, synced: r.doc?.synced })));
-      localDocs.rows.forEach((row: any) => {
-        if (row.doc && !row.doc._id.startsWith('_')) {
-          console.log('Local doc:', row.doc._id, row.doc.status, row.doc.synced);
-        }
-      });
-
-      // Check for unsynced documents specifically
-      const unsyncedDocs = localDocs.rows.filter((row: any) => 
-        row.doc && !row.doc._id.startsWith('_') && row.doc.synced === false
-      );
-      console.log('Unsynced docs found:', unsyncedDocs.length);
-      unsyncedDocs.forEach((row: any) => {
-        console.log('Unsynced doc:', row.doc._id, row.doc.status, row.doc.synced);
-      });
-
-      console.log('Starting replication TO remote...');
-      const replicateTo = await localDB.replicate.to(remoteDB, {
-        live: false,
-        retry: false,
-        batch_size: 10,
-        batches_limit: 1
-      });
-      console.log('Replication TO complete:', replicateTo);
-      console.log('Docs written TO remote:', replicateTo.docs_written);
-      console.log('Docs read FROM local:', replicateTo.docs_read);
-      
-      // If no docs were written, just log – avoid forcing unsynced to reduce churn
-      if (replicateTo.docs_written === 0) {
-        console.log('No docs written to remote during manual sync. Nothing new to push.');
-      }
-
-      console.log('Starting replication FROM remote...');
-      const replicateFrom = await localDB.replicate.from(remoteDB, {
-        live: false,
-        retry: false,
-        batch_size: 10,
-        batches_limit: 1
-      });
-      console.log('Replication FROM complete:', replicateFrom);
-      console.log('Docs written TO local:', replicateFrom.docs_written);
-      console.log('Docs read FROM remote:', replicateFrom.docs_read);
-
-      setSyncStatus('idle');
-      setLastSyncTime(new Date());
-      console.log('Manual sync complete.');
-    } catch (err) {
-      console.error('Manual sync failed:', err);
-      setSyncStatus('error');
-      setError(err);
-    }
-  };
 
   return { syncStatus, lastSyncTime, error, manualSync };
 };
