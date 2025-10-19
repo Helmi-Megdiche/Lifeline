@@ -41,8 +41,33 @@
 - **Smooth Animations** - Transitions and hover effects
 - **Accessibility** - High contrast text and proper color schemes
 - **Modern UI** - Clean, intuitive interface with emergency-focused design
+- **Softer Dark Mode Colors** - Eye-friendly palette optimized for extended use
+- **Theme Toggle** - Available on login/register page and profile
+- **Accurate Sync Status** - Real-time display of data synchronization state
 
 ## 🚀 Quick Start
+
+### Recent Improvements (Latest Update)
+
+#### 🎨 **UI/UX Enhancements**
+- **Improved Dark Mode Colors**: Replaced harsh slate tones with softer, eye-friendly blue-gray palette
+  - Background: `#1a1f2e` (was `#0f172a`)
+  - Surfaces: `#252b3b` / `#2d3548` (was `#1e293b` / `#334155`)
+  - Text: `#f1f5f9` / `#cbd5e1` (was `#f8fafc` / `#e2e8f0`)
+  - Better contrast and reduced eye strain
+- **Theme Toggle on Login Page**: Dark/Light mode switch now available on authentication page
+- **Status Page Dark Mode**: Full dark mode support with proper contrast
+
+#### 🔧 **Bug Fixes & Improvements**
+- **Fixed Sync Status Accuracy**: Status page now correctly displays "Synced"/"Offline" status
+  - Previously always showed "Offline" despite successful sync
+  - Now reads from actual PouchDB data
+- **Offline Detection**: Improved online/offline status detection across all pages
+  - Periodic checks every 5 seconds
+  - Consistent API URL usage (WiFi IP)
+- **SSR Compatibility**: Fixed "self is not defined" error during server-side rendering
+  - PouchDB imports now only on client side
+- **Error Handling**: Better error messages and fallbacks for network issues
 
 ### Prerequisites
 - Node.js 18+ 
