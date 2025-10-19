@@ -9,6 +9,7 @@
 - **Offline-first** - Works without internet connection
 - **Service Worker** - Caches resources for offline use
 - **Responsive Design** - Mobile-optimized with hamburger menu
+- **Dark Mode** - Toggle between light and dark themes with smooth transitions
 
 ### 🗺️ **Live Location & Maps**
 - **Real-time Geolocation** - Track your current location
@@ -33,6 +34,13 @@
 - **JWT Authentication** - Secure user sessions
 - **User Isolation** - Data separation between users
 - **HTTPS Support** - Secure connections for mobile geolocation
+
+### 🎨 **User Interface & Experience**
+- **Dark Mode Support** - Complete theme switching with proper contrast
+- **Responsive Design** - Optimized for mobile and desktop
+- **Smooth Animations** - Transitions and hover effects
+- **Accessibility** - High contrast text and proper color schemes
+- **Modern UI** - Clean, intuitive interface with emergency-focused design
 
 ## 🚀 Quick Start
 
