@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { getApiUrl, API_CONFIG } from '@/lib/config';
+import { isOnline } from '@/lib/pouchdb';
 
 interface User {
   id: string;
@@ -16,6 +17,9 @@ interface AuthContextType {
   logout: () => void;
   register: (username: string, password: string) => Promise<void>;
   isAuthenticated: boolean;
+  isLoading: boolean;
+  isOnline: boolean;
+  refreshOnlineStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,18 +28,43 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [onlineStatus, setOnlineStatus] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     // Only run on client side
     if (typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('lifeline:token');
-      const storedUser = localStorage.getItem('lifeline:user');
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      }
-      setIsInitialized(true);
+      const initializeAuth = async () => {
+        try {
+          // Check online status
+          const online = await isOnline();
+          setOnlineStatus(online);
+
+          // Load stored user data
+          const storedToken = localStorage.getItem('lifeline:token');
+          const storedUser = localStorage.getItem('lifeline:user');
+          if (storedToken && storedUser) {
+            setToken(storedToken);
+            setUser(JSON.parse(storedUser));
+          }
+        } catch (error) {
+          console.error('Auth initialization error:', error);
+        } finally {
+          setIsLoading(false);
+          setIsInitialized(true);
+        }
+      };
+
+      initializeAuth();
+
+      // Check online status periodically
+      const interval = setInterval(async () => {
+        const online = await isOnline();
+        setOnlineStatus(online);
+      }, 5000); // Check every 5 seconds
+
+      return () => clearInterval(interval);
     }
   }, []);
 
@@ -81,6 +110,11 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/auth');
   };
 
+  const refreshOnlineStatus = async () => {
+    const online = await isOnline();
+    setOnlineStatus(online);
+  };
+
   const isAuthenticated = !!token;
 
   // Don't render until initialized to prevent hydration mismatch
@@ -89,7 +123,7 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, register, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, token, login, logout, register, isAuthenticated, isLoading, isOnline: onlineStatus, refreshOnlineStatus }}>
       {children}
     </AuthContext.Provider>
   );
