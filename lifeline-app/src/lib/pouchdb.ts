@@ -9,7 +9,7 @@ PouchDB.plugin(PouchFind);
 export let localDB: PouchDB.Database<any> = new PouchDB('lifeline-local');
 
 // Create remote database connection
-const REMOTE_DB_URL = process.env.NEXT_PUBLIC_COUCH_SYNC_URL || 'http://localhost:4004/pouch/status';
+const REMOTE_DB_URL = process.env.NEXT_PUBLIC_COUCH_SYNC_URL || 'http://10.133.250.197:4004/pouch/status';
 export let remoteDB: PouchDB.Database<any> = new PouchDB(REMOTE_DB_URL);
 
 // Allow hooks to switch the active DBs (per-user)

@@ -139,7 +139,7 @@ export default function AuthPage() {
             onClick={async () => {
               console.log('Testing backend connection...');
               try {
-                const response = await fetch('http://localhost:4004/health');
+                const response = await fetch('http://10.133.250.197:4004/health');
                 console.log('Backend test response:', response.status, await response.text());
                 // Force refresh online status
                 await refreshOnlineStatus();
