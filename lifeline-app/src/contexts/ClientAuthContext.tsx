@@ -7,6 +7,7 @@ interface User {
   id: string;
   username: string;
   name?: string;
+  email?: string;
 }
 
 interface AuthContextType {
@@ -14,7 +15,8 @@ interface AuthContextType {
   token: string | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
-  register: (username: string, password: string) => Promise<void>;
+  register: (username: string, password: string, email: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
   isOnline: boolean;
@@ -149,11 +151,11 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/');
   };
 
-  const register = async (username: string, password: string) => {
+  const register = async (username: string, password: string, email: string) => {
     const response = await fetch(`${API_CONFIG.BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, email }),
     });
 
     if (!response.ok) {
@@ -161,6 +163,21 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error(errorData.message || 'Registration failed');
     }
     router.push('/auth');
+  };
+
+  const forgotPassword = async (email: string) => {
+    const online = await isOnlineClient();
+    if (!online) throw new Error('You are offline. Connect to the internet to reset password.');
+    const response = await fetch(`${API_CONFIG.BASE_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!response.ok) {
+      let message = 'Failed to send reset email';
+      try { const data = await response.json(); message = data.message || message; } catch {}
+      throw new Error(message);
+    }
   };
 
   const logout = () => {
@@ -184,7 +201,7 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, register, isAuthenticated, isLoading, isOnline: onlineStatus, refreshOnlineStatus }}>
+    <AuthContext.Provider value={{ user, token, login, logout, register, forgotPassword, isAuthenticated, isLoading, isOnline: onlineStatus, refreshOnlineStatus }}>
       {children}
     </AuthContext.Provider>
   );
