@@ -18,12 +18,12 @@ export default function InstallPrompt() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 backdrop-blur-md border border-gray-200 shadow-xl rounded-2xl px-4 py-3 flex items-center gap-3">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 dark:bg-dark-surface-primary/95 backdrop-blur-md border border-gray-200 dark:border-dark-border shadow-xl rounded-2xl px-4 py-3 flex items-center gap-3">
       <div className="text-blue-600 text-xl">⬇️</div>
-      <div className="text-sm text-gray-800">Install LifeLine for faster access</div>
+      <div className="text-sm text-black dark:text-black font-medium">Install LifeLine for faster access</div>
       <div className="flex items-center gap-2 ml-2">
         <button
-          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm"
+          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
           onClick={async () => {
             if (!deferredPrompt) return;
             setShow(false);
@@ -39,7 +39,7 @@ export default function InstallPrompt() {
           Install
         </button>
         <button
-          className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm"
+          className="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-200 hover:bg-gray-200 dark:hover:bg-gray-300 text-black dark:text-black text-sm font-medium"
           onClick={() => setShow(false)}
         >
           Later

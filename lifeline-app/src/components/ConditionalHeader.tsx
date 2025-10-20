@@ -43,7 +43,7 @@ export const ConditionalHeader = () => {
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">L</span>
             </div>
-            <span className="hidden sm:inline">LifeLine</span>
+            <span className="inline">LifeLine</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -103,7 +103,7 @@ export const ConditionalHeader = () => {
                       className={`block px-3 py-3 rounded-lg text-base font-medium transition-colors ${
                         pathname === item.href
                           ? 'text-white dark:text-white bg-blue-600 dark:bg-blue-600 font-semibold'
-                          : 'text-gray-600 dark:text-dark-text-primary hover:text-blue-600 dark:hover:text-emergency-blue-400 hover:bg-blue-50 dark:hover:bg-dark-surface-secondary'
+                          : 'text-black dark:text-black hover:text-blue-600 dark:hover:text-emergency-blue-400 hover:bg-blue-50 dark:hover:bg-dark-surface-secondary'
                       }`}
                       onClick={closeMobileMenu}
                     >

@@ -275,3 +275,55 @@ html .profile-label {
 .profile-label {
   color: #000000 !important;
 }
+
+/* Force PWA popup text to be black */
+html .fixed .text-sm {
+  color: #000000 !important;
+}
+
+html .fixed .text-black {
+  color: #000000 !important;
+}
+
+/* Force text-black class to work everywhere */
+.text-black {
+  color: #000000 !important;
+}
+
+html .text-black {
+  color: #000000 !important;
+}
+
+html.dark .text-black {
+  color: #000000 !important;
+}
+
+/* Force mobile navigation text to be black - FINAL SOLUTION */
+@media (max-width: 767px) {
+  /* Target ALL mobile navigation elements */
+  header nav .block {
+    color: #000000 !important;
+  }
+  
+  header nav .block a {
+    color: #000000 !important;
+  }
+  
+  header nav .px-3 {
+    color: #000000 !important;
+  }
+  
+  header nav .py-3 {
+    color: #000000 !important;
+  }
+  
+  /* Force text-black classes to work */
+  .text-black {
+    color: #000000 !important;
+  }
+  
+  /* Force ALL text in mobile viewport */
+  * {
+    color: #000000 !important;
+  }
+}
