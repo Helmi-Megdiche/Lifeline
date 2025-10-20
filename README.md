@@ -34,6 +34,8 @@
 - **JWT Authentication** - Secure user sessions
 - **User Isolation** - Data separation between users
 - **HTTPS Support** - Secure connections for mobile geolocation
+- **Profile Management** - Update username and email with validation
+- **Password Reset** - Email-based password recovery system
 
 ### 🎨 **User Interface & Experience**
 - **Dark Mode Support** - Complete theme switching with proper contrast
@@ -48,6 +50,17 @@
 ## 🚀 Quick Start
 
 ### Recent Improvements (Latest Update)
+
+#### 👤 **Profile Management (NEW)**
+- **Profile Update Feature**: Users can now edit their username and email
+  - Edit mode with save/cancel functionality
+  - Real-time validation and duplicate checking
+  - Offline protection (requires internet connection)
+  - Success/error feedback with proper styling
+- **Enhanced Profile Page**: Improved UI with better text contrast
+  - All profile information now displays in black for maximum readability
+  - Consistent styling across light and dark modes
+  - Professional card-based layout with clear information hierarchy
 
 #### 🎨 **UI/UX Enhancements**
 - **Improved Dark Mode Colors**: Replaced harsh slate tones with softer, eye-friendly blue-gray palette
@@ -185,6 +198,8 @@ ngrok http 3000
 - **Authentication**: JWT with Passport
 - **Sync Protocol**: CouchDB-compatible PouchDB endpoints
 - **CORS**: Configured for mobile access
+- **Email Service**: Nodemailer integration for password reset emails
+- **Profile Management**: RESTful API for user profile updates
 
 ### Data Model
 - **Single Document per User**: `user_<userId>_status`
@@ -310,9 +325,32 @@ MONGODB_URI=mongodb://localhost:27017/lifeline
 JWT_SECRET=your-secret-key
 PORT=4004
 
+# Email Configuration (for password reset)
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+
 # Frontend (next.config.js)
 NEXT_PUBLIC_API_URL=https://your-api-domain.com
 ```
+
+### API Endpoints
+
+#### Authentication
+- `POST /auth/register` - User registration
+- `POST /auth/login` - User login
+- `POST /auth/forgot-password` - Request password reset
+- `POST /auth/reset-password` - Reset password with token
+- `PUT /auth/profile` - Update user profile (username/email)
+
+#### Status Management
+- `POST /status` - Create/update status
+- `GET /status/user/:userId` - Get user status
+- `GET /status/sync` - Get sync status
+
+#### PouchDB Sync
+- `POST /pouch/status/_bulk_docs` - Bulk document operations
+- `POST /pouch/status/_revs_diff` - Revision difference check
+- `GET /pouch/status/_changes` - Change feed
 
 ## 🤝 Contributing
 
