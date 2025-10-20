@@ -127,8 +127,8 @@ export default function Home() {
               Stay connected with responders. Your status saves offline and syncs automatically when back online.
             </p>
             {user && (
-              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-emergency-green-900 rounded-full text-sm text-green-700 dark:text-emergency-green-100 border border-green-200 dark:border-emergency-green-700">
-                <span className="text-green-600 dark:text-emergency-green-400">👤</span>
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-500 dark:bg-green-600 rounded-full text-sm text-white dark:text-white border border-green-600 dark:border-green-700 font-semibold">
+                <span className="text-white">👤</span>
                 Welcome, {user.username}
               </div>
             )}
@@ -136,8 +136,8 @@ export default function Home() {
 
           <div className="bg-white/70 dark:bg-dark-surface-primary/80 backdrop-blur-sm rounded-2xl p-4 sm:p-8 mb-6 sm:mb-8 border border-gray-200/60 dark:border-dark-border-primary/60 shadow-lg">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-emergency-blue-900 rounded-full text-sm text-blue-700 dark:text-emergency-blue-100 mb-4">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 dark:bg-blue-600 rounded-full text-sm text-white dark:text-white mb-4 font-semibold">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
             Location helps responders find you
           </div>
         </div>

@@ -73,9 +73,9 @@ export default function GuidesPage() {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {emergencyNumbers.map((item, index) => (
-            <div key={index} className="bg-red-50 rounded-xl p-4 border border-red-200">
-              <div className="font-medium text-red-900 text-sm">{item.label}</div>
-              <div className="text-red-700 font-bold text-lg">{item.number}</div>
+            <div key={index} className="bg-red-500 rounded-xl p-4 border border-red-600">
+              <div className="font-semibold text-white text-sm">{item.label}</div>
+              <div className="text-white font-bold text-lg">{item.number}</div>
             </div>
           ))}
         </div>

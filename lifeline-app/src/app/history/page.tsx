@@ -198,8 +198,8 @@ export default function HistoryPage() {
                       <span className="font-medium text-gray-900 dark:text-dark-text-primary">
                         {status.status === 'safe' ? 'I\'m Safe' : 'Need Help'}
                       </span>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        status.synced ? 'bg-green-100 dark:bg-emergency-green-900 text-green-700 dark:text-emergency-green-100' : 'bg-orange-100 dark:bg-emergency-yellow-900 text-orange-700 dark:text-emergency-yellow-100'
+                      <span className={`px-2 py-1 text-xs rounded-full font-semibold ${
+                        status.synced ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'
                       }`}>
                         {status.synced ? 'Synced' : 'Local Only'}
                       </span>
@@ -234,7 +234,7 @@ export default function HistoryPage() {
                       <span className="font-medium text-gray-900 dark:text-dark-text-primary">
                         {status.status === 'safe' ? 'I\'m Safe' : 'Need Help'}
                       </span>
-                      <span className="px-2 py-1 text-xs rounded-full bg-orange-100 dark:bg-emergency-yellow-900 text-orange-700 dark:text-emergency-yellow-100">
+                      <span className="px-2 py-1 text-xs rounded-full bg-orange-500 text-white font-semibold">
                         Pending Sync
                       </span>
                     </div>

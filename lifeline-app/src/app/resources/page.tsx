@@ -308,7 +308,7 @@ export default function ResourcesPage() {
                 
                 {isOnline ? (
                   <div className="flex items-center justify-center gap-3 mb-4">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 rounded-full text-sm text-emerald-700 border border-emerald-200">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500 rounded-full text-sm text-white border border-emerald-600 font-semibold">
                       <span>🟢</span>
                       Online
                     </div>
@@ -378,8 +378,8 @@ export default function ResourcesPage() {
                 )}
                 {isOnline && userLocation && (
                   <div className="flex items-center justify-center gap-4">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 rounded-full text-sm text-green-700 border border-green-200">
-                      <span className="text-green-600">📍</span>
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 rounded-full text-sm text-white border border-green-600 font-semibold">
+                      <span className="text-white">📍</span>
                       Showing resources near your location: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
                     </div>
                     <button
@@ -415,10 +415,10 @@ export default function ResourcesPage() {
               <button
                 key={tab}
                 onClick={() => setActive(tab as any)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
                   active === tab 
                     ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg" 
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    : "bg-gray-600 hover:bg-gray-700 text-white dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
                 }`}
               >
                 {tab}

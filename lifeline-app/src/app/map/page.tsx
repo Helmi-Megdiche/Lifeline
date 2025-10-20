@@ -137,7 +137,7 @@ export default function LiveMapPage() {
               const apple = `http://maps.apple.com/?ll=${pos.lat},${pos.lng}`;
               window.open(isApple ? apple : gmaps, '_blank');
             }}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-gray-100 text-gray-800 border border-gray-200"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-gray-600 dark:bg-gray-600 text-white dark:text-white border border-gray-700 dark:border-gray-700 font-semibold"
           >
             🗺️ Open in Maps
           </button>

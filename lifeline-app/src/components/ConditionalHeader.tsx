@@ -52,8 +52,8 @@ export const ConditionalHeader = () => {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`text-gray-600 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-emergency-blue-400 transition-colors px-3 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-dark-surface-secondary ${
-                      pathname === item.href ? 'text-blue-600 dark:text-emergency-blue-400 bg-blue-50 dark:bg-dark-surface-secondary' : ''
+                    className={`text-gray-600 dark:text-dark-text-primary hover:text-blue-600 dark:hover:text-emergency-blue-400 transition-colors px-3 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-dark-surface-secondary ${
+                      pathname === item.href ? 'text-white dark:text-white bg-blue-600 dark:bg-blue-600 font-semibold' : ''
                     }`}
                   >
                     {item.label}
@@ -102,8 +102,8 @@ export const ConditionalHeader = () => {
                       href={item.href}
                       className={`block px-3 py-3 rounded-lg text-base font-medium transition-colors ${
                         pathname === item.href
-                          ? 'text-blue-600 dark:text-emergency-blue-400 bg-blue-50 dark:bg-dark-surface-secondary'
-                          : 'text-gray-600 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-emergency-blue-400 hover:bg-blue-50 dark:hover:bg-dark-surface-secondary'
+                          ? 'text-white dark:text-white bg-blue-600 dark:bg-blue-600 font-semibold'
+                          : 'text-gray-600 dark:text-dark-text-primary hover:text-blue-600 dark:hover:text-emergency-blue-400 hover:bg-blue-50 dark:hover:bg-dark-surface-secondary'
                       }`}
                       onClick={closeMobileMenu}
                     >
