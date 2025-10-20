@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+do not push anything to git unless i say "push to git" or "push to github";
+---
