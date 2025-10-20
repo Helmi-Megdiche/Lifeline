@@ -181,3 +181,23 @@ html.dark select {
   background-color: #2d3548 !important;
   border-color: #374151 !important;
 }
+
+/* Force Profile page status labels to be visible */
+html.dark .text-black {
+  color: #ffffff !important;
+}
+
+html .text-black {
+  color: #000000 !important;
+}
+
+/* Ensure Profile page labels are always visible */
+html.dark span.text-black {
+  color: #ffffff !important;
+  font-weight: bold !important;
+}
+
+html span.text-black {
+  color: #000000 !important;
+  font-weight: bold !important;
+}
