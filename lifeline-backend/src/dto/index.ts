@@ -61,3 +61,13 @@ export class ResetPasswordDto {
   @IsNotEmpty()
   newPassword: string;
 }
+
+export class UpdateProfileDto {
+  @IsString()
+  @IsNotEmpty()
+  username: string;
+
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+}

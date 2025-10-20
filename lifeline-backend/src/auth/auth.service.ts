@@ -5,7 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../schemas/user.schema';
 import { PasswordResetToken } from '../schemas/password-reset-token.schema';
-import { RegisterUserDto, LoginUserDto } from '../dto';
+import { RegisterUserDto, LoginUserDto, UpdateProfileDto } from '../dto';
 import { EmailService } from './email.service';
 import * as crypto from 'crypto';
 
@@ -107,5 +107,47 @@ export class AuthService {
 
   async validateUser(username: string): Promise<User | null> {
     return this.userModel.findOne({ username }).exec();
+  }
+
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<{ id: string; username: string; email: string }> {
+    // Check if username is already taken by another user
+    const existingUser = await this.userModel.findOne({ 
+      username: updateProfileDto.username,
+      _id: { $ne: userId }
+    }).exec();
+    
+    if (existingUser) {
+      throw new UnauthorizedException('Username already taken');
+    }
+
+    // Check if email is already taken by another user
+    const existingEmail = await this.userModel.findOne({ 
+      email: updateProfileDto.email,
+      _id: { $ne: userId }
+    }).exec();
+    
+    if (existingEmail) {
+      throw new UnauthorizedException('Email already taken');
+    }
+
+    // Update user profile
+    const updatedUser = await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        username: updateProfileDto.username,
+        email: updateProfileDto.email,
+      },
+      { new: true }
+    ).exec();
+
+    if (!updatedUser) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return {
+      id: (updatedUser._id as any).toString(),
+      username: updatedUser.username,
+      email: updatedUser.email || '',
+    };
   }
 }

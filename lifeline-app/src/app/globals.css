@@ -10,7 +10,8 @@
   --foreground: #f1f5f9;
 }
 
-@theme inline {
+/* Theme variables */
+:root {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
@@ -326,4 +327,30 @@ html.dark .text-black {
   * {
     color: #000000 !important;
   }
+}
+
+/* Force Profile Info text to be black - NUCLEAR OPTION */
+.profile-info-section * {
+  color: #000000 !important;
+}
+
+.profile-info-section div {
+  color: #000000 !important;
+}
+
+.profile-info-section span {
+  color: #000000 !important;
+}
+
+/* Force Profile Info labels specifically */
+.profile-info-section .text-sm {
+  color: #000000 !important;
+}
+
+.profile-info-section .text-sm div {
+  color: #000000 !important;
+}
+
+.profile-info-section .text-sm span {
+  color: #000000 !important;
 }

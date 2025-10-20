@@ -14,7 +14,10 @@ export default function AuthPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const { login, register, forgotPassword, isAuthenticated, logout, isLoading, isOnline, user, refreshOnlineStatus } = useAuth();
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editUsername, setEditUsername] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const { login, register, forgotPassword, updateProfile, isAuthenticated, logout, isLoading, isOnline, user, refreshOnlineStatus } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,6 +39,27 @@ export default function AuthPage() {
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
     }
+  };
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+    try {
+      await updateProfile(editUsername, editEmail);
+      setMessage('Profile updated successfully!');
+      setIsEditingProfile(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update profile.');
+    }
+  };
+
+  const startEditing = () => {
+    setEditUsername(user?.username || '');
+    setEditEmail(user?.email || '');
+    setIsEditingProfile(true);
+    setError(null);
+    setMessage(null);
   };
 
   if (isLoading) {
@@ -95,10 +119,89 @@ export default function AuthPage() {
                 </>
               )}
             </button>
-          </div>
         </div>
 
-        <div className="space-y-3">
+        {/* Profile Update Form */}
+        {isEditingProfile ? (
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-text-primary mb-4">Update Profile</h3>
+            <form onSubmit={handleProfileUpdate} className="space-y-4">
+              <div>
+                <label htmlFor="editUsername" className="block text-sm font-medium text-gray-700 dark:text-dark-text-secondary mb-2">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  id="editUsername"
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-emergency-blue-400 focus:border-transparent bg-white dark:bg-dark-surface-secondary text-gray-900 dark:text-dark-text-primary"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="editEmail" className="block text-sm font-medium text-gray-700 dark:text-dark-text-secondary mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="editEmail"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-emergency-blue-400 focus:border-transparent bg-white dark:bg-dark-surface-secondary text-gray-900 dark:text-dark-text-primary"
+                  required
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={!isOnline}
+                  className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Save Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingProfile(false)}
+                  className="flex-1 py-2 px-4 bg-gray-500 hover:bg-gray-600 dark:bg-gray-500 dark:hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <div className="mb-8">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-surface-secondary rounded-lg border border-gray-200 dark:border-dark-border profile-info-section">
+              <div>
+                <span className="font-bold text-base profile-label" style={{ color: '#000000' }}>Profile Info</span>
+                <div className="mt-2 text-sm text-black dark:text-black" style={{ color: '#000000' }}>
+                  <div>Username: <span className="font-medium text-black dark:text-black" style={{ color: '#000000' }}>{user?.username}</span></div>
+                  <div>Email: <span className="font-medium text-black dark:text-black" style={{ color: '#000000' }}>{user?.email || 'Not set'}</span></div>
+                </div>
+              </div>
+              <button
+                onClick={startEditing}
+                disabled={!isOnline}
+                className="px-3 py-1 bg-blue-500 text-white dark:bg-blue-600 dark:text-white rounded-full text-sm font-semibold hover:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Error and Success Messages */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg text-red-700 dark:text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+        {message && (
+          <div className="mb-4 p-3 bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-lg text-green-700 dark:text-green-400 text-sm">
+            {message}
+          </div>
+        )}
           <Link 
             href="/"
             className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"

@@ -17,6 +17,7 @@ interface AuthContextType {
   logout: () => void;
   register: (username: string, password: string, email: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
+  updateProfile: (username: string, email: string) => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
   isOnline: boolean;
@@ -180,6 +181,36 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateProfile = async (username: string, email: string) => {
+    const online = await isOnlineClient();
+    if (!online) throw new Error('You are offline. Connect to the internet to update profile.');
+    
+    if (!token) throw new Error('Not authenticated');
+    
+    const response = await fetch(`${API_CONFIG.BASE_URL}/auth/profile`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ username, email }),
+    });
+    
+    if (!response.ok) {
+      let message = 'Failed to update profile';
+      try { 
+        const data = await response.json(); 
+        message = data.message || message; 
+      } catch {}
+      throw new Error(message);
+    }
+    
+    const data = await response.json();
+    if (data.success && data.user) {
+      setUser(data.user);
+    }
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -201,7 +232,7 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, register, forgotPassword, isAuthenticated, isLoading, isOnline: onlineStatus, refreshOnlineStatus }}>
+    <AuthContext.Provider value={{ user, token, login, logout, register, forgotPassword, updateProfile, isAuthenticated, isLoading, isOnline: onlineStatus, refreshOnlineStatus }}>
       {children}
     </AuthContext.Provider>
   );
