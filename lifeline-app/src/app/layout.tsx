@@ -45,15 +45,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
           <body
             className={`${geistSans.variable} ${geistMono.variable} antialiased text-gray-900 dark:text-dark-text-primary min-h-screen bg-white dark:bg-dark-bg-primary transition-colors duration-300`}
-            style={{
-              background: `
-                radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 40% 40%, rgba(239, 68, 68, 0.08) 0%, transparent 50%),
-                linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)
-              `,
-              backgroundAttachment: 'fixed'
-            }}
           >
         {/* Subtle medical cross pattern overlay */}
         <div 

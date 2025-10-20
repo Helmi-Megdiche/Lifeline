@@ -8,6 +8,9 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const { login, register, isAuthenticated, logout, isLoading, isOnline, user, refreshOnlineStatus } = useAuth();
@@ -22,6 +25,10 @@ export default function AuthPage() {
         await login(username, password);
         setMessage('Logged in successfully!');
       } else {
+        if (password !== confirmPassword) {
+          setError('Passwords do not match.');
+          return;
+        }
         await register(username, password);
         setMessage('Registration successful! You are now logged in.');
       }
@@ -207,18 +214,56 @@ export default function AuthPage() {
           <label htmlFor="password" className="block text-sm font-medium text-gray-900 dark:text-dark-text-primary mb-1">
             Password
           </label>
-          <input
-            type="password"
-            id="password"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 dark:border-dark-border-primary rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 dark:text-dark-text-primary bg-white dark:bg-dark-surface-secondary"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              className="mt-1 block w-full pr-12 px-4 py-2 border border-gray-300 dark:border-dark-border-primary rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 dark:text-dark-text-primary bg-white dark:bg-dark-surface-secondary"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="absolute inset-y-0 right-0 mr-2 mt-1 flex items-center px-2 py-1 text-gray-600 dark:text-dark-text-tertiary hover:text-gray-800 dark:hover:text-dark-text-secondary rounded"
+            >
+              {showPassword ? '🙈' : '👁️'}
+            </button>
+          </div>
         </div>
+        {!isLogin && (
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-900 dark:text-dark-text-primary mb-1">
+              Confirm Password
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                id="confirmPassword"
+                className="mt-1 block w-full pr-12 px-4 py-2 border border-gray-300 dark:border-dark-border-primary rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900 dark:text-dark-text-primary bg-white dark:bg-dark-surface-secondary"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((v) => !v)}
+                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                className="absolute inset-y-0 right-0 mr-2 mt-1 flex items-center px-2 py-1 text-gray-600 dark:text-dark-text-tertiary hover:text-gray-800 dark:hover:text-dark-text-secondary rounded"
+              >
+                {showConfirmPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
+            {confirmPassword && confirmPassword !== password && (
+              <p className="mt-1 text-xs text-red-600 dark:text-emergency-red-300">Passwords do not match.</p>
+            )}
+          </div>
+        )}
         <button
           type="submit"
-          disabled={!isOnline && !isLogin}
+          disabled={(!isOnline && !isLogin) || (!isLogin && (!!confirmPassword && confirmPassword !== password))}
           className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-emergency-blue-500 dark:hover:bg-emergency-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLogin ? 'Login' : 'Register'}
