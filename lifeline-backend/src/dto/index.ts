@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, IsIn } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, IsIn, IsEmail } from 'class-validator';
 
 export class CreateStatusDto {
   @IsIn(['safe', 'help'])
@@ -30,6 +30,10 @@ export class RegisterUserDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+
+  @IsEmail()
+  @IsOptional()
+  email?: string;
 }
 
 export class LoginUserDto {
@@ -40,4 +44,20 @@ export class LoginUserDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+}
+
+export class ForgotPasswordDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  token: string;
+
+  @IsString()
+  @IsNotEmpty()
+  newPassword: string;
 }

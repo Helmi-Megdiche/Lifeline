@@ -4,12 +4,17 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { EmailService } from './email.service';
 import { User, UserSchema } from '../schemas/user.schema';
+import { PasswordResetToken, PasswordResetTokenSchema } from '../schemas/password-reset-token.schema';
 import { JwtStrategy } from './jwt.strategy';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: PasswordResetToken.name, schema: PasswordResetTokenSchema },
+    ]),
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production',
@@ -17,7 +22,7 @@ import { JwtStrategy } from './jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, EmailService, JwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}
