@@ -135,7 +135,22 @@ export const useSync = () => {
           try {
             for (const doc of docs) {
               if (doc && !doc._id?.startsWith('_') && doc.synced === false) {
-                await localDB.put({ ...doc, synced: true });
+                try {
+                  await localDB.put({ ...doc, synced: true });
+                } catch (conflictError) {
+                  // Handle conflicts by getting the latest version and updating
+                  if (conflictError.status === 409) {
+                    console.log('Conflict detected, resolving for doc:', doc._id);
+                    try {
+                      const latestDoc = await localDB.get(doc._id);
+                      await localDB.put({ ...latestDoc, synced: true });
+                    } catch (resolveError) {
+                      console.warn('Failed to resolve conflict for doc:', doc._id, resolveError);
+                    }
+                  } else {
+                    console.warn('Error marking doc as synced:', doc._id, conflictError);
+                  }
+                }
               }
             }
             setLastSyncTime(new Date());

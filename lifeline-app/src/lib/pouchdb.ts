@@ -223,8 +223,32 @@ export const migrateIndexedDBToPouch = async (getAllFromIDB: () => Promise<any[]
       createdAt: existing?.createdAt || new Date().toISOString(),
       statusHistory: Array.isArray(existing?.statusHistory) ? [...existing.statusHistory, ...history] : history,
     } as any;
-    await localDB.put(nextDoc);
-    return 1;
+    try {
+      await localDB.put(nextDoc);
+      return 1;
+    } catch (conflictError) {
+      if (conflictError.status === 409) {
+        console.log('Migration conflict detected, resolving for doc:', docId);
+        try {
+          // Get the latest version and merge
+          const existingDoc = await localDB.get(docId);
+          const mergedDoc = {
+            ...existingDoc,
+            statusHistory: Array.isArray(existingDoc?.statusHistory) 
+              ? [...existingDoc.statusHistory, ...history] 
+              : history,
+            synced: false, // Mark as unsynced to trigger sync
+          };
+          await localDB.put(mergedDoc);
+          return 1;
+        } catch (resolveError) {
+          console.warn('Failed to resolve migration conflict for doc:', docId, resolveError);
+          return 0;
+        }
+      } else {
+        throw conflictError;
+      }
+    }
   } catch (e) {
     console.warn('Migration from IndexedDB to Pouch failed:', e);
     return 0;
