@@ -137,7 +137,7 @@ export const useSync = () => {
               if (doc && !doc._id?.startsWith('_') && doc.synced === false) {
                 try {
                   await localDB.put({ ...doc, synced: true });
-                } catch (conflictError) {
+                } catch (conflictError: any) {
                   // Handle conflicts by getting the latest version and updating
                   if (conflictError.status === 409) {
                     console.log('Conflict detected, resolving for doc:', doc._id);
