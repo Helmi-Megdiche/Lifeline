@@ -201,3 +201,77 @@ html span.text-black {
   color: #000000 !important;
   font-weight: bold !important;
 }
+
+/* Nuclear option for Profile page text visibility */
+html.dark .bg-gray-50 span,
+html.dark .bg-dark-surface-secondary span {
+  color: #ffffff !important;
+  font-weight: bold !important;
+}
+
+html .bg-gray-50 span {
+  color: #000000 !important;
+  font-weight: bold !important;
+}
+
+/* Force all text in Profile cards to be visible */
+html.dark div[class*="bg-gray-50"] span,
+html.dark div[class*="bg-dark-surface-secondary"] span {
+  color: #ffffff !important;
+  font-weight: bold !important;
+}
+
+html div[class*="bg-gray-50"] span {
+  color: #000000 !important;
+  font-weight: bold !important;
+}
+
+/* Force Profile page text-gray-900 and text-gray-100 to be visible */
+html.dark .text-gray-900 {
+  color: #ffffff !important;
+  font-weight: bold !important;
+}
+
+html.dark .text-gray-100 {
+  color: #ffffff !important;
+  font-weight: bold !important;
+}
+
+html .text-gray-900 {
+  color: #000000 !important;
+  font-weight: bold !important;
+}
+
+/* ULTIMATE FIX for Profile page text visibility in dark mode */
+html.dark span[style*="color: #000000"] {
+  color: #000000 !important;
+}
+
+html.dark span[style*="color: '#000000'"] {
+  color: #000000 !important;
+}
+
+/* Force ALL spans in Profile cards to be black in dark mode */
+html.dark .bg-gray-50 span[style],
+html.dark .bg-dark-surface-secondary span[style] {
+  color: #000000 !important;
+}
+
+/* Nuclear option - override any style attribute */
+html.dark span[style] {
+  color: #000000 !important;
+}
+
+/* ULTIMATE NUCLEAR OPTION - Profile labels MUST be black */
+html.dark .profile-label {
+  color: #000000 !important;
+}
+
+html .profile-label {
+  color: #000000 !important;
+}
+
+/* Force profile labels to be black regardless of any other CSS */
+.profile-label {
+  color: #000000 !important;
+}

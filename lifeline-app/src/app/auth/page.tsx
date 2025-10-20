@@ -62,12 +62,12 @@ export default function AuthPage() {
 
         <div className="space-y-4 mb-8">
           <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-surface-secondary rounded-lg border border-gray-200 dark:border-dark-border">
-            <span className="text-black dark:text-white font-bold text-base">Account Status</span>
+            <span className="font-bold text-base profile-label" style={{ color: '#000000' }}>Account Status</span>
             <span className="px-3 py-1 bg-green-500 text-white dark:bg-green-600 dark:text-white rounded-full text-sm font-semibold shadow-sm">Active</span>
           </div>
           
           <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-surface-secondary rounded-lg border border-gray-200 dark:border-dark-border">
-            <span className="text-black dark:text-white font-bold text-base">Connection</span>
+            <span className="font-bold text-base profile-label" style={{ color: '#000000' }}>Connection</span>
             <span className={`px-3 py-1 rounded-full text-sm font-semibold shadow-sm ${
               isOnline 
                 ? 'bg-green-500 text-white dark:bg-green-600 dark:text-white' 
@@ -78,7 +78,7 @@ export default function AuthPage() {
           </div>
 
           <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-surface-secondary rounded-lg border border-gray-200 dark:border-dark-border">
-            <span className="text-black dark:text-white font-bold text-base">Theme</span>
+            <span className="font-bold text-base profile-label" style={{ color: '#000000' }}>Theme</span>
             <button
               onClick={toggleTheme}
               className="flex items-center gap-2 px-3 py-1 bg-blue-500 text-white dark:bg-blue-600 dark:text-white rounded-full text-sm font-semibold hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors shadow-sm"
