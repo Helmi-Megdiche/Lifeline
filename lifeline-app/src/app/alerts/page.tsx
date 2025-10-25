@@ -56,6 +56,7 @@ const AlertCreateModal: React.FC<{
   onCreate: (alertData: any) => void;
   userLocation?: { lat: number; lng: number };
 }> = ({ isOpen, onClose, onCreate, userLocation }) => {
+  const { theme } = useTheme();
   const [formData, setFormData] = useState({
     category: 'emergency',
     title: '',
@@ -112,33 +113,33 @@ const AlertCreateModal: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-gray-700">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <span className="text-3xl">🚨</span>
-              Create Alert
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-3 sm:p-4">
+      <div className={`${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} rounded-xl sm:rounded-2xl max-w-lg w-full max-h-[85vh] sm:max-h-[80vh] overflow-y-auto shadow-2xl border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div className="p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h2 className={`text-xl sm:text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+              <span className="text-2xl sm:text-3xl">🚨</span>
+              <span className="text-lg sm:text-2xl">Create Alert</span>
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+              className={`p-2 ${theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-100'} rounded-full transition-colors`}
             >
-              <svg className="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-5 h-5 sm:w-6 sm:h-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                <label className={`block text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'} mb-2 sm:mb-3`}>
                   Category
                 </label>
-                <div className="space-y-2">
+                <div className="space-y-1 sm:space-y-2">
                   {categories.map(cat => (
-                    <label key={cat.value} className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <label key={cat.value} className={`flex items-center p-2 sm:p-3 border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} rounded-lg cursor-pointer ${theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-50'} transition-colors ${theme === 'dark' ? 'bg-gray-700' : 'bg-white'}`}>
                       <input
                         type="radio"
                         name="category"
@@ -147,10 +148,10 @@ const AlertCreateModal: React.FC<{
                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                         className="sr-only"
                       />
-                      <span className="text-2xl mr-3">{cat.icon}</span>
-                      <span className="text-gray-900 dark:text-white font-medium">{cat.label}</span>
+                      <span className="text-lg sm:text-2xl mr-2 sm:mr-3">{cat.icon}</span>
+                      <span className={`text-sm sm:text-base ${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-medium flex-1`}>{cat.label}</span>
                       {formData.category === cat.value && (
-                        <svg className="w-5 h-5 text-blue-500 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 ml-auto" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                       )}
@@ -160,17 +161,17 @@ const AlertCreateModal: React.FC<{
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                <label className={`block text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'} mb-2 sm:mb-3`}>
                   Severity Level
                 </label>
-                <div className="space-y-2">
+                <div className="space-y-1 sm:space-y-2">
                   {[
                     { value: 'low', label: 'Low', color: 'green', icon: '🟢' },
                     { value: 'medium', label: 'Medium', color: 'yellow', icon: '🟡' },
                     { value: 'high', label: 'High', color: 'orange', icon: '🟠' },
                     { value: 'critical', label: 'Critical', color: 'red', icon: '🔴' }
                   ].map(sev => (
-                    <label key={sev.value} className="flex items-center p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <label key={sev.value} className={`flex items-center p-2 sm:p-3 border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} rounded-lg cursor-pointer ${theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-50'} transition-colors ${theme === 'dark' ? 'bg-gray-700' : 'bg-white'}`}>
                       <input
                         type="radio"
                         name="severity"
@@ -179,10 +180,10 @@ const AlertCreateModal: React.FC<{
                         onChange={(e) => setFormData({ ...formData, severity: e.target.value as any })}
                         className="sr-only"
                       />
-                      <span className="text-xl mr-3">{sev.icon}</span>
-                      <span className="text-gray-900 dark:text-white font-medium">{sev.label}</span>
+                      <span className="text-lg sm:text-xl mr-2 sm:mr-3">{sev.icon}</span>
+                      <span className={`text-sm sm:text-base ${theme === 'dark' ? 'text-white' : 'text-gray-900'} font-medium flex-1`}>{sev.label}</span>
                       {formData.severity === sev.value && (
-                        <svg className="w-5 h-5 text-blue-500 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 ml-auto" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                       )}
@@ -193,35 +194,35 @@ const AlertCreateModal: React.FC<{
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <label className={`block text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'} mb-2`}>
                 Alert Title *
               </label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className={`w-full p-3 sm:p-4 border ${theme === 'dark' ? 'border-gray-600' : 'border-gray-300'} rounded-xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} ${theme === 'dark' ? 'text-white' : 'text-gray-900'} ${theme === 'dark' ? 'placeholder-gray-400' : 'placeholder-gray-500'} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm sm:text-base`}
                 placeholder="Brief description of the alert"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <label className={`block text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'} mb-2`}>
                 Detailed Description *
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-                rows={4}
+                className={`w-full p-3 sm:p-4 border ${theme === 'dark' ? 'border-gray-600' : 'border-gray-300'} rounded-xl ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} ${theme === 'dark' ? 'text-white' : 'text-gray-900'} ${theme === 'dark' ? 'placeholder-gray-400' : 'placeholder-gray-500'} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-sm sm:text-base`}
+                rows={3}
                 placeholder="Provide detailed information about the alert..."
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <label className={`block text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-700'} mb-2`}>
                 Duration
               </label>
               <div className="flex items-center gap-3">
@@ -231,30 +232,30 @@ const AlertCreateModal: React.FC<{
                   max="168"
                   value={formData.ttlHours}
                   onChange={(e) => setFormData({ ...formData, ttlHours: parseInt(e.target.value) })}
-                  className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                  className={`flex-1 h-2 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} rounded-lg appearance-none cursor-pointer`}
                 />
-                <div className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-lg font-semibold min-w-[80px] text-center">
+                <div className={`${theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'} px-2 sm:px-3 py-1 rounded-lg font-semibold min-w-[60px] sm:min-w-[80px] text-center text-xs sm:text-sm`}>
                   {formData.ttlHours}h
                 </div>
               </div>
-              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <div className={`flex justify-between text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
                 <span>1 hour</span>
                 <span>1 week</span>
               </div>
             </div>
 
-            <div className="flex space-x-4 pt-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:space-x-4 pt-4">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 font-semibold transition-all"
+                className={`w-full sm:flex-1 px-6 py-3 border-2 ${theme === 'dark' ? 'border-gray-600 text-gray-300 hover:bg-gray-800' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} rounded-xl font-semibold transition-all text-sm sm:text-base`}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !formData.title.trim() || !formData.description.trim()}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all shadow-lg hover:shadow-xl"
+                className="w-full sm:flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all shadow-lg hover:shadow-xl text-sm sm:text-base"
               >
                 {isSubmitting ? (
                   <span className="flex items-center justify-center gap-2">
@@ -310,17 +311,18 @@ const AlertCard: React.FC<{
   const timeAgo = new Date(alert.createdAt).toLocaleString();
 
   return (
-    <div className={`p-5 rounded-2xl border-2 transition-all hover:shadow-lg ${
+    <div className={`p-3 sm:p-5 rounded-xl sm:rounded-2xl border-2 transition-all hover:shadow-lg w-full max-w-full overflow-hidden ${
       isExpired 
         ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 opacity-60'
-        : `${severityConfig.bg} ${severityConfig.border} hover:scale-[1.02]`
+        : `${severityConfig.bg} ${severityConfig.border} hover:scale-[1.01] sm:hover:scale-[1.02]`
     }`}>
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-3">
-          <div className={`px-3 py-1 rounded-full text-sm font-bold ${severityConfig.bg} ${severityConfig.text} ${severityConfig.border} border`}>
-            {severityConfig.icon} {alert.severity.toUpperCase()}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3 sm:mb-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold ${severityConfig.bg} ${severityConfig.text} ${severityConfig.border} border`}>
+            {severityConfig.icon} <span className="hidden sm:inline">{alert.severity.toUpperCase()}</span>
+            <span className="sm:hidden">{alert.severity.charAt(0).toUpperCase()}</span>
           </div>
-          <div className={`text-lg ${categoryConfig.color}`}>
+          <div className={`text-base sm:text-lg ${categoryConfig.color}`}>
             {categoryConfig.icon}
           </div>
         </div>
@@ -338,29 +340,29 @@ const AlertCard: React.FC<{
         </div>
       </div>
 
-      <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">{alert.title}</h3>
-      <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">{alert.description}</p>
+      <h3 className="font-bold text-base sm:text-lg text-gray-900 dark:text-white mb-2 line-clamp-2">{alert.title}</h3>
+      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-3 sm:mb-4 leading-relaxed line-clamp-3">{alert.description}</p>
       
-      <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400 mb-3">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3">
         <span className="flex items-center gap-1">
           <span className="font-semibold">👤</span>
           {alert.username}
         </span>
         <span className="flex items-center gap-1">
           <span className="font-semibold">🕒</span>
-          {timeAgo}
+          <span className="text-xs sm:text-sm">{timeAgo}</span>
         </span>
       </div>
 
       {alert.location.address && (
-        <div className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-1">
+        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-4 flex items-center gap-1">
           <span>📍</span>
-          {alert.location.address}
+          <span className="truncate">{alert.location.address}</span>
         </div>
       )}
 
-      <div className="flex justify-between items-center">
-        <div className="text-sm text-gray-500 dark:text-gray-400">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
           {alert.reportCount > 0 && (
             <span className="flex items-center gap-1">
               <span>⚠️</span>
@@ -369,11 +371,11 @@ const AlertCard: React.FC<{
           )}
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 justify-end sm:justify-start">
           {!isOwnAlert && !isExpired && (
             <button
               onClick={() => onReport(alert._id)}
-              className="px-3 py-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-semibold transition-colors"
+              className="px-3 py-2 sm:py-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-xs sm:text-sm font-semibold transition-colors"
             >
               🚨 Report
             </button>
@@ -382,7 +384,7 @@ const AlertCard: React.FC<{
             <button
               onClick={() => onDelete(alert._id)}
               disabled={!isOnline}
-              className={`px-3 py-1 rounded-lg text-sm font-semibold transition-colors ${
+              className={`px-3 py-2 sm:py-1 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${
                 isOnline 
                   ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer' 
                   : 'text-gray-400 dark:text-gray-600 bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-50'
@@ -407,7 +409,7 @@ export default function AlertsPage() {
   console.log('🚨🚨🚨 ALERTS PAGE LOADED - isOnline:', isOnline);
   console.log('🚨🚨🚨 ALERTS PAGE LOADED - user:', user);
   
-  const { alerts, isLoadingAlerts, createAlert, reportAlert, deleteAlert, manualSyncAlerts } = useAlerts();
+  const { alerts, isLoadingAlerts, createAlert, reportAlert, deleteAlert } = useAlerts();
   const { theme } = useTheme();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -513,42 +515,22 @@ export default function AlertsPage() {
   }
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
-      <div className="container mx-auto px-4 py-6">
+    <div className={`min-h-screen overflow-x-hidden ${theme === 'dark' ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-full">
         {/* Header */}
-        <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl p-6 mb-6`}>
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h1 className={`text-3xl font-bold flex items-center gap-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                <span className="text-4xl">🚨</span>
-                Community Alerts
+        <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 mb-4 sm:mb-6`}>
+          <div className="flex flex-col gap-4">
+            <div className="text-center sm:text-left">
+              <h1 className={`text-2xl sm:text-3xl font-bold flex items-center justify-center sm:justify-start gap-2 sm:gap-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                <span className="text-3xl sm:text-4xl">🚨</span>
+                <span className="text-lg sm:text-3xl">Community Alerts</span>
               </h1>
-              <p className={`mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Stay informed about local incidents and emergencies</p>
+              <p className={`mt-2 text-sm sm:text-base text-center sm:text-left ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Stay informed about local incidents and emergencies</p>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => {
-                  alert('SYNC BUTTON CLICKED!');
-                  console.log('🚨🚨🚨 SYNC BUTTON CLICKED! 🚨🚨🚨');
-                  console.log('🚨🚨🚨 SYNC BUTTON CLICKED! 🚨🚨🚨');
-                  console.log('🚨🚨🚨 SYNC BUTTON CLICKED! 🚨🚨🚨');
-                  console.log('🚨🚨🚨 isOnline:', isOnline);
-                  console.log('🚨🚨🚨 Calling manualSyncAlerts... 🚨🚨🚨');
-                  manualSyncAlerts();
-                }}
-                disabled={false}
-                style={{ backgroundColor: 'red', color: 'white', padding: '10px', fontSize: '20px', cursor: 'pointer' }}
-                className={`px-4 py-2 rounded-xl font-semibold transition-all ${
-                  isOnline 
-                    ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl' 
-                    : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                🔄 SYNC BUTTON TEST
-              </button>
+            <div className="flex justify-center sm:justify-start">
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-semibold shadow-lg hover:shadow-xl transition-all"
+                className="w-full sm:w-auto px-6 py-3 sm:py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-semibold shadow-lg hover:shadow-xl transition-all text-base sm:text-sm"
               >
                 🚨 Create Alert
               </button>
@@ -557,13 +539,14 @@ export default function AlertsPage() {
         </div>
 
         {/* Filters and View Toggle */}
-        <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl p-6 mb-6`}>
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex flex-wrap gap-4">
+        <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 mb-4 sm:mb-6`}>
+          <div className="flex flex-col gap-4">
+            {/* Filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className={`px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${theme === 'dark' ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'}`}
+                className={`w-full px-3 py-3 sm:py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm sm:text-base ${theme === 'dark' ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'}`}
               >
                 <option value="">🔍 All Categories</option>
                 <option value="emergency">🚨 Emergency</option>
@@ -576,7 +559,7 @@ export default function AlertsPage() {
               <select
                 value={filterSeverity}
                 onChange={(e) => setFilterSeverity(e.target.value)}
-                className={`px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${theme === 'dark' ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'}`}
+                className={`w-full px-3 py-3 sm:py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm sm:text-base ${theme === 'dark' ? 'border-gray-600 bg-gray-700 text-white' : 'border-gray-300 bg-white text-gray-900'}`}
               >
                 <option value="">⚡ All Severities</option>
                 <option value="low">🟢 Low</option>
@@ -586,12 +569,13 @@ export default function AlertsPage() {
               </select>
             </div>
 
-            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
+            {/* View Toggle */}
+            <div className={`flex ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'} rounded-xl p-1 w-full sm:w-auto`}>
               <button
                 onClick={() => setViewMode('map')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                className={`flex-1 sm:flex-none px-4 py-3 sm:py-2 rounded-lg font-semibold transition-all text-sm sm:text-base ${
                   viewMode === 'map' 
-                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' 
+                    ? 'bg-blue-600 text-white shadow-sm' 
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
@@ -599,9 +583,9 @@ export default function AlertsPage() {
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                className={`flex-1 sm:flex-none px-4 py-3 sm:py-2 rounded-lg font-semibold transition-all text-sm sm:text-base ${
                   viewMode === 'list' 
-                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' 
+                    ? 'bg-blue-600 text-white shadow-sm' 
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
@@ -612,10 +596,10 @@ export default function AlertsPage() {
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Map */}
           {viewMode === 'map' && (
-            <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl overflow-hidden`} style={{ height: '600px' }}>
+            <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl sm:rounded-2xl shadow-xl overflow-hidden`} style={{ height: '400px', minHeight: '300px' }}>
               {typeof window !== 'undefined' && (
                 <MapContainer
                   center={mapCenter}
@@ -667,9 +651,9 @@ export default function AlertsPage() {
                           icon={customIcon}
                         >
                           <Popup>
-                            <div className="p-3 min-w-[200px]">
-                              <h3 className="font-bold text-gray-900 mb-2">{alert.title}</h3>
-                              <p className="text-sm text-gray-600 mb-2">{alert.description}</p>
+                            <div className="p-3 min-w-[200px] max-w-[280px]">
+                              <h3 className="font-bold text-gray-900 mb-2 text-sm">{alert.title}</h3>
+                              <p className="text-xs text-gray-600 mb-2 line-clamp-3">{alert.description}</p>
                               <div className="text-xs text-gray-500">
                                 by {alert.username} • {alert.severity} • {alert.category}
                               </div>
@@ -685,30 +669,30 @@ export default function AlertsPage() {
           )}
 
           {/* Alerts List */}
-          <div className={`space-y-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl p-6`}>
+          <div className={`space-y-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 overflow-hidden`}>
             <div className="flex items-center justify-between">
-              <h2 className={`text-xl font-bold flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              <h2 className={`text-lg sm:text-xl font-bold flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                 <span>📋</span>
-                Recent Alerts
-                <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-sm font-semibold">
+                <span className="text-base sm:text-xl">Recent Alerts</span>
+                <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs sm:text-sm font-semibold">
                   {filteredAlerts.length}
                 </span>
               </h2>
             </div>
             
             {isLoadingAlerts ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Loading alerts...</p>
+              <div className="text-center py-8 sm:py-12">
+                <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className={`text-sm sm:text-base ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Loading alerts...</p>
               </div>
             ) : filteredAlerts.length === 0 ? (
-              <div className={`text-center py-12 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl`}>
-                <div className="text-6xl mb-4">🔍</div>
-                <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>No alerts found</h3>
-                <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>No alerts match your current filters.</p>
+              <div className={`text-center py-8 sm:py-12 ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl sm:rounded-2xl shadow-xl`}>
+                <div className="text-4xl sm:text-6xl mb-4">🔍</div>
+                <h3 className={`text-base sm:text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>No alerts found</h3>
+                <p className={`text-sm sm:text-base ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>No alerts match your current filters.</p>
               </div>
             ) : (
-              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+              <div className="space-y-3 sm:space-y-4 max-h-[400px] sm:max-h-[500px] overflow-y-auto overflow-x-hidden pr-1 sm:pr-2">
                 {filteredAlerts.map(alert => (
                   <AlertCard
                     key={alert._id}

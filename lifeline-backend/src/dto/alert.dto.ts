@@ -52,24 +52,28 @@ export class ReportAlertDto {
 
 export class AlertListDto {
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(-90)
   @Max(90)
   minLat?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(-90)
   @Max(90)
   maxLat?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(-180)
   @Max(180)
   minLng?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(-180)
   @Max(180)
@@ -84,6 +88,7 @@ export class AlertListDto {
   severity?: 'low' | 'medium' | 'high' | 'critical';
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
   @Max(100)
