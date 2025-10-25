@@ -51,7 +51,7 @@
 
 ### Recent Improvements (Latest Update)
 
-#### 👤 **Profile Management (NEW)**
+#### 👤 **Profile Management **
 - **Profile Update Feature**: Users can now edit their username and email
   - Edit mode with save/cancel functionality
   - Real-time validation and duplicate checking
