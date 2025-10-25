@@ -97,26 +97,37 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
+    console.log('🔐 ClientAuthContext useEffect triggered');
     // Only run on client side
     if (typeof window !== 'undefined') {
       const initializeAuth = async () => {
         try {
+          console.log('🔄 Initializing authentication...');
           // Check online status
           const online = await isOnlineClient();
           setOnlineStatus(online);
+          console.log('🌐 Online status:', online);
 
           // Load stored user data
           const storedToken = localStorage.getItem('lifeline:token');
           const storedUser = localStorage.getItem('lifeline:user');
+          console.log('💾 Stored token:', storedToken ? `${storedToken.substring(0, 20)}...` : 'NO TOKEN');
+          console.log('💾 Stored user:', storedUser);
+          
           if (storedToken && storedUser) {
+            console.log('✅ Restoring authentication from localStorage');
             setToken(storedToken);
             setUser(JSON.parse(storedUser));
+            console.log('✅ Authentication restored successfully');
+          } else {
+            console.log('❌ No stored authentication found');
           }
         } catch (error) {
-          console.error('Auth initialization error:', error);
+          console.error('❌ Auth initialization error:', error);
         } finally {
           setIsLoading(false);
           setIsInitialized(true);
+          console.log('✅ Auth initialization complete');
         }
       };
 

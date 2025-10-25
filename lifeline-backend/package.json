@@ -26,6 +26,7 @@
     "@nestjs/mongoose": "^11.0.3",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/throttler": "^6.4.0",
     "@types/nodemailer": "^7.0.2",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",

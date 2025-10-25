@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { StatusModule } from './status/status.module';
 import { AuthModule } from './auth/auth.module';
 import { PouchModule } from './pouch/pouch.module';
+import { AlertsModule } from './alerts/alerts.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { PouchModule } from './pouch/pouch.module';
     StatusModule,
     AuthModule,
     PouchModule,
+    AlertsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

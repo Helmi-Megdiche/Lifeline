@@ -6,6 +6,13 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
+          // Add request logging middleware
+          app.use((req, res, next) => {
+            if (req.url.includes('_bulk_docs')) {
+            }
+            next();
+          });
+  
   // Increase body size limits for PouchDB/CouchDB sync
   app.use(bodyParser.json({ limit: '10mb' }));
   app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
@@ -30,7 +37,7 @@ async function bootstrap() {
         ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'cache-control', 'pragma', 'expires'],
   });
   
   const port = process.env.PORT || 4004; // Changed to 4004 to avoid conflicts

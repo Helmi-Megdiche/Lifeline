@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cache Clearing Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        #log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Cache Clearing Tool</h1>
+        <p>This tool will help you clear all browser caches that might be causing the 401 Unauthorized errors.</p>
+        
+        <div class="step">
+            <h3>Step 1: Clear Browser Cache</h3>
+            <p>Press Ctrl+Shift+R (or Cmd+Shift+R on Mac) to perform a hard refresh, or:</p>
+            <button onclick="hardRefresh()">Hard Refresh Page</button>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Clear Application Storage</h3>
+            <p>Clear all stored data for this application:</p>
+            <button onclick="clearStorage()">Clear All Storage</button>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Clear Service Worker</h3>
+            <p>Unregister service workers and clear their caches:</p>
+            <button onclick="clearServiceWorker()">Clear Service Worker</button>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Clear PouchDB Data</h3>
+            <p>Clear all PouchDB/IndexedDB data:</p>
+            <button onclick="clearPouchDB()">Clear PouchDB Data</button>
+        </div>
+
+        <div class="step">
+            <h3>Step 5: Test Backend Connection</h3>
+            <p>Test if the backend is responding correctly:</p>
+            <button onclick="testBackend()">Test Backend</button>
+        </div>
+
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const log = document.getElementById('log');
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            log.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function hardRefresh() {
+            addLog('Performing hard refresh...', 'warning');
+            window.location.reload(true);
+        }
+
+        async function clearStorage() {
+            addLog('Clearing localStorage...', 'info');
+            try {
+                Object.keys(localStorage).forEach(key => {
+                    if (key.includes('pouchdb') || key.includes('lifeline') || key.includes('auth')) {
+                        localStorage.removeItem(key);
+                        addLog(`  Removed: ${key}`, 'success');
+                    }
+                });
+                addLog('localStorage cleared successfully', 'success');
+            } catch (error) {
+                addLog(`Error clearing localStorage: ${error.message}`, 'error');
+            }
+
+            addLog('Clearing sessionStorage...', 'info');
+            try {
+                Object.keys(sessionStorage).forEach(key => {
+                    if (key.includes('pouchdb') || key.includes('lifeline') || key.includes('auth')) {
+                        sessionStorage.removeItem(key);
+                        addLog(`  Removed: ${key}`, 'success');
+                    }
+                });
+                addLog('sessionStorage cleared successfully', 'success');
+            } catch (error) {
+                addLog(`Error clearing sessionStorage: ${error.message}`, 'error');
+            }
+        }
+
+        async function clearServiceWorker() {
+            addLog('Clearing Service Worker...', 'info');
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const registration of registrations) {
+                        await registration.unregister();
+                        addLog(`  Unregistered: ${registration.scope}`, 'success');
+                    }
+                    addLog('Service Workers cleared successfully', 'success');
+                } else {
+                    addLog('Service Workers not supported', 'warning');
+                }
+            } catch (error) {
+                addLog(`Error clearing Service Workers: ${error.message}`, 'error');
+            }
+
+            addLog('Clearing Cache API...', 'info');
+            try {
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    for (const cacheName of cacheNames) {
+                        await caches.delete(cacheName);
+                        addLog(`  Deleted cache: ${cacheName}`, 'success');
+                    }
+                    addLog('Cache API cleared successfully', 'success');
+                } else {
+                    addLog('Cache API not supported', 'warning');
+                }
+            } catch (error) {
+                addLog(`Error clearing Cache API: ${error.message}`, 'error');
+            }
+        }
+
+        async function clearPouchDB() {
+            addLog('Clearing IndexedDB...', 'info');
+            try {
+                if (window.indexedDB) {
+                    const databases = ['lifeline-local', 'lifeline-local-68f7ae94d8e811421f98b5bc'];
+                    for (const dbName of databases) {
+                        const deleteReq = indexedDB.deleteDatabase(dbName);
+                        await new Promise((resolve, reject) => {
+                            deleteReq.onsuccess = () => {
+                                addLog(`  Deleted database: ${dbName}`, 'success');
+                                resolve();
+                            };
+                            deleteReq.onerror = () => {
+                                addLog(`  Error deleting database: ${dbName}`, 'error');
+                                reject(deleteReq.error);
+                            };
+                        });
+                    }
+                    addLog('IndexedDB cleared successfully', 'success');
+                } else {
+                    addLog('IndexedDB not supported', 'warning');
+                }
+            } catch (error) {
+                addLog(`Error clearing IndexedDB: ${error.message}`, 'error');
+            }
+        }
+
+        async function testBackend() {
+            addLog('Testing backend connection...', 'info');
+            try {
+                const response = await fetch('http://10.133.250.197:4004/health', {
+                    method: 'GET',
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                if (response.ok) {
+                    addLog(`Backend is responding: ${response.status} ${response.statusText}`, 'success');
+                } else {
+                    addLog(`Backend error: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                addLog(`Backend connection failed: ${error.message}`, 'error');
+            }
+
+            addLog('Testing alerts endpoint...', 'info');
+            try {
+                const response = await fetch('http://10.133.250.197:4004/alerts/pouch', {
+                    method: 'GET',
+                    cache: 'no-cache',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                if (response.ok) {
+                    addLog(`Alerts endpoint is responding: ${response.status} ${response.statusText}`, 'success');
+                } else {
+                    addLog(`Alerts endpoint error: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                addLog(`Alerts endpoint connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run on page load
+        window.addEventListener('load', () => {
+            addLog('Cache Clearing Tool loaded', 'success');
+            addLog('Click the buttons above to clear different types of cache', 'info');
+        });
+    </script>
+</body>
+</html>

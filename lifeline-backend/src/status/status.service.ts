@@ -39,10 +39,8 @@ export class StatusService {
         existing.longitude = longitude;
         existing.synced = true;
         existing._rev = nextRev;
-        console.log(`[StatusService] Updating main status to '${status}' (timestamp: ${timestamp} > ${existing.timestamp})`);
         return existing.save();
       } else {
-        console.log(`[StatusService] Keeping existing status '${existing.status}' (timestamp: ${existing.timestamp} >= ${timestamp}) - no changes needed`);
         // Return existing document without saving - no changes to persist
         return existing;
       }

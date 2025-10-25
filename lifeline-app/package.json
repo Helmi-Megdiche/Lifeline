@@ -17,7 +17,8 @@
     "pouchdb-find": "^9.0.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-leaflet": "5.0.0"
+    "react-leaflet": "5.0.0",
+    "react-leaflet-cluster": "^3.1.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

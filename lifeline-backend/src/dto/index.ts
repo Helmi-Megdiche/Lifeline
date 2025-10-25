@@ -71,3 +71,6 @@ export class UpdateProfileDto {
   @IsNotEmpty()
   email: string;
 }
+
+// Export alert DTOs
+export * from './alert.dto';

@@ -1,19 +1,44 @@
 "use client";
-import PouchDB from 'pouchdb-browser';
-import PouchFind from 'pouchdb-find';
 
-// Enable PouchDB plugins
-PouchDB.plugin(PouchFind);
+// Dynamically import PouchDB only on the client to avoid SSR eval issues
+let PouchDBMod: any = null;
+let PouchFindMod: any = null;
+export let localDB: any = null;
+export let remoteDB: any = null;
 
-// Active databases (mutable to support per-user DB switching)
-export let localDB: PouchDB.Database<any> = new PouchDB('lifeline-local');
+const ensurePouch = async () => {
+  if (typeof window === 'undefined') return null;
+  if (!PouchDBMod) {
+    const [{ default: PouchDB }, { default: PouchFind }] = await Promise.all([
+      import('pouchdb-browser'),
+      import('pouchdb-find'),
+    ]);
+    PouchDB.plugin(PouchFind);
+    PouchDBMod = PouchDB;
+    PouchFindMod = PouchFind;
+  }
+  return PouchDBMod;
+};
 
-// Create remote database connection
-const REMOTE_DB_URL = process.env.NEXT_PUBLIC_COUCH_SYNC_URL || 'http://10.133.250.197:4004/pouch/status';
-export let remoteDB: PouchDB.Database<any> = new PouchDB(REMOTE_DB_URL);
+export const getLocalDB = async () => {
+  const Pouch = await ensurePouch();
+  if (!localDB && Pouch) {
+    localDB = new Pouch('lifeline-local');
+  }
+  return localDB;
+};
+
+export const getRemoteDB = async () => {
+  const Pouch = await ensurePouch();
+  if (!remoteDB && Pouch) {
+    const REMOTE_DB_URL = process.env.NEXT_PUBLIC_COUCH_SYNC_URL || 'http://10.133.250.197:4004/pouch/status';
+    remoteDB = new Pouch(REMOTE_DB_URL);
+  }
+  return remoteDB;
+};
 
 // Allow hooks to switch the active DBs (per-user)
-export const setActiveDatabases = (local: PouchDB.Database<any>, remote: PouchDB.Database<any>) => {
+export const setActiveDatabases = (local: any, remote: any) => {
   localDB = local;
   remoteDB = remote;
 };
@@ -33,8 +58,8 @@ export const dbConfig = {
 };
 
 // Initialize database indexes
-export const initializeDB = async (db?: PouchDB.Database<any>) => {
-  const target = db || localDB;
+export const initializeDB = async (db?: any) => {
+  const target = db || localDB || await getLocalDB();
   try {
     const desired = [
       { name: 'timestamp-index', fields: ['timestamp'] as string[] },

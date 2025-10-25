@@ -10,7 +10,6 @@ export class EmailService {
     const emailUser = process.env.EMAIL_USER || 'helmimegdiche07@gmail.com';
     const emailPass = (process.env.EMAIL_PASS || 'myeqjnwtxlajrvdn').replace(/\s/g, ''); // Remove spaces from app password
     
-    console.log('Email configuration:', { emailUser, emailPassLength: emailPass.length });
     
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -54,7 +53,6 @@ export class EmailService {
 
     try {
       await this.transporter.sendMail(mailOptions);
-      console.log(`Password reset email sent to: ${email}`);
     } catch (error) {
       console.error('Failed to send password reset email:', error);
       throw new Error('Failed to send password reset email');

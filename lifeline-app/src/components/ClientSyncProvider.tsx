@@ -28,6 +28,7 @@ export const useSync = () => {
         await localDB.createIndex({ index: { fields: ['userId', 'timestamp'] } });
         console.log('PouchDB indexes ensured before sync.');
 
+        console.log('🔄 Starting status sync with remote DB...');
         sync = localDB.sync(remoteDB, {
           live: true,
           retry: true,
@@ -37,31 +38,40 @@ export const useSync = () => {
           },
         })
           .on('change', (info: any) => {
-            console.log('Sync change:', info);
+            console.log('📊 Status sync change:', info);
             setSyncStatus('syncing');
             setLastSyncTime(new Date());
           })
-          .on('paused', () => {
-            console.log('Sync paused');
-            setSyncStatus('paused');
-            setLastSyncTime(new Date());
+          .on('paused', (err: any) => {
+            if (err) {
+              console.error('⏸️ Status sync paused with error:', err);
+              console.error('⏸️ Paused error details:', JSON.stringify(err, null, 2));
+              setSyncStatus('error');
+              setError(err);
+            } else {
+              console.log('⏸️ Status sync paused (idle)');
+              setSyncStatus('paused');
+              setLastSyncTime(new Date());
+            }
           })
           .on('active', () => {
-            console.log('Sync active');
+            console.log('🔄 Status sync active');
             setSyncStatus('syncing');
           })
           .on('denied', (err: any) => {
-            console.error('Sync denied:', err);
+            console.error('❌ Status sync denied:', err);
+            console.error('❌ Denied error details:', JSON.stringify(err, null, 2));
             setSyncStatus('error');
             setError(err);
           })
           .on('complete', (info: any) => {
-            console.log('Sync complete:', info);
+            console.log('✅ Status sync complete:', info);
             setSyncStatus('idle');
             setLastSyncTime(new Date());
           })
           .on('error', (err: any) => {
-            console.error('Sync error:', err);
+            console.error('❌ Status sync error:', err);
+            console.error('❌ Error details:', JSON.stringify(err, null, 2));
             setSyncStatus('error');
             setError(err);
           });
@@ -89,17 +99,22 @@ export const useSync = () => {
       return;
     }
 
-    console.log('Initiating manual sync...');
+    console.log('🔄 Initiating manual status sync...');
+    console.log('💾 Local DB:', localDB.name);
+    console.log('🌐 Remote DB URL:', remoteDB.name);
     setSyncStatus('syncing');
     setError(null);
     try {
+      console.log('📤 Pushing local changes to remote...');
       await localDB.replicate.to(remoteDB);
+      console.log('📥 Pulling remote changes to local...');
       await localDB.replicate.from(remoteDB);
       setSyncStatus('idle');
       setLastSyncTime(new Date());
-      console.log('Manual sync complete.');
+      console.log('✅ Manual status sync complete.');
     } catch (err) {
-      console.error('Manual sync failed:', err);
+      console.error('❌ Manual status sync failed:', err);
+      console.error('❌ Manual sync error details:', JSON.stringify(err, null, 2));
       setSyncStatus('error');
       setError(err);
     }

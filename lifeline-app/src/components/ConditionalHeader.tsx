@@ -23,6 +23,7 @@ export const ConditionalHeader = () => {
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/map", label: "Live Map" },
+    { href: "/alerts", label: "Alerts" },
     { href: "/resources", label: "Resources" },
     { href: "/guides", label: "Guides" },
     { href: "/status", label: "My Status" },
