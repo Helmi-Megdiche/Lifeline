@@ -147,8 +147,8 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Build an authed fetch that refreshes headers per call
   const authedFetch = useCallback((url: any, opts: any = {}) => {
-    // Always ensure the URL is correct for alerts (but exclude DELETE requests)
-    if (typeof url === 'string' && url.includes('/alerts/') && !url.includes('/alerts/pouch/') && opts.method !== 'DELETE') {
+    // Always ensure the URL is correct for alerts (but exclude DELETE requests and direct /alerts endpoint)
+    if (typeof url === 'string' && url.includes('/alerts/') && !url.includes('/alerts/pouch/') && opts.method !== 'DELETE' && !url.endsWith('/alerts')) {
       url = url.replace('/alerts/', '/alerts/pouch/');
     }
     
@@ -379,13 +379,45 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
         ];
       }
 
+      // Query local database
       const result = await localDB.find({
         selector,
         limit: 1000,
       });
 
+      const localAlerts = result.docs as Alert[];
+      
+      // Also fetch from direct API endpoint to ensure we have all alerts
+      let apiAlerts: Alert[] = [];
+      if (isOnline && token) {
+        try {
+          const response = await authedFetch(`${API_CONFIG.BASE_URL}/alerts`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          
+          if (response.ok) {
+            const apiData = await response.json();
+            apiAlerts = apiData.alerts || [];
+          }
+        } catch (apiError) {
+          console.error('❌ Failed to fetch alerts from API:', apiError);
+        }
+      }
+
+      // Merge local and API alerts, removing duplicates
+      const allAlerts = [...localAlerts];
+      apiAlerts.forEach(apiAlert => {
+        const exists = allAlerts.some(localAlert => localAlert._id === apiAlert._id);
+        if (!exists) {
+          allAlerts.push(apiAlert);
+        }
+      });
+
       // Sort by createdAt after fetching
-      const sortedAlerts = result.docs.sort((a: any, b: any) => {
+      const sortedAlerts = allAlerts.sort((a: any, b: any) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
         return dateB - dateA;
@@ -397,7 +429,7 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setIsLoadingAlerts(false);
     }
-  }, [localDB, user?.id, filterCategory, filterSeverity, mapBounds]);
+  }, [localDB, user?.id, filterCategory, filterSeverity, mapBounds, isOnline, token, authedFetch]);
 
   // Fetch alerts when filters change
   useEffect(() => {
@@ -405,6 +437,17 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
       fetchAlerts();
     }
   }, [fetchAlerts]);
+
+  // Periodic refresh of alerts when online
+  useEffect(() => {
+    if (!isOnline || !localDB || !user?.id) return;
+
+    const interval = setInterval(() => {
+      fetchAlerts();
+    }, 30000); // Refresh every 30 seconds when online
+
+    return () => clearInterval(interval);
+  }, [isOnline, localDB, user?.id, fetchAlerts]);
 
   const createAlert = useCallback(async (payload: CreateAlertPayload) => {
     if (!localDB || !user?.id || !user?.username) {
