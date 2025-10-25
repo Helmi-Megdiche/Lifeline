@@ -391,7 +391,32 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
       let apiAlerts: Alert[] = [];
       if (isOnline && token) {
         try {
-          const response = await authedFetch(`${API_CONFIG.BASE_URL}/alerts`, {
+          // Build query parameters for the API call
+          const queryParams = new URLSearchParams();
+          
+          // Add map bounds if available
+          if (mapBounds) {
+            queryParams.append('minLat', mapBounds.south.toString());
+            queryParams.append('maxLat', mapBounds.north.toString());
+            queryParams.append('minLng', mapBounds.west.toString());
+            queryParams.append('maxLng', mapBounds.east.toString());
+          }
+          
+          // Add filters if available
+          if (filterCategory) {
+            queryParams.append('category', filterCategory);
+          }
+          
+          if (filterSeverity) {
+            queryParams.append('severity', filterSeverity);
+          }
+          
+          // Add limit
+          queryParams.append('limit', '100');
+          
+          const apiUrl = `${API_CONFIG.BASE_URL}/alerts?${queryParams.toString()}`;
+          
+          const response = await authedFetch(apiUrl, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
