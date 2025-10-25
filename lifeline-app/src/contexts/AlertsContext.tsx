@@ -416,16 +416,23 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
           
           const apiUrl = `${API_CONFIG.BASE_URL}/alerts?${queryParams.toString()}`;
           
-          const response = await authedFetch(apiUrl, {
+          console.log('🔍 Fetching alerts from API:', apiUrl);
+          
+          const response = await fetch(apiUrl, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
             }
           });
           
+          console.log('📡 API Response status:', response.status, response.statusText);
+          
           if (response.ok) {
             const apiData = await response.json();
             apiAlerts = apiData.alerts || [];
+            console.log('✅ API alerts fetched:', apiAlerts.length, 'alerts');
+          } else {
+            console.error('❌ API fetch failed:', response.status, response.statusText);
           }
         } catch (apiError) {
           console.error('❌ Failed to fetch alerts from API:', apiError);
