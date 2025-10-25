@@ -30,6 +30,17 @@
 - **Automatic Sync** - Background synchronization when online
 - **Conflict Resolution** - Smart handling of data conflicts
 
+### 🚨 **Emergency Alerts System**
+- **Real-time Alerts** - Create and share emergency alerts instantly
+- **Offline Alert Creation** - Create alerts without internet connection
+- **Automatic Sync** - Alerts sync to server when connection restored
+- **Multi-user Support** - View alerts from all users in the system
+- **Alert Management** - Delete alerts with online-only restriction
+- **Custom UI Components** - Professional confirmation modals and notification toasts
+- **Alert Categories** - Organize alerts by type (Medical, Fire, Security, etc.)
+- **Severity Levels** - Low, Medium, High priority classification
+- **Expiration Handling** - Automatic cleanup of expired alerts
+
 ### 🔐 **Security & Authentication**
 - **JWT Authentication** - Secure user sessions
 - **User Isolation** - Data separation between users
@@ -50,6 +61,27 @@
 ## 🚀 Quick Start
 
 ### Recent Improvements (Latest Update)
+
+#### 🚨 **Emergency Alerts System** (NEW!)
+- **Complete Alerts Infrastructure**: Full-featured emergency alert system
+  - Create alerts with title, description, category, and severity
+  - Real-time synchronization between frontend and backend
+  - Offline-first architecture with automatic sync when online
+  - Multi-user support - view alerts from all users
+- **Professional UI Components**: Custom-built user interface elements
+  - Confirmation modal for alert deletion (replaces browser dialogs)
+  - Notification toast system for user feedback (replaces browser alerts)
+  - Dark/light mode support with proper theming
+  - Center-positioned notifications for better visibility
+- **Smart Offline Handling**: Robust offline-first functionality
+  - Create alerts offline - they're queued and synced when online
+  - Delete alerts only when online (prevents data inconsistency)
+  - Automatic sync when app comes back online
+  - Visual indicators for offline/online states
+- **Clean Development Experience**: Optimized for debugging
+  - Removed all unnecessary console logs
+  - Clean terminal output with only essential error messages
+  - Better code organization and maintainability
 
 #### 👤 **Profile Management **
 - **Profile Update Feature**: Users can now edit their username and email
@@ -234,10 +266,13 @@ npm run test         # Run tests
 lifeline-app/
 ├── src/
 │   ├── app/                 # Next.js App Router pages
+│   │   ├── alerts/         # Emergency alerts page
 │   │   ├── map/            # Live location map
 │   │   ├── resources/      # Emergency resources
 │   │   └── ...
 │   ├── components/         # React components
+│   │   ├── ConfirmationModal.tsx  # Custom confirmation dialog
+│   │   └── NotificationToast.tsx   # Custom notification system
 │   ├── hooks/              # Custom React hooks
 │   │   ├── usePouchDB.ts   # PouchDB initialization
 │   │   └── useSync.ts      # Sync management
@@ -245,6 +280,7 @@ lifeline-app/
 │   │   ├── pouchdb.ts      # PouchDB helpers
 │   │   └── config.ts       # API configuration
 │   └── contexts/           # React contexts
+│       └── AlertsContext.tsx  # Alerts state management
 ├── public/
 │   ├── sw.js               # Service worker
 │   └── manifest.json        # PWA manifest
@@ -252,9 +288,16 @@ lifeline-app/
 
 lifeline-backend/
 ├── src/
+│   ├── alerts/             # Emergency alerts module
+│   │   ├── alerts.controller.ts  # Alerts API endpoints
+│   │   ├── alerts.service.ts    # Alerts business logic
+│   │   └── alerts.module.ts     # Alerts module configuration
 │   ├── auth/               # Authentication module
+│   ├── dto/                # Data Transfer Objects
+│   │   └── alert.dto.ts    # Alert data validation
 │   ├── pouch/              # PouchDB-compatible endpoints
 │   ├── schemas/            # MongoDB schemas
+│   │   └── alert.schema.ts # Alert data model
 │   ├── status/             # Status management
 │   └── main.ts             # Application entry point
 └── dist/                   # Compiled JavaScript
@@ -270,6 +313,16 @@ lifeline-backend/
 - [ ] Offline status updates
 - [ ] Online synchronization
 - [ ] Data persistence across sessions
+
+#### ✅ **Alerts System**
+- [ ] Create alerts with different categories and severity levels
+- [ ] View alerts from all users
+- [ ] Delete own alerts (online only)
+- [ ] Report alerts from other users
+- [ ] Offline alert creation and sync
+- [ ] Custom confirmation modal for deletions
+- [ ] Notification toast system
+- [ ] Alert expiration handling
 
 #### ✅ **Mobile Features**
 - [ ] Responsive design on mobile
@@ -347,10 +400,27 @@ NEXT_PUBLIC_API_URL=https://your-api-domain.com
 - `GET /status/user/:userId` - Get user status
 - `GET /status/sync` - Get sync status
 
+#### Alerts Management
+- `POST /alerts` - Create new alert
+- `GET /alerts` - Get all alerts
+- `GET /alerts/my` - Get user's own alerts
+- `PUT /alerts/:id/report` - Report an alert
+- `DELETE /alerts/:id` - Delete alert (online only)
+
 #### PouchDB Sync
 - `POST /pouch/status/_bulk_docs` - Bulk document operations
 - `POST /pouch/status/_revs_diff` - Revision difference check
 - `GET /pouch/status/_changes` - Change feed
+
+#### Alerts PouchDB Sync
+- `POST /alerts/pouch/_bulk_docs` - Bulk alerts operations
+- `GET /alerts/pouch/_changes` - Alerts change feed
+- `POST /alerts/pouch/_revs_diff` - Alerts revision difference
+- `GET /alerts/pouch/_local/:docId` - Get local alert document
+- `PUT /alerts/pouch/_local/:docId` - Update local alert document
+- `GET /alerts/pouch/:docId` - Get alert document
+- `POST /alerts/pouch/_bulk_get` - Bulk get alerts
+- `GET /alerts/pouch/_all_docs` - Get all alerts documents
 
 ## 🤝 Contributing
 
