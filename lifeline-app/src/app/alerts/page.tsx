@@ -661,11 +661,15 @@ const AlertCard: React.FC<{
             {alert.comments.map((comment, index) => {
               const isOwnComment = String(currentUserId) === String(comment.userId);
               const canDelete = isOwnComment || isOwnAlert; // Comment owner OR alert creator
+              const isReply = comment.comment.startsWith('↩️ Reply to');
+              const parentUsername = isReply ? comment.comment.match(/Reply to (\w+):/)?.[1] : null;
               
               return (
                 <div
                   key={index}
-                  className="comment-box group bg-white dark:bg-white rounded-xl p-4 border-2 border-gray-200 dark:border-gray-300 hover:border-blue-300 dark:hover:border-blue-400 shadow-sm hover:shadow-md transition-all duration-300"
+                  className={`comment-box group bg-white dark:bg-white rounded-xl p-4 border-2 border-gray-200 dark:border-gray-300 hover:border-blue-300 dark:hover:border-blue-400 shadow-sm hover:shadow-md transition-all duration-300 ${
+                    isReply ? 'ml-6 border-l-4 border-l-purple-400 bg-purple-50 dark:bg-purple-50' : ''
+                  }`}
                 >
                   <div className="flex items-start gap-3">
                     {/* Avatar */}
@@ -699,6 +703,16 @@ const AlertCard: React.FC<{
                           <span>{new Date(comment.createdAt).toLocaleString()}</span>
                         </span>
                       </div>
+                      
+                      {/* Reply indicator */}
+                      {isReply && parentUsername && (
+                        <div className="mb-2 px-3 py-1.5 bg-purple-100 border-l-4 border-purple-400 rounded-r-lg">
+                          <span className="text-xs text-purple-700 font-semibold flex items-center gap-1">
+                            <span>↩️</span>
+                            <span>Replying to <span className="font-bold">@{parentUsername}</span></span>
+                          </span>
+                        </div>
+                      )}
                       
                       {/* Comment text */}
                       <p className="text-sm text-gray-800 break-words alert-comment-text leading-relaxed">
