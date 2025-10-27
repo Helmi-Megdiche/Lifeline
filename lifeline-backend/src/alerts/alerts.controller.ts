@@ -46,7 +46,7 @@ export class AlertsController {
     const alert = await this.alertsService.reportAlert(alertId, req.user.userId, reportAlertDto);
     
     // Convert to plain object and remove MongoDB-specific fields for PouchDB compatibility
-    const alertObj = alert.toObject();
+    const alertObj = JSON.parse(JSON.stringify(alert));
     delete alertObj.__v;
     
     return { success: true, alert: alertObj };
