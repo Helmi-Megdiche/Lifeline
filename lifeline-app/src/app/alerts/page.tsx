@@ -655,15 +655,15 @@ const AlertCard: React.FC<{
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-900">
+                    <span className="text-sm font-semibold" style={{ color: '#000000' }}>
                       {comment.username}
                     </span>
                   </div>
-                  <span className="text-xs text-gray-700 dark:text-gray-700">
+                  <span className="text-xs" style={{ color: '#000000' }}>
                     {new Date(comment.createdAt).toLocaleDateString()}
                   </span>
                 </div>
-                <p className="text-sm text-gray-800 dark:text-gray-800 break-words">
+                <p className="text-sm break-words" style={{ color: '#000000' }}>
                   {comment.comment}
                 </p>
               </div>
