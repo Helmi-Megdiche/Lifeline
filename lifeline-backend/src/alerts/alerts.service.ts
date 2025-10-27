@@ -167,9 +167,12 @@ export class AlertsService {
       throw new NotFoundException('Comment not found');
     }
 
-    // Check if user owns this comment (compare as strings to handle ObjectId/string mismatch)
-    if (String(alert.comments[commentIndex].userId) !== String(userId)) {
-      throw new BadRequestException('You can only delete your own comments');
+    // Check if user owns this comment OR is the alert creator (compare as strings to handle ObjectId/string mismatch)
+    const isCommentOwner = String(alert.comments[commentIndex].userId) === String(userId);
+    const isAlertCreator = String(alert.userId) === String(userId);
+    
+    if (!isCommentOwner && !isAlertCreator) {
+      throw new BadRequestException('You can only delete your own comments or comments on your alerts');
     }
 
     // Remove comment

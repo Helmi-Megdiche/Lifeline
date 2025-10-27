@@ -652,6 +652,7 @@ const AlertCard: React.FC<{
           <div className="space-y-3">
             {alert.comments.map((comment, index) => {
               const isOwnComment = String(currentUserId) === String(comment.userId);
+              const canDelete = isOwnComment || isOwnAlert; // Comment owner OR alert creator
               
               return (
                 <div
@@ -669,22 +670,30 @@ const AlertCard: React.FC<{
                         {new Date(comment.createdAt).toLocaleDateString()}
                       </span>
                       {isOwnComment && (
-                        <div className="flex items-center gap-1 ml-2">
-                          <button
-                            onClick={() => onUpdateComment(alert._id, index, comment.comment)}
-                            className="p-1 hover:bg-gray-100 rounded transition-colors"
-                            title="Edit comment"
-                          >
-                            <span className="text-xs">✏️</span>
-                          </button>
-                          <button
-                            onClick={() => onDeleteComment(alert._id, index)}
-                            className="p-1 hover:bg-gray-100 rounded transition-colors"
-                            title="Delete comment"
-                          >
-                            <span className="text-xs">🗑️</span>
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => onUpdateComment(alert._id, index, comment.comment)}
+                          className="p-1 hover:bg-gray-100 rounded transition-colors ml-2"
+                          title="Edit my comment"
+                        >
+                          <span className="text-xs">✏️</span>
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => onDeleteComment(alert._id, index)}
+                          className={`p-1.5 rounded transition-colors ${
+                            isOwnAlert && !isOwnComment 
+                              ? 'hover:bg-red-100 active:bg-red-200' 
+                              : 'hover:bg-gray-100 active:bg-gray-200'
+                          }`}
+                          title={isOwnAlert && !isOwnComment ? "Delete comment (You're the alert creator)" : "Delete my comment"}
+                        >
+                          <span className={`text-xs ${
+                            isOwnAlert && !isOwnComment ? 'text-red-600' : ''
+                          }`}>
+                            {isOwnAlert && !isOwnComment ? '👮' : '🗑️'}
+                          </span>
+                        </button>
                       )}
                     </div>
                   </div>
