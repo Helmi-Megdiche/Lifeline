@@ -594,6 +594,14 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [localDB, user, fetchAlerts, showNotification]);
 
+  // Helper function to sanitize MongoDB documents for PouchDB
+  const sanitizeMongoDoc = useCallback((doc: any) => {
+    const sanitized = { ...doc };
+    // Remove MongoDB-specific fields that PouchDB doesn't allow
+    delete (sanitized as any).__v;
+    return sanitized;
+  }, []);
+
   const reportAlert = useCallback(async (alertId: string) => {
     if (!localDB) {
       throw new Error('PouchDB not initialized.');
@@ -631,7 +639,11 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
             // Update local database with the server's response
             if (result.alert) {
               try {
-                await localDB.put(result.alert);
+                // Sanitize the MongoDB document for PouchDB
+                const sanitizedAlert = sanitizeMongoDoc(result.alert);
+                
+                // Use the _id from result.alert as the document id for PouchDB
+                await localDB.put(sanitizedAlert);
               } catch (putError: any) {
                 // If update fails due to conflict, it's okay - sync will fix it
                 if (putError.status !== 409) {
@@ -715,7 +727,7 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
       showNotification('Failed to report alert. Please try again.', 'error');
       throw error;
     }
-  }, [localDB, fetchAlerts, isOnline, token, user, showNotification]);
+  }, [localDB, fetchAlerts, isOnline, token, user, showNotification, sanitizeMongoDoc]);
 
   const deleteAlert = useCallback(async (alertId: string) => {
     if (!localDB) {

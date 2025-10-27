@@ -44,7 +44,12 @@ export class AlertsController {
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 reports per minute
   async reportAlert(@Request() req, @Param('id') alertId: string, @Body() reportAlertDto: ReportAlertDto) {
     const alert = await this.alertsService.reportAlert(alertId, req.user.userId, reportAlertDto);
-    return { success: true, alert };
+    
+    // Convert to plain object and remove MongoDB-specific fields for PouchDB compatibility
+    const alertObj = alert.toObject();
+    delete alertObj.__v;
+    
+    return { success: true, alert: alertObj };
   }
 
   @Delete(':id')
