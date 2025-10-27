@@ -717,3 +717,41 @@ p.alert-comment-text {
   color: #000000 !important;
   -webkit-text-fill-color: #000000 !important;
 }
+
+/* =========================================== */
+/* Light Mode Overrides for Buttons and Badges */
+/* =========================================== */
+
+/* Force white button backgrounds in light mode (not dark mode) */
+html:not(.dark) button.bg-white {
+  background-color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+html:not(.dark) button.bg-white.text-blue-600 {
+  color: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+html:not(.dark) button.bg-white.text-blue-600 * {
+  color: #2563eb !important;
+}
+
+html:not(.dark) button.bg-white.text-red-600 {
+  color: #dc2626 !important;
+  border-color: #dc2626 !important;
+}
+
+html:not(.dark) button.bg-white.text-red-600 * {
+  color: #dc2626 !important;
+}
+
+/* Force badge light blue background in light mode */
+html:not(.dark) .bg-blue-100 {
+  background-color: #dbeafe !important;
+  color: #1e40af !important;
+}
+
+html:not(.dark) .bg-blue-100 * {
+  color: #1e40af !important;
+}
