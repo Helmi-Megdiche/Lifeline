@@ -87,7 +87,7 @@ export class AlertsService {
       .exec();
   }
 
-  async reportAlert(alertId: string, userId: string, reportAlertDto: ReportAlertDto, username: string): Promise<Alert> {
+  async reportAlert(alertId: string, userId: string, reportAlertDto: ReportAlertDto): Promise<Alert> {
     const alert = await this.alertModel.findById(alertId).exec();
     
     if (!alert) {
@@ -109,18 +109,27 @@ export class AlertsService {
       alert.status = 'false_alarm';
     }
 
-    // Add comment if provided
-    if (reportAlertDto.comment) {
-      if (!alert.comments) {
-        alert.comments = [];
-      }
-      alert.comments.push({
-        userId,
-        username,
-        comment: reportAlertDto.comment,
-        createdAt: new Date()
-      });
+    return await alert.save();
+  }
+
+  async addComment(alertId: string, userId: string, username: string, comment: string): Promise<Alert> {
+    const alert = await this.alertModel.findById(alertId).exec();
+    
+    if (!alert) {
+      throw new NotFoundException('Alert not found');
     }
+
+    // Add comment
+    if (!alert.comments) {
+      alert.comments = [];
+    }
+    
+    alert.comments.push({
+      userId,
+      username,
+      comment,
+      createdAt: new Date()
+    });
 
     return await alert.save();
   }

@@ -549,11 +549,12 @@ const AlertUpdateModal: React.FC<{
 const AlertCard: React.FC<{
   alert: Alert;
   onReport: (alertId: string) => void;
+  onAddComment: (alertId: string) => void;
   onUpdate: (alert: Alert) => void;
   onDelete: (alertId: string) => void;
   currentUserId?: string;
   isOnline: boolean;
-}> = ({ alert, onReport, onUpdate, onDelete, currentUserId, isOnline }) => {
+}> = ({ alert, onReport, onAddComment, onUpdate, onDelete, currentUserId, isOnline }) => {
   const getSeverityConfig = (severity: string) => {
     switch (severity) {
       case 'low': return { color: 'green', icon: '🟢', bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200 dark:border-green-800', text: 'text-green-800 dark:text-green-200' };
@@ -682,13 +683,22 @@ const AlertCard: React.FC<{
         
         <div className="flex gap-3 ml-auto">
            {!isOwnAlert && !isExpired && (
-             <button
-               onClick={() => onReport(alert._id)}
-               className="px-5 py-2.5 bg-white dark:bg-gray-800 text-red-600 dark:text-red-500 border-2 border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg text-sm font-semibold transition-colors shadow-md hover:shadow-lg"
-             >
-               <span className="mr-2">🚨</span>
-               Report
-             </button>
+             <>
+               <button
+                 onClick={() => onAddComment(alert._id)}
+                 className="px-5 py-2.5 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-500 border-2 border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg text-sm font-semibold transition-colors shadow-md hover:shadow-lg"
+               >
+                 <span className="mr-2">💬</span>
+                 Comment
+               </button>
+               <button
+                 onClick={() => onReport(alert._id)}
+                 className="px-5 py-2.5 bg-white dark:bg-gray-800 text-red-600 dark:text-red-500 border-2 border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg text-sm font-semibold transition-colors shadow-md hover:shadow-lg"
+               >
+                 <span className="mr-2">🚨</span>
+                 Report
+               </button>
+             </>
            )}
            {isOwnAlert && (
              <>
@@ -723,16 +733,14 @@ const AlertCard: React.FC<{
 const ReportModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onReport: (alertId: string, comment: string) => void;
+  onReport: (alertId: string) => void;
   alertId: string;
 }> = ({ isOpen, onClose, onReport, alertId }) => {
   const { theme } = useTheme();
-  const [comment, setComment] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onReport(alertId, comment.trim());
-    setComment('');
+    onReport(alertId);
     onClose();
   };
 
@@ -755,21 +763,9 @@ const ReportModal: React.FC<{
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              Add a Comment (Optional)
-            </label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Enter your comment here... (e.g., This alert is not accurate, Additional information...)"
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors resize-none h-32"
-              maxLength={500}
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              {comment.length}/500 characters
-            </p>
-          </div>
+          <p className="text-gray-700 dark:text-gray-300">
+            Are you sure you want to report this alert? This action cannot be undone.
+          </p>
 
           <div className="flex gap-3 sm:flex-row flex-col">
             <button
@@ -792,9 +788,82 @@ const ReportModal: React.FC<{
   );
 };
 
+const AddCommentModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onAddComment: (alertId: string, comment: string) => void;
+  alertId: string;
+}> = ({ isOpen, onClose, onAddComment, alertId }) => {
+  const { theme } = useTheme();
+  const [comment, setComment] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onAddComment(alertId, comment.trim());
+    setComment('');
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
+      <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''}`}>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <span className="text-3xl">💬</span>
+            Add Comment
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              Your Comment
+            </label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Enter your comment here... Share additional information, provide updates, or ask questions..."
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors resize-none h-32"
+              maxLength={500}
+              required
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              {comment.length}/500 characters
+            </p>
+          </div>
+
+          <div className="flex gap-3 sm:flex-row flex-col">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+            >
+              Add Comment
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export default function AlertsPage() {
   const { user, isOnline, isLoading: isAuthLoading } = useAuth();
-  const { alerts, isLoadingAlerts, createAlert, updateAlert, reportAlert, deleteAlert } = useAlerts();
+  const { alerts, isLoadingAlerts, createAlert, updateAlert, reportAlert, addComment, deleteAlert } = useAlerts();
   
   // Show loading state while authentication is being checked
   if (isAuthLoading) {
@@ -811,8 +880,10 @@ export default function AlertsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showCommentModal, setShowCommentModal] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [selectedReportAlertId, setSelectedReportAlertId] = useState<string>('');
+  const [selectedCommentAlertId, setSelectedCommentAlertId] = useState<string>('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([36.8065, 10.1815]); // Default to Tunis, Tunisia
@@ -889,11 +960,24 @@ export default function AlertsPage() {
     setShowReportModal(true);
   };
 
-  const handleReportAlert = async (alertId: string, comment: string) => {
+  const handleReportAlert = async (alertId: string) => {
     try {
-      await reportAlert(alertId, comment);
+      await reportAlert(alertId);
     } catch (error) {
       console.error('Failed to report alert:', error);
+    }
+  };
+
+  const handleOpenCommentModal = (alertId: string) => {
+    setSelectedCommentAlertId(alertId);
+    setShowCommentModal(true);
+  };
+
+  const handleAddComment = async (alertId: string, comment: string) => {
+    try {
+      await addComment(alertId, comment);
+    } catch (error) {
+      console.error('Failed to add comment:', error);
     }
   };
 
@@ -1271,6 +1355,7 @@ export default function AlertsPage() {
                       key={alert._id}
                       alert={alert}
                       onReport={handleOpenReportModal}
+                      onAddComment={handleOpenCommentModal}
                       onUpdate={handleOpenUpdateModal}
                       onDelete={handleDeleteAlert}
                       currentUserId={user.id}
@@ -1304,6 +1389,13 @@ export default function AlertsPage() {
         onClose={() => setShowReportModal(false)}
         onReport={handleReportAlert}
         alertId={selectedReportAlertId}
+      />
+
+      <AddCommentModal
+        isOpen={showCommentModal}
+        onClose={() => setShowCommentModal(false)}
+        onAddComment={handleAddComment}
+        alertId={selectedCommentAlertId}
       />
     </div>
   );

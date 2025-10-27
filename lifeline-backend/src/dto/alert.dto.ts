@@ -48,10 +48,12 @@ export class ReportAlertDto {
   @IsString()
   @IsNotEmpty()
   reason: string;
-  
-  @IsOptional()
+}
+
+export class AddCommentDto {
   @IsString()
-  comment?: string;
+  @IsNotEmpty()
+  comment: string;
 }
 
 export class AlertListDto {

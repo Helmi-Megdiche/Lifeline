@@ -74,7 +74,8 @@ interface AlertsContextType {
   alerts: Alert[];
   createAlert: (payload: CreateAlertPayload) => Promise<void>;
   updateAlert: (alertId: string, payload: Partial<CreateAlertPayload>) => Promise<void>;
-  reportAlert: (alertId: string, comment?: string) => Promise<void>;
+  reportAlert: (alertId: string) => Promise<void>;
+  addComment: (alertId: string, comment: string) => Promise<void>;
   deleteAlert: (alertId: string) => Promise<void>;
   isLoadingAlerts: boolean;
   syncAlertsStatus: string;
@@ -608,7 +609,7 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
     return sanitized;
   }, []);
 
-  const reportAlert = useCallback(async (alertId: string, comment?: string) => {
+  const reportAlert = useCallback(async (alertId: string) => {
     if (!localDB) {
       throw new Error('PouchDB not initialized.');
     }
@@ -635,10 +636,7 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ 
-              reason: 'User reported this alert',
-              comment: comment || ''
-            })
+            body: JSON.stringify({ reason: 'User reported this alert' })
           });
 
           if (response.ok) {
@@ -922,11 +920,81 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [isOnline, localDB, manualSyncAlerts]);
 
+  const addComment = useCallback(async (alertId: string, comment: string) => {
+    if (!localDB || !user?.id) {
+      throw new Error('User not authenticated or PouchDB not initialized.');
+    }
+
+    try {
+      // Call the backend API to add comment
+      if (isOnline && token) {
+        try {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/alerts/${alertId}/comment`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ comment })
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Comment added successfully:', result);
+            
+            // Update local database with the server's response
+            if (result.alert) {
+              try {
+                const sanitizedAlert = sanitizeMongoDoc(result.alert);
+                await localDB.put(sanitizedAlert);
+              } catch (putError: any) {
+                if (putError.status !== 409) {
+                  console.error('Failed to update local alert:', putError);
+                }
+              }
+            }
+            
+            showNotification('Comment added successfully!', 'success');
+            await fetchAlerts();
+          } else {
+            throw new Error('Failed to add comment');
+          }
+        } catch (apiError) {
+          console.error('❌ Failed to add comment to backend:', apiError);
+          showNotification('Failed to add comment. Please try again.', 'error');
+          throw apiError;
+        }
+      } else {
+        // Offline mode: add comment locally
+        const alert = await localDB.get(alertId) as Alert;
+        if (!alert.comments) {
+          alert.comments = [];
+        }
+        
+        alert.comments.push({
+          userId: user.id,
+          username: user.username,
+          comment,
+          createdAt: new Date().toISOString()
+        });
+        
+        await localDB.put(alert);
+        console.log('✅ Comment added locally (offline mode)');
+        await fetchAlerts();
+      }
+    } catch (error) {
+      console.error('❌ Failed to add comment:', error);
+      showNotification('Failed to add comment. Please try again.', 'error');
+      throw error;
+    }
+  }, [localDB, fetchAlerts, isOnline, token, user, showNotification, sanitizeMongoDoc]);
+
   const value: AlertsContextType = {
         alerts,
         createAlert,
         updateAlert,
         reportAlert,
+        addComment,
         deleteAlert,
         isLoadingAlerts,
         syncAlertsStatus,

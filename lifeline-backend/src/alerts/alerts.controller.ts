@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Put, Delete, Body, Query, Param, UseGuards, Request, HttpCode, HttpStatus, NotFoundException, Res } from '@nestjs/common';
 import { AlertsService } from './alerts.service';
-import { CreateAlertDto, ReportAlertDto, AlertListDto } from '../dto';
+import { CreateAlertDto, ReportAlertDto, AlertListDto, AddCommentDto } from '../dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
 
@@ -43,7 +43,20 @@ export class AlertsController {
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 reports per minute
   async reportAlert(@Request() req, @Param('id') alertId: string, @Body() reportAlertDto: ReportAlertDto) {
-    const alert = await this.alertsService.reportAlert(alertId, req.user.userId, reportAlertDto, req.user.username);
+    const alert = await this.alertsService.reportAlert(alertId, req.user.userId, reportAlertDto);
+    
+    // Convert to plain object and remove MongoDB-specific fields for PouchDB compatibility
+    const alertObj = JSON.parse(JSON.stringify(alert));
+    delete alertObj.__v;
+    
+    return { success: true, alert: alertObj };
+  }
+
+  @Post(':id/comment')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 comments per minute
+  async addComment(@Request() req, @Param('id') alertId: string, @Body() addCommentDto: AddCommentDto) {
+    const alert = await this.alertsService.addComment(alertId, req.user.userId, req.user.username, addCommentDto.comment);
     
     // Convert to plain object and remove MongoDB-specific fields for PouchDB compatibility
     const alertObj = JSON.parse(JSON.stringify(alert));
