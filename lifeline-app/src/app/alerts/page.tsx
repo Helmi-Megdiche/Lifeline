@@ -651,19 +651,19 @@ const AlertCard: React.FC<{
             {alert.comments.map((comment, index) => (
               <div
                 key={index}
-                className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600"
+                className="bg-white dark:bg-white rounded-lg p-3 border border-gray-200 dark:border-gray-600"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-900">
                       {comment.username}
                     </span>
                   </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="text-xs text-gray-700 dark:text-gray-700">
                     {new Date(comment.createdAt).toLocaleDateString()}
                   </span>
                 </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300 break-words">
+                <p className="text-sm text-gray-800 dark:text-gray-800 break-words">
                   {comment.comment}
                 </p>
               </div>
