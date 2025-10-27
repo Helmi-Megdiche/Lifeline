@@ -76,6 +76,8 @@ interface AlertsContextType {
   updateAlert: (alertId: string, payload: Partial<CreateAlertPayload>) => Promise<void>;
   reportAlert: (alertId: string) => Promise<void>;
   addComment: (alertId: string, comment: string) => Promise<void>;
+  updateComment: (alertId: string, commentIndex: number, comment: string) => Promise<void>;
+  deleteComment: (alertId: string, commentIndex: number) => Promise<void>;
   deleteAlert: (alertId: string) => Promise<void>;
   isLoadingAlerts: boolean;
   syncAlertsStatus: string;
@@ -1009,12 +1011,152 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [localDB, fetchAlerts, isOnline, token, user, showNotification, sanitizeMongoDoc]);
 
+  const updateComment = useCallback(async (alertId: string, commentIndex: number, comment: string) => {
+    if (!localDB || !user?.id) {
+      throw new Error('User not authenticated or PouchDB not initialized.');
+    }
+
+    try {
+      // Call the backend API to update comment
+      if (isOnline && token) {
+        try {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/alerts/${alertId}/comment/${commentIndex}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ comment })
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Comment updated successfully:', result);
+            
+            // Update local database with the server's response
+            if (result.alert) {
+              try {
+                const sanitizedAlert = sanitizeMongoDoc(result.alert);
+                try {
+                  const existingAlert = await localDB.get(alertId) as Alert;
+                  sanitizedAlert._rev = existingAlert._rev;
+                } catch (e) {}
+                await localDB.put(sanitizedAlert);
+                console.log('✅ Updated alert in local database');
+              } catch (putError: any) {
+                if (putError.status !== 409) {
+                  console.error('Failed to update local alert:', putError);
+                }
+              }
+            }
+            
+            showNotification('Comment updated successfully!', 'success');
+            await fetchAlerts();
+          } else {
+            const errorText = await response.text();
+            console.error('❌ Backend error response:', errorText);
+            throw new Error(errorText || 'Failed to update comment');
+          }
+        } catch (apiError) {
+          console.error('❌ Failed to update comment to backend:', apiError);
+          showNotification('Failed to update comment. Please try again.', 'error');
+          throw apiError;
+        }
+      } else {
+        // Offline mode
+        const alert = await localDB.get(alertId) as Alert;
+        if (!alert.comments || !alert.comments[commentIndex]) {
+          throw new Error('Comment not found');
+        }
+        
+        alert.comments[commentIndex].comment = comment;
+        await localDB.put(alert);
+        showNotification('Comment updated locally (offline mode)', 'success');
+        await fetchAlerts();
+      }
+    } catch (error) {
+      console.error('❌ Failed to update comment:', error);
+      showNotification('Failed to update comment. Please try again.', 'error');
+      throw error;
+    }
+  }, [localDB, fetchAlerts, isOnline, token, user, showNotification, sanitizeMongoDoc]);
+
+  const deleteComment = useCallback(async (alertId: string, commentIndex: number) => {
+    if (!localDB || !user?.id) {
+      throw new Error('User not authenticated or PouchDB not initialized.');
+    }
+
+    try {
+      // Call the backend API to delete comment
+      if (isOnline && token) {
+        try {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/alerts/${alertId}/comment/${commentIndex}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Comment deleted successfully:', result);
+            
+            // Update local database with the server's response
+            if (result.alert) {
+              try {
+                const sanitizedAlert = sanitizeMongoDoc(result.alert);
+                try {
+                  const existingAlert = await localDB.get(alertId) as Alert;
+                  sanitizedAlert._rev = existingAlert._rev;
+                } catch (e) {}
+                await localDB.put(sanitizedAlert);
+                console.log('✅ Updated alert in local database');
+              } catch (putError: any) {
+                if (putError.status !== 409) {
+                  console.error('Failed to update local alert:', putError);
+                }
+              }
+            }
+            
+            showNotification('Comment deleted successfully!', 'success');
+            await fetchAlerts();
+          } else {
+            const errorText = await response.text();
+            console.error('❌ Backend error response:', errorText);
+            throw new Error(errorText || 'Failed to delete comment');
+          }
+        } catch (apiError) {
+          console.error('❌ Failed to delete comment from backend:', apiError);
+          showNotification('Failed to delete comment. Please try again.', 'error');
+          throw apiError;
+        }
+      } else {
+        // Offline mode
+        const alert = await localDB.get(alertId) as Alert;
+        if (!alert.comments || !alert.comments[commentIndex]) {
+          throw new Error('Comment not found');
+        }
+        
+        alert.comments.splice(commentIndex, 1);
+        await localDB.put(alert);
+        showNotification('Comment deleted locally (offline mode)', 'success');
+        await fetchAlerts();
+      }
+    } catch (error) {
+      console.error('❌ Failed to delete comment:', error);
+      showNotification('Failed to delete comment. Please try again.', 'error');
+      throw error;
+    }
+  }, [localDB, fetchAlerts, isOnline, token, user, showNotification, sanitizeMongoDoc]);
+
   const value: AlertsContextType = {
         alerts,
         createAlert,
         updateAlert,
         reportAlert,
         addComment,
+        updateComment,
+        deleteComment,
         deleteAlert,
         isLoadingAlerts,
         syncAlertsStatus,

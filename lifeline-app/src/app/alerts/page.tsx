@@ -550,11 +550,13 @@ const AlertCard: React.FC<{
   alert: Alert;
   onReport: (alertId: string) => void;
   onAddComment: (alertId: string) => void;
+  onUpdateComment: (alertId: string, commentIndex: number, currentComment: string) => void;
+  onDeleteComment: (alertId: string, commentIndex: number) => void;
   onUpdate: (alert: Alert) => void;
   onDelete: (alertId: string) => void;
   currentUserId?: string;
   isOnline: boolean;
-}> = ({ alert, onReport, onAddComment, onUpdate, onDelete, currentUserId, isOnline }) => {
+}> = ({ alert, onReport, onAddComment, onUpdateComment, onDeleteComment, onUpdate, onDelete, currentUserId, isOnline }) => {
   const getSeverityConfig = (severity: string) => {
     switch (severity) {
       case 'low': return { color: 'green', icon: '🟢', bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200 dark:border-green-800', text: 'text-green-800 dark:text-green-200' };
@@ -648,26 +650,50 @@ const AlertCard: React.FC<{
             Comments ({alert.comments.length})
           </h4>
           <div className="space-y-3">
-            {alert.comments.map((comment, index) => (
-              <div
-                key={index}
-                className="comment-box bg-white dark:bg-white rounded-lg p-3 border border-gray-200 dark:border-gray-600"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold alert-comment-username" style={{ color: '#000000' }}>
-                      {comment.username}
-                    </span>
+            {alert.comments.map((comment, index) => {
+              const isOwnComment = currentUserId === comment.userId;
+              
+              return (
+                <div
+                  key={index}
+                  className="comment-box bg-white dark:bg-white rounded-lg p-3 border border-gray-200 dark:border-gray-600"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="text-sm font-semibold alert-comment-username" style={{ color: '#000000' }}>
+                        {comment.username}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs alert-comment-date" style={{ color: '#000000' }}>
+                        {new Date(comment.createdAt).toLocaleDateString()}
+                      </span>
+                      {isOwnComment && (
+                        <div className="flex items-center gap-1 ml-2">
+                          <button
+                            onClick={() => onUpdateComment(alert._id, index, comment.comment)}
+                            className="p-1 hover:bg-gray-100 rounded transition-colors"
+                            title="Edit comment"
+                          >
+                            <span className="text-xs">✏️</span>
+                          </button>
+                          <button
+                            onClick={() => onDeleteComment(alert._id, index)}
+                            className="p-1 hover:bg-gray-100 rounded transition-colors"
+                            title="Delete comment"
+                          >
+                            <span className="text-xs">🗑️</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-xs alert-comment-date" style={{ color: '#000000' }}>
-                    {new Date(comment.createdAt).toLocaleDateString()}
-                  </span>
+                  <p className="text-sm break-words alert-comment-text" style={{ color: '#000000' }}>
+                    {comment.comment}
+                  </p>
                 </div>
-                <p className="text-sm break-words alert-comment-text" style={{ color: '#000000' }}>
-                  {comment.comment}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -861,9 +887,90 @@ const AddCommentModal: React.FC<{
   );
 };
 
+const UpdateCommentModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdateComment: (alertId: string, commentIndex: number, comment: string) => void;
+  selectedComment: { alertId: string; commentIndex: number; currentComment: string } | null;
+}> = ({ isOpen, onClose, onUpdateComment, selectedComment }) => {
+  const { theme } = useTheme();
+  const [comment, setComment] = useState('');
+
+  useEffect(() => {
+    if (selectedComment) {
+      setComment(selectedComment.currentComment);
+    }
+  }, [selectedComment]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedComment) {
+      onUpdateComment(selectedComment.alertId, selectedComment.commentIndex, comment.trim());
+      setComment('');
+      onClose();
+    }
+  };
+
+  if (!isOpen || !selectedComment) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
+      <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''}`}>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <span className="text-3xl">✏️</span>
+            Edit Comment
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              Your Comment
+            </label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Edit your comment..."
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors resize-none h-32"
+              maxLength={500}
+              required
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              {comment.length}/500 characters
+            </p>
+          </div>
+
+          <div className="flex gap-3 sm:flex-row flex-col">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+            >
+              Update Comment
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export default function AlertsPage() {
   const { user, isOnline, isLoading: isAuthLoading } = useAuth();
-  const { alerts, isLoadingAlerts, createAlert, updateAlert, reportAlert, addComment, deleteAlert } = useAlerts();
+  const { alerts, isLoadingAlerts, createAlert, updateAlert, reportAlert, addComment, updateComment, deleteComment, deleteAlert } = useAlerts();
   
   // Show loading state while authentication is being checked
   if (isAuthLoading) {
@@ -881,9 +988,11 @@ export default function AlertsPage() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
+  const [showUpdateCommentModal, setShowUpdateCommentModal] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [selectedReportAlertId, setSelectedReportAlertId] = useState<string>('');
   const [selectedCommentAlertId, setSelectedCommentAlertId] = useState<string>('');
+  const [selectedCommentForEdit, setSelectedCommentForEdit] = useState<{ alertId: string; commentIndex: number; currentComment: string } | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([36.8065, 10.1815]); // Default to Tunis, Tunisia
@@ -978,6 +1087,31 @@ export default function AlertsPage() {
       await addComment(alertId, comment);
     } catch (error) {
       console.error('Failed to add comment:', error);
+    }
+  };
+
+  const handleOpenUpdateCommentModal = (alertId: string, commentIndex: number, currentComment: string) => {
+    setSelectedCommentForEdit({ alertId, commentIndex, currentComment });
+    setShowUpdateCommentModal(true);
+  };
+
+  const handleUpdateCommentWithModal = (alertId: string, commentIndex: number, currentComment: string) => {
+    handleOpenUpdateCommentModal(alertId, commentIndex, currentComment);
+  };
+
+  const handleUpdateComment = async (alertId: string, commentIndex: number, comment: string) => {
+    try {
+      await updateComment(alertId, commentIndex, comment);
+    } catch (error) {
+      console.error('Failed to update comment:', error);
+    }
+  };
+
+  const handleDeleteComment = async (alertId: string, commentIndex: number) => {
+    try {
+      await deleteComment(alertId, commentIndex);
+    } catch (error) {
+      console.error('Failed to delete comment:', error);
     }
   };
 
@@ -1356,6 +1490,8 @@ export default function AlertsPage() {
                       alert={alert}
                       onReport={handleOpenReportModal}
                       onAddComment={handleOpenCommentModal}
+                      onUpdateComment={handleUpdateCommentWithModal}
+                      onDeleteComment={handleDeleteComment}
                       onUpdate={handleOpenUpdateModal}
                       onDelete={handleDeleteAlert}
                       currentUserId={user.id}
@@ -1396,6 +1532,16 @@ export default function AlertsPage() {
         onClose={() => setShowCommentModal(false)}
         onAddComment={handleAddComment}
         alertId={selectedCommentAlertId}
+      />
+
+      <UpdateCommentModal
+        isOpen={showUpdateCommentModal}
+        onClose={() => {
+          setShowUpdateCommentModal(false);
+          setSelectedCommentForEdit(null);
+        }}
+        onUpdateComment={handleUpdateComment}
+        selectedComment={selectedCommentForEdit}
       />
     </div>
   );

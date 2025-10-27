@@ -134,6 +134,50 @@ export class AlertsService {
     return await alert.save();
   }
 
+  async updateComment(alertId: string, commentIndex: number, userId: string, newComment: string): Promise<Alert> {
+    const alert = await this.alertModel.findById(alertId).exec();
+    
+    if (!alert) {
+      throw new NotFoundException('Alert not found');
+    }
+
+    if (!alert.comments || !alert.comments[commentIndex]) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    // Check if user owns this comment
+    if (alert.comments[commentIndex].userId !== userId) {
+      throw new BadRequestException('You can only edit your own comments');
+    }
+
+    // Update comment
+    alert.comments[commentIndex].comment = newComment;
+
+    return await alert.save();
+  }
+
+  async deleteComment(alertId: string, commentIndex: number, userId: string): Promise<Alert> {
+    const alert = await this.alertModel.findById(alertId).exec();
+    
+    if (!alert) {
+      throw new NotFoundException('Alert not found');
+    }
+
+    if (!alert.comments || !alert.comments[commentIndex]) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    // Check if user owns this comment
+    if (alert.comments[commentIndex].userId !== userId) {
+      throw new BadRequestException('You can only delete your own comments');
+    }
+
+    // Remove comment
+    alert.comments.splice(commentIndex, 1);
+
+    return await alert.save();
+  }
+
   async getUserAlerts(userId: string): Promise<Alert[]> {
     return await this.alertModel
       .find({ userId })

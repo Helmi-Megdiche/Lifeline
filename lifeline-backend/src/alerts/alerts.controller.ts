@@ -65,6 +65,30 @@ export class AlertsController {
     return { success: true, alert: alertObj };
   }
 
+  @Put(':id/comment/:commentIndex')
+  @UseGuards(JwtAuthGuard)
+  async updateComment(@Request() req, @Param('id') alertId: string, @Param('commentIndex') commentIndex: string, @Body() addCommentDto: AddCommentDto) {
+    const alert = await this.alertsService.updateComment(alertId, parseInt(commentIndex), req.user.userId, addCommentDto.comment);
+    
+    // Convert to plain object and remove MongoDB-specific fields for PouchDB compatibility
+    const alertObj = JSON.parse(JSON.stringify(alert));
+    delete alertObj.__v;
+    
+    return { success: true, alert: alertObj };
+  }
+
+  @Delete(':id/comment/:commentIndex')
+  @UseGuards(JwtAuthGuard)
+  async deleteComment(@Request() req, @Param('id') alertId: string, @Param('commentIndex') commentIndex: string) {
+    const alert = await this.alertsService.deleteComment(alertId, parseInt(commentIndex), req.user.userId);
+    
+    // Convert to plain object and remove MongoDB-specific fields for PouchDB compatibility
+    const alertObj = JSON.parse(JSON.stringify(alert));
+    delete alertObj.__v;
+    
+    return { success: true, alert: alertObj };
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   async deleteAlert(@Request() req, @Param('id') alertId: string) {
