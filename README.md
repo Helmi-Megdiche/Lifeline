@@ -53,16 +53,22 @@
 - **Automatic Sync** - Background synchronization when online
 - **Conflict Resolution** - Smart handling of data conflicts
 
-### 🚨 **Emergency Alerts System**
+### 🚨 **Emergency Alerts System** (Enhanced!)
 - **Real-time Alerts** - Create and share emergency alerts instantly
 - **Offline Alert Creation** - Create alerts without internet connection
 - **Automatic Sync** - Alerts sync to server when connection restored
 - **Multi-user Support** - View alerts from all users in the system
-- **Alert Management** - Delete alerts with online-only restriction
+- **Alert Management** - Update and delete alerts with online-only restriction
 - **Custom UI Components** - Professional confirmation modals and notification toasts
 - **Alert Categories** - Organize alerts by type (Medical, Fire, Security, etc.)
 - **Severity Levels** - Low, Medium, High priority classification
 - **Expiration Handling** - Automatic cleanup of expired alerts
+- **Comment & Reply System** - Full discussion functionality with threaded replies
+  - Add comments to any alert
+  - Reply to comments with visual nesting
+  - Edit and delete your own comments
+  - Alert creator moderation controls
+  - Professional UI with avatars and badges
 
 ### 🔐 **Security & Authentication**
 - **JWT Authentication** - Secure user sessions
@@ -115,6 +121,26 @@
   - Duplicate reporting prevention
   - Automatic alert hiding after multiple reports (5+ reports)
   - Real-time report count sync with backend
+- **Comment System (NEW!)**:
+  - Add comments to any alert (including alert creators on their own alerts)
+  - Edit and delete your own comments
+  - Update comment functionality with professional modal
+  - Character limit (500 characters) with real-time counter
+  - Professional UI with avatars, timestamps, and badges
+  - Visual "You" badge for own comments
+  - Alert creator "You own this alert" badge for moderation context
+- **Reply System (NEW!)**:
+  - Reply to any comment with threaded conversations
+  - Visual nesting with indentation (moved right)
+  - Purple accent border and background for replies
+  - "Replying to @username" indicator badge
+  - Clear visual hierarchy between main comments and replies
+  - Available to all users including alert creators
+- **Alert Creator Moderation (NEW!)**:
+  - Alert creators can delete any comment on their alerts
+  - Visual "👮" icon with red styling for moderation actions
+  - Clear tooltip indicating moderation vs self-deletion
+  - Full control over discussion on their alerts
 
 #### 👤 **Profile Management **
 - **Profile Update Feature**: Users can now edit their username and email
@@ -358,12 +384,23 @@ lifeline-backend/
 #### ✅ **Alerts System**
 - [ ] Create alerts with different categories and severity levels
 - [ ] View alerts from all users
+- [ ] Update existing alerts
 - [ ] Delete own alerts (online only)
 - [ ] Report alerts from other users
 - [ ] Offline alert creation and sync
 - [ ] Custom confirmation modal for deletions
 - [ ] Notification toast system
 - [ ] Alert expiration handling
+#### ✅ **Comments & Replies System (NEW!)**
+- [ ] Add comments to any alert
+- [ ] Alert creators can comment on their own alerts
+- [ ] Edit and delete your own comments
+- [ ] Reply to any comment with threaded structure
+- [ ] Visual nesting and indentation for replies
+- [ ] Purple accent styling for reply indicators
+- [ ] Alert creator moderation (delete any comment)
+- [ ] Character limit and real-time counter
+- [ ] Professional UI with avatars and badges
 
 #### ✅ **Mobile Features**
 - [ ] Responsive design on mobile
@@ -448,6 +485,11 @@ NEXT_PUBLIC_API_URL=https://your-api-domain.com
 - `PUT /alerts/:id` - Update existing alert (online only)
 - `PUT /alerts/:id/report` - Report an alert
 - `DELETE /alerts/:id` - Delete alert (online only)
+
+#### Comments & Replies (NEW!)
+- `POST /alerts/:id/comment` - Add a comment to an alert
+- `PUT /alerts/:id/comment/:commentIndex` - Update a comment (comment owner only)
+- `DELETE /alerts/:id/comment/:commentIndex` - Delete a comment (comment owner or alert creator)
 
 #### PouchDB Sync
 - `POST /pouch/status/_bulk_docs` - Bulk document operations
