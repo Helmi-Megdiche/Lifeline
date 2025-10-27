@@ -43,6 +43,12 @@ interface Alert {
   expiresAt: string;
   synced: boolean;
   hidden: boolean;
+  comments?: Array<{
+    userId: string;
+    username: string;
+    comment: string;
+    createdAt: string | Date;
+  }>;
   // Legacy fields for backward compatibility
   latitude?: number;
   longitude?: number;
@@ -68,7 +74,7 @@ interface AlertsContextType {
   alerts: Alert[];
   createAlert: (payload: CreateAlertPayload) => Promise<void>;
   updateAlert: (alertId: string, payload: Partial<CreateAlertPayload>) => Promise<void>;
-  reportAlert: (alertId: string) => Promise<void>;
+  reportAlert: (alertId: string, comment?: string) => Promise<void>;
   deleteAlert: (alertId: string) => Promise<void>;
   isLoadingAlerts: boolean;
   syncAlertsStatus: string;
@@ -602,7 +608,7 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
     return sanitized;
   }, []);
 
-  const reportAlert = useCallback(async (alertId: string) => {
+  const reportAlert = useCallback(async (alertId: string, comment?: string) => {
     if (!localDB) {
       throw new Error('PouchDB not initialized.');
     }
@@ -629,7 +635,10 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ reason: 'User reported this alert' })
+            body: JSON.stringify({ 
+              reason: 'User reported this alert',
+              comment: comment || ''
+            })
           });
 
           if (response.ok) {

@@ -52,6 +52,12 @@ interface Alert {
   expiresAt: string;
   synced: boolean;
   hidden: boolean;
+  comments?: Array<{
+    userId: string;
+    username: string;
+    comment: string;
+    createdAt: string | Date;
+  }>;
 }
 
 const AlertCreateModal: React.FC<{
@@ -633,6 +639,38 @@ const AlertCard: React.FC<{
         </div>
       )}
 
+      {/* Comments Section */}
+      {alert.comments && alert.comments.length > 0 && (
+        <div className="mb-4 border-t border-gray-200 dark:border-gray-600 pt-4">
+          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+            <span className="text-lg">💬</span>
+            Comments ({alert.comments.length})
+          </h4>
+          <div className="space-y-3 max-h-48 overflow-y-auto">
+            {alert.comments.map((comment, index) => (
+              <div
+                key={index}
+                className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                      {comment.username}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {new Date(comment.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-700 dark:text-gray-300 break-words">
+                  {comment.comment}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Footer with actions */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-600">
         {alert.reportCount > 0 && (
@@ -682,6 +720,78 @@ const AlertCard: React.FC<{
   );
 };
 
+const ReportModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onReport: (alertId: string, comment: string) => void;
+  alertId: string;
+}> = ({ isOpen, onClose, onReport, alertId }) => {
+  const { theme } = useTheme();
+  const [comment, setComment] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onReport(alertId, comment.trim());
+    setComment('');
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
+      <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''}`}>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <span className="text-3xl">🚨</span>
+            Report Alert
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              Add a Comment (Optional)
+            </label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Enter your comment here... (e.g., This alert is not accurate, Additional information...)"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors resize-none h-32"
+              maxLength={500}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              {comment.length}/500 characters
+            </p>
+          </div>
+
+          <div className="flex gap-3 sm:flex-row flex-col">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl"
+            >
+              Report Alert
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export default function AlertsPage() {
   const { user, isOnline, isLoading: isAuthLoading } = useAuth();
   const { alerts, isLoadingAlerts, createAlert, updateAlert, reportAlert, deleteAlert } = useAlerts();
@@ -700,7 +810,9 @@ export default function AlertsPage() {
   const { theme } = useTheme();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const [selectedReportAlertId, setSelectedReportAlertId] = useState<string>('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([36.8065, 10.1815]); // Default to Tunis, Tunisia
@@ -772,9 +884,14 @@ export default function AlertsPage() {
     }
   };
 
-  const handleReportAlert = async (alertId: string) => {
+  const handleOpenReportModal = (alertId: string) => {
+    setSelectedReportAlertId(alertId);
+    setShowReportModal(true);
+  };
+
+  const handleReportAlert = async (alertId: string, comment: string) => {
     try {
-      await reportAlert(alertId);
+      await reportAlert(alertId, comment);
     } catch (error) {
       console.error('Failed to report alert:', error);
     }
@@ -1153,7 +1270,7 @@ export default function AlertsPage() {
                     <AlertCard
                       key={alert._id}
                       alert={alert}
-                      onReport={handleReportAlert}
+                      onReport={handleOpenReportModal}
                       onUpdate={handleOpenUpdateModal}
                       onDelete={handleDeleteAlert}
                       currentUserId={user.id}
@@ -1180,6 +1297,13 @@ export default function AlertsPage() {
         onUpdate={handleUpdateAlert}
         alert={selectedAlert}
         userLocation={userLocation || undefined}
+      />
+
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        onReport={handleReportAlert}
+        alertId={selectedReportAlertId}
       />
     </div>
   );

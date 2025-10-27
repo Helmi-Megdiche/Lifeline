@@ -87,7 +87,7 @@ export class AlertsService {
       .exec();
   }
 
-  async reportAlert(alertId: string, userId: string, reportAlertDto: ReportAlertDto): Promise<Alert> {
+  async reportAlert(alertId: string, userId: string, reportAlertDto: ReportAlertDto, username: string): Promise<Alert> {
     const alert = await this.alertModel.findById(alertId).exec();
     
     if (!alert) {
@@ -107,6 +107,19 @@ export class AlertsService {
     if (alert.reportCount >= 5) {
       alert.hidden = true;
       alert.status = 'false_alarm';
+    }
+
+    // Add comment if provided
+    if (reportAlertDto.comment) {
+      if (!alert.comments) {
+        alert.comments = [];
+      }
+      alert.comments.push({
+        userId,
+        username,
+        comment: reportAlertDto.comment,
+        createdAt: new Date()
+      });
     }
 
     return await alert.save();

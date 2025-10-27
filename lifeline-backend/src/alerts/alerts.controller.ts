@@ -43,7 +43,7 @@ export class AlertsController {
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 reports per minute
   async reportAlert(@Request() req, @Param('id') alertId: string, @Body() reportAlertDto: ReportAlertDto) {
-    const alert = await this.alertsService.reportAlert(alertId, req.user.userId, reportAlertDto);
+    const alert = await this.alertsService.reportAlert(alertId, req.user.userId, reportAlertDto, req.user.username);
     
     // Convert to plain object and remove MongoDB-specific fields for PouchDB compatibility
     const alertObj = JSON.parse(JSON.stringify(alert));

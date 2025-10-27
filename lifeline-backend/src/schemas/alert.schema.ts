@@ -66,6 +66,22 @@ export class Alert {
 
   @Prop({ default: false })
   hidden: boolean;
+
+  @Prop({ 
+    type: [{
+      userId: { type: String, required: true },
+      username: { type: String, required: true },
+      comment: { type: String, required: true },
+      createdAt: { type: Date, default: Date.now }
+    }],
+    default: []
+  })
+  comments: Array<{
+    userId: string;
+    username: string;
+    comment: string;
+    createdAt: Date;
+  }>;
 }
 
 export const AlertSchema = SchemaFactory.createForClass(Alert);
