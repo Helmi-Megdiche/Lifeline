@@ -600,6 +600,18 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     try {
+      // Check locally first to prevent unnecessary API calls
+      const localAlert = await localDB.get(alertId) as Alert;
+      if (localAlert.reportedBy?.includes(user?.id || '')) {
+        showNotification('You have already reported this alert.', 'warning');
+        return;
+      }
+    } catch (localError) {
+      // If we can't get the local alert, continue with API call
+      console.log('Could not check local alert, proceeding with API call');
+    }
+
+    try {
       // Call the backend API to report the alert
       if (isOnline && token) {
         try {
@@ -615,28 +627,67 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
           if (response.ok) {
             const result = await response.json();
             console.log('✅ Alert reported successfully:', result);
+            
+            // Update local database with the server's response
+            if (result.alert) {
+              try {
+                await localDB.put(result.alert);
+              } catch (putError: any) {
+                // If update fails due to conflict, it's okay - sync will fix it
+                if (putError.status !== 409) {
+                  console.error('Failed to update local alert:', putError);
+                }
+              }
+            }
+            
             showNotification('Alert reported successfully!', 'success');
             // Refresh alerts to get updated count
             await fetchAlerts();
           } else {
-            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            let errorData: any = { message: 'Unknown error' };
+            
+            // Try to parse error response
+            try {
+              const contentType = response.headers.get('content-type');
+              if (contentType && contentType.includes('application/json')) {
+                errorData = await response.json();
+              } else {
+                const text = await response.text();
+                errorData = text ? { message: text } : { message: `Backend returned ${response.status}` };
+              }
+            } catch (parseError) {
+              console.error('Failed to parse error response:', parseError);
+              errorData = { message: `Backend returned ${response.status}` };
+            }
+            
             console.error('❌ Backend error:', errorData);
             
             // Handle specific error messages
-            if (response.status === 400 && errorData.message?.includes('already reported')) {
+            const errorMessage = errorData.message || errorData.error || 'Failed to report alert. Please try again.';
+            if (response.status === 400 && errorMessage.toLowerCase().includes('already reported')) {
               showNotification('You have already reported this alert.', 'warning');
+              // Don't throw error for already reported - this is expected behavior
+              return;
             } else {
-              showNotification(errorData.message || 'Failed to report alert. Please try again.', 'error');
+              showNotification(errorMessage, 'error');
+              throw new Error(errorMessage);
             }
-            
-            throw new Error(errorData.message || `Backend returned ${response.status}`);
           }
         } catch (apiError) {
           console.error('❌ Failed to report alert to backend:', apiError);
-          if (!(apiError instanceof Error && apiError.message.includes('already reported'))) {
+          const isAlreadyReported = apiError instanceof Error && 
+            (apiError.message.toLowerCase().includes('already reported') || apiError.message.includes('already reported'));
+          
+          if (!isAlreadyReported) {
             showNotification('Failed to report alert. Please try again.', 'error');
+          } else {
+            showNotification('You have already reported this alert.', 'warning');
           }
-          throw apiError;
+          
+          // Don't throw for already reported - it's expected
+          if (!isAlreadyReported) {
+            throw apiError;
+          }
         }
       } else {
         // Offline mode: increment local count
