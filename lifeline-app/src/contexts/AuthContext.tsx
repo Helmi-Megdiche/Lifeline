@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // If online, validate token with backend
           if (online) {
             try {
-              const response = await fetch('http://10.133.250.197:4004/auth/test', {
+              const response = await fetch('http://10.96.15.197:4004/auth/test', {
                 headers: {
                   'Authorization': `Bearer ${localUser.token}`,
                 },
@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     if (online) {
       // Online login - validate with backend
-        const response = await fetch('http://10.133.250.197:4004/auth/login', {
+        const response = await fetch('http://10.96.15.197:4004/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -143,7 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error('Registration requires internet connection');
     }
 
-        const response = await fetch('http://10.133.250.197:4004/auth/register', {
+        const response = await fetch('http://10.96.15.197:4004/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),

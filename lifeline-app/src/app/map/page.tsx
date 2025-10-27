@@ -30,7 +30,7 @@ export default function LiveMapPage() {
     // Check if we're on HTTPS or localhost (required for geolocation on mobile)
     const isSecureContext = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (!isSecureContext) {
-      setError('Geolocation requires HTTPS. Please use https://10.133.250.197:3000 on mobile');
+      setError('Geolocation requires HTTPS. Please use https://10.96.15.197:3000 on mobile');
       return;
     }
     

@@ -33,7 +33,7 @@ export default function ConfirmationModal({
       case 'danger':
         return {
           icon: '⚠️',
-          confirmButton: 'bg-red-600 hover:bg-red-700 text-white',
+          confirmButton: 'bg-white dark:bg-gray-800 border-2 border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-gray-700 text-red-600 dark:text-red-500',
           iconBg: 'bg-red-100 dark:bg-red-900/20'
         };
       case 'warning':
@@ -120,6 +120,7 @@ export default function ConfirmationModal({
             className={`
               flex-1 px-4 py-2 rounded-lg font-medium transition-colors
               ${styles.confirmButton}
+              ${confirmText === 'Delete' ? 'confirm-button-delete' : ''}
             `}
           >
             {confirmText}

@@ -67,7 +67,7 @@ export default function Home() {
   async function isReallyOnline(): Promise<boolean> {
     // More reliable online check - try to actually reach the server
     try {
-      const response = await fetch('http://10.133.250.197:4004/health', { method: "GET", cache: "no-cache" });
+      const response = await fetch('http://10.96.15.197:4004/health', { method: "GET", cache: "no-cache" });
       return response.ok;
     } catch {
       return false;

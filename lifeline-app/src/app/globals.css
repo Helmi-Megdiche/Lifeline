@@ -354,3 +354,341 @@ html.dark .text-black {
 .profile-info-section .text-sm span {
   color: #000000 !important;
 }
+
+/* Force Resources page location display text to be black in dark mode */
+html.dark .bg-gray-50 {
+  background-color: #f9fafb !important;
+}
+
+html.dark .bg-gray-50 > *,
+html.dark .bg-gray-50 span,
+html.dark .bg-gray-50 div {
+  color: #000000 !important;
+}
+
+/* Force Resources page specific text colors - they should stay their intended colors */
+html.dark .bg-gray-50 .text-gray-900 {
+  color: #111827 !important;
+}
+
+html.dark .bg-gray-50 .text-blue-600 {
+  color: #2563eb !important;
+}
+
+html.dark .bg-gray-50 .text-green-600 {
+  color: #16a34a !important;
+}
+
+/* Force coordinates to be black on gray background */
+html.dark .bg-gray-200 {
+  background-color: #e5e7eb !important;
+}
+
+html.dark .bg-gray-200 span {
+  color: #111827 !important;
+}
+
+/* Nuclear option - force ALL text in Resources location section to be black */
+html.dark div[class*="bg-gray-50"] * {
+  color: #111827 !important;
+}
+
+/* Prevent dark mode from changing text colors on light backgrounds */
+html.dark div.bg-gray-50,
+html.dark div.bg-gray-50 * {
+  color: #111827 !important;
+}
+
+html.dark span.bg-gray-200,
+html.dark span.bg-gray-200 * {
+  color: #111827 !important;
+}
+
+/* Force Refresh Location button text to be blue in dark mode */
+html.dark button.bg-white .text-blue-600,
+html.dark button.bg-white span.text-blue-600,
+html.dark .bg-white button.text-blue-600,
+html.dark .bg-white span.text-blue-600 {
+  color: #2563eb !important;
+}
+
+/* Force white button backgrounds to stay white in dark mode */
+html.dark button.bg-white,
+html.dark .bg-white button {
+  background-color: #ffffff !important;
+}
+
+/* Force ALL text inside white buttons to be blue in Resources page */
+html.dark .bg-white button {
+  color: #2563eb !important;
+}
+
+/* Force Create Alert button text to be white */
+button[onclick*="setShowCreateModal"],
+.bg-gradient-to-r.from-red-500.to-red-600,
+html.dark button.bg-gradient-to-r.from-red-500.to-red-600,
+html.dark button[style*="color"] {
+  color: #ffffff !important;
+}
+
+/* Nuclear option for Create Alert button */
+html.dark button.text-white {
+  color: #ffffff !important;
+}
+
+/* Most specific rule for Create Alert - OVERRIDE EVERYTHING */
+html button.bg-gradient-to-r.from-red-500.to-red-600,
+html.dark button.bg-gradient-to-r.from-red-500.to-red-600,
+html .bg-gradient-to-r.from-red-500 button,
+html.dark .bg-gradient-to-r.from-red-500 button,
+html .bg-gradient-to-r.from-red-600 button,
+html.dark .bg-gradient-to-r.from-red-600 button {
+  color: #ffffff !important;
+  text-shadow: none !important;
+}
+
+/* Force all text inside red gradient buttons to be white */
+html button.bg-gradient-to-r.from-red-500 button *,
+html button.bg-gradient-to-r.from-red-600 button *,
+html.dark button.bg-gradient-to-r.from-red-500 button *,
+html.dark button.bg-gradient-to-r.from-red-600 button * {
+  color: #ffffff !important;
+}
+
+/* Override any dark mode text color rules for red buttons */
+html.dark button[class*="from-red-"],
+html.dark button[class*="to-red-"] {
+  color: #ffffff !important;
+}
+
+html.dark button[class*="from-red-"] *,
+html.dark button[class*="to-red-"] * {
+  color: #ffffff !important;
+}
+
+/* Ensure My Location button is visible */
+button[title*="location" i] {
+  color: #2563eb !important;
+  z-index: 1000 !important;
+}
+
+html.dark button[title*="location" i] {
+  color: #2563eb !important;
+}
+
+/* Force Report and Delete button text to be red */
+/* These buttons now have red text on white backgrounds */
+
+html button.text-red-600,
+html.dark button.text-red-600,
+html button.text-red-500,
+html.dark button.text-red-500 {
+  color: #dc2626 !important;
+}
+
+html.dark button.text-red-600,
+html.dark button.text-red-500 {
+  color: #ef4444 !important;
+}
+
+/* Force all text inside red text buttons to be red */
+html button.text-red-600 *,
+html button.text-red-500 *,
+html.dark button.text-red-600 *,
+html.dark button.text-red-500 * {
+  color: #dc2626 !important;
+}
+
+html.dark button.text-red-600 *,
+html.dark button.text-red-500 * {
+  color: #ef4444 !important;
+}
+
+/* Force delete button text to be red in confirmation modal */
+.confirm-button-delete {
+  color: #dc2626 !important;
+}
+
+html.dark .confirm-button-delete {
+  color: #dc2626 !important;
+}
+
+/* ===========================================
+   UNIVERSAL RULE: White buttons in dark mode
+   =========================================== */
+/* Default: ALL text in white buttons should be BLACK in dark mode */
+html.dark button.bg-white,
+html.dark button.bg-white span,
+html.dark button.bg-white div,
+html.dark button.bg-white p,
+html.dark button.bg-white * {
+  color: #000000 !important;
+}
+
+/* Exception 1: Delete and Report buttons on white background = RED text */
+html.dark button.bg-white.text-red-600,
+html.dark button.bg-white.text-red-500,
+html.dark button.bg-white[class*="Report"],
+html.dark button.bg-white[class*="Delete"],
+html.dark button.bg-white:has([class*="Report"]),
+html.dark button.bg-white:has([class*="Delete"]) {
+  color: #dc2626 !important;
+}
+
+html.dark button.bg-white.text-red-600 *,
+html.dark button.bg-white.text-red-500 *,
+html.dark button.bg-white[class*="Report"] *,
+html.dark button.bg-white[class*="Delete"] * {
+  color: #dc2626 !important;
+}
+
+/* Logout button: red background, white text - OVERRIDE ALL OTHER RULES */
+html.dark button[class*="bg-red-600"]:not(.bg-white),
+html.dark button[class*="bg-red-700"],
+html button[class*="bg-red-600"]:not(.bg-white) {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+html.dark button[class*="bg-red-600"]:not(.bg-white) *,
+html.dark button[class*="bg-red-700"] *,
+html button[class*="bg-red-600"]:not(.bg-white) * {
+  color: #ffffff !important;
+}
+
+/* Forgot password / Yellow buttons - OVERRIDE ALL OTHER RULES */
+html.dark button[class*="bg-yellow"],
+html.dark button[class*="bg-orange"],
+html button[class*="bg-yellow"] {
+  background-color: #eab308 !important;
+  color: #ffffff !important;
+}
+
+html.dark button[class*="bg-yellow"] *,
+html.dark button[class*="bg-orange"] *,
+html button[class*="bg-yellow"] * {
+  color: #ffffff !important;
+}
+
+/* Force white backgrounds to stay white in dark mode for buttons */
+html.dark button.bg-white {
+  background-color: #ffffff !important;
+}
+
+/* Theme toggle and Edit buttons: black text in dark mode */
+/* Override the dark:text-white class for these specific buttons */
+html.dark button.bg-blue-500.dark\:bg-blue-600.dark\:text-white,
+html.dark button.bg-blue-600.dark\:text-white {
+  color: #000000 !important;
+}
+
+html.dark button.bg-blue-500.dark\:bg-blue-600.dark\:text-white *,
+html.dark button.bg-blue-600.dark\:text-white * {
+  color: #000000 !important;
+}
+
+/* Specifically target buttons with bg-blue-500 in dark mode that have white text */
+html.dark button[class*="bg-blue-500"][class*="dark:text-white"],
+html.dark button[class*="bg-blue-600"][class*="dark:text-white"] {
+  color: #000000 !important;
+}
+
+html.dark button[class*="bg-blue-500"][class*="dark:text-white"] *,
+html.dark button[class*="bg-blue-600"][class*="dark:text-white"] * {
+  color: #000000 !important;
+}
+
+/* Live Map page buttons: black text in dark mode */
+/* Blue button (Save tiles for offline) - keep background light for contrast */
+html.dark button[class*="bg-blue-600"].text-white {
+  background-color: #60a5fa !important; /* light blue for contrast with black text */
+  color: #000000 !important;
+}
+
+html.dark button[class*="bg-blue-600"].text-white * {
+  color: #000000 !important;
+}
+
+/* Emerald button (Share my live location) - keep background light for contrast */
+html.dark button[class*="bg-emerald-600"].text-white {
+  background-color: #34d399 !important; /* light emerald for contrast with black text */
+  color: #000000 !important;
+}
+
+html.dark button[class*="bg-emerald-600"].text-white * {
+  color: #000000 !important;
+}
+
+/* Gray button (Open in Maps) - keep background light for contrast */
+html.dark button[class*="bg-gray-600"].text-white,
+html.dark button[class*="bg-gray-600"][class*="dark:text-white"] {
+  background-color: #e5e7eb !important; /* light gray for contrast with black text */
+  color: #000000 !important;
+}
+
+html.dark button[class*="bg-gray-600"].text-white *,
+html.dark button[class*="bg-gray-600"][class*="dark:text-white"] * {
+  color: #000000 !important;
+}
+
+/* My Status and History page buttons: black text in dark mode */
+/* Green buttons (Force Sync, etc.) */
+html.dark button[class*="bg-green-500"].text-white,
+html.dark button[class*="bg-green-500"].text-white *,
+html.dark button[class*="bg-green-600"].text-white,
+html.dark button[class*="bg-green-600"].text-white * {
+  color: #000000 !important;
+}
+
+html.dark button[class*="bg-green-500"].text-white {
+  background-color: #86efac !important; /* light green */
+}
+
+html.dark button[class*="bg-green-600"].text-white {
+  background-color: #86efac !important; /* light green */
+}
+
+/* Orange buttons (tabs, etc.) */
+html.dark button[class*="bg-orange-500"].text-white,
+html.dark button[class*="bg-orange-500"].text-white * {
+  color: #000000 !important;
+  background-color: #fbbf24 !important; /* light orange */
+}
+
+/* Prevent red buttons (Clear All Data, Logout, etc.) from getting light backgrounds */
+html.dark button[class*="bg-red-500"]:not([class*="bg-white"]):not([class*="dark:bg-gray"]),
+html.dark button[class*="bg-red-600"]:not([class*="bg-white"]):not([class*="dark:bg-gray"]),
+html.dark button[class*="bg-red-700"]:not([class*="bg-white"]):not([class*="dark:bg-gray"]) {
+  background-color: #dc2626 !important; /* keep red background */
+  color: #ffffff !important; /* keep white text */
+}
+
+/* Blue buttons - light backgrounds for contrast */
+html.dark button[class*="bg-blue-500"].text-white:not([class*="bg-white"]):not([class*="dark:bg-gray"]),
+html.dark button[class*="bg-blue-500"].text-white:not([class*="bg-white"]):not([class*="dark:bg-gray"]) *,
+html.dark button[class*="bg-blue-600"].text-white:not([class*="bg-white"]):not([class*="dark:bg-gray"]),
+html.dark button[class*="bg-blue-600"].text-white:not([class*="bg-white"]):not([class*="dark:bg-gray"]) * {
+  color: #000000 !important;
+}
+
+html.dark button[class*="bg-blue-500"].text-white:not([class*="bg-white"]):not([class*="dark:bg-gray"]) {
+  background-color: #93c5fd !important; /* light blue */
+}
+
+html.dark button[class*="bg-blue-600"].text-white:not([class*="bg-white"]):not([class*="dark:bg-gray"]) {
+  background-color: #93c5fd !important; /* light blue */
+}
+
+/* Purple buttons */
+html.dark button[class*="bg-purple"],
+html.dark button[class*="bg-purple"] * {
+  color: #000000 !important;
+}
+
+html.dark button[class*="bg-purple-500"] {
+  background-color: #d8b4fe !important; /* light purple */
+}
+
+html.dark button[class*="bg-purple-600"] {
+  background-color: #e9d5ff !important; /* lighter purple */
+}

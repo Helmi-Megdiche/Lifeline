@@ -20,6 +20,7 @@ type Props = {
 export default function MapPreview({ lat, lng, name, address }: Props) {
   const position: [number, number] = [lat, lng];
   const [tileError, setTileError] = useState<boolean>(false);
+  const [mapId] = useState(() => `map-${lat}-${lng}-${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
     setupLeafletDefaultIcon().catch(console.warn);
@@ -31,14 +32,15 @@ export default function MapPreview({ lat, lng, name, address }: Props) {
   };
 
   return (
-    <div className="relative h-40 w-full overflow-hidden rounded-md">
+    <div className="relative h-40 w-full overflow-hidden rounded-md" id={mapId}>
       <Map 
+        key={mapId}
         center={position} 
         zoom={13} 
         style={{ height: "100%", width: "100%" }} 
         scrollWheelZoom={true} 
         attributionControl={false} 
-        zoomControl={true}
+        zoomControl={false}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

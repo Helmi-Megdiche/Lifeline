@@ -28,6 +28,7 @@ export default function ResourcesPage() {
   const [didTryGeo, setDidTryGeo] = useState<boolean>(false);
   const [geoDenied, setGeoDenied] = useState<boolean>(false);
   const [activeSavedId, setActiveSavedId] = useState<number | null>(null);
+  const [radius, setRadius] = useState<number>(25); // Radius in km
 
   function savedKey(a: { areaName?: string; centerLat: number; centerLng: number }): string {
     return (a.areaName ? a.areaName.toLowerCase().trim() : `${a.centerLat.toFixed(3)},${a.centerLng.toFixed(3)}`);
@@ -169,42 +170,133 @@ export default function ResourcesPage() {
     getLocationAndResources();
   }, [isOnline]);
 
+  // Regenerate resources when radius changes
+  useEffect(() => {
+    if (userLocation && isOnline) {
+      generateNearbyResources(userLocation.lat, userLocation.lng);
+    }
+  }, [radius, userLocation, isOnline]);
+
+  // Calculate distance between two coordinates using Haversine formula
+  function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
   function generateNearbyResources(userLat: number, userLng: number) {
-    // Generate resources around user's location
-    const nearbyResources: Resource[] = [
-      {
-        name: "City General Hospital",
-        address: `${Math.round((userLat + 0.01) * 1000) / 1000}, ${Math.round((userLng + 0.01) * 1000) / 1000}`,
-        phone: "+216 71 123 456",
-        lat: userLat + 0.01,
-        lng: userLng + 0.01,
-        type: "Hospital"
-      },
-      {
-        name: "Emergency Shelter",
-        address: `${Math.round((userLat - 0.005) * 1000) / 1000}, ${Math.round((userLng + 0.008) * 1000) / 1000}`,
-        phone: "+216 71 234 567",
-        lat: userLat - 0.005,
-        lng: userLng + 0.008,
-        type: "Shelter"
-      },
-      {
-        name: "Police Station",
-        address: `${Math.round((userLat + 0.008) * 1000) / 1000}, ${Math.round((userLng - 0.012) * 1000) / 1000}`,
-        phone: "+216 71 345 678",
-        lat: userLat + 0.008,
-        lng: userLng - 0.012,
-        type: "Police"
-      },
-      {
-        name: "Fire Department",
-        address: `${Math.round((userLat - 0.003) * 1000) / 1000}, ${Math.round((userLng - 0.006) * 1000) / 1000}`,
-        phone: "+216 71 456 789",
-        lat: userLat - 0.003,
-        lng: userLng - 0.006,
-        type: "Fire"
-      }
+    // Generate multiple resources within selected radius
+    // Each degree of latitude is approximately 111km, so for any radius: km / 111
+    const maxRadiusKm = radius;
+    const maxDegrees = radius / 111; // Convert km to degrees
+    
+    const resourceTypes = ['Hospital', 'Shelter', 'Police', 'Fire'] as const;
+    const hospitalNames = [
+      'City General Hospital',
+      'Regional Medical Center',
+      'Emergency Care Clinic',
+      'Community Health Center',
+      'City Hospital North',
+      'Regional Trauma Center',
+      'Central Medical Center',
+      'Emergency Hospital'
     ];
+    const shelterNames = [
+      'Emergency Shelter',
+      'Disaster Relief Center',
+      'Community Shelter',
+      'Evacuation Center',
+      'Crisis Shelter North',
+      'Safety Haven',
+      'Temporary Housing',
+      'Refugee Center'
+    ];
+    const policeNames = [
+      'Police Station',
+      'Regional Police Department',
+      'Community Safety Station',
+      'Police Outpost',
+      'District Police Office',
+      'Law Enforcement Center',
+      'Security Station',
+      'Local Police Department'
+    ];
+    const fireNames = [
+      'Fire Department',
+      'Fire Station Central',
+      'Emergency Response Unit',
+      'Fire Department North',
+      'City Fire Station',
+      'Regional Fire Brigade',
+      'Rescue Station',
+      'Fire & Rescue Unit'
+    ];
+
+    const namesByType = {
+      Hospital: hospitalNames,
+      Shelter: shelterNames,
+      Police: policeNames,
+      Fire: fireNames
+    };
+
+    const nearbyResources: Resource[] = [];
+    const usedNames = new Set<string>();
+    
+    // Calculate number of resources based on radius (more area = more resources)
+    const numResources = Math.min(Math.max(Math.floor(radius * 1.2), 12), 30);
+    
+    let attempts = 0;
+    while (nearbyResources.length < numResources && attempts < 100) {
+      attempts++;
+      
+      // Random angle and distance within the radius
+      const angle = Math.random() * 2 * Math.PI;
+      const distance = Math.random() * maxDegrees;
+      const lat = userLat + (Math.cos(angle) * distance);
+      const lng = userLng + (Math.sin(angle) * distance);
+      
+      // Ensure the point is within 25km
+      const actualDistance = calculateDistance(userLat, userLng, lat, lng);
+      if (actualDistance > maxRadiusKm) continue;
+      
+      const type = resourceTypes[nearbyResources.length % 4] as Resource['type'];
+      const names = namesByType[type];
+      
+      // Try multiple times to find a unique name
+      let name = '';
+      let nameAttempts = 0;
+      while (nameAttempts < 20) {
+        const candidate = names[Math.floor(Math.random() * names.length)];
+        const uniqueKey = `${candidate}-${lat.toFixed(3)}-${lng.toFixed(3)}`;
+        if (!usedNames.has(uniqueKey)) {
+          name = candidate;
+          usedNames.add(uniqueKey);
+          break;
+        }
+        nameAttempts++;
+      }
+      
+      if (!name) continue; // Skip if couldn't find unique name
+      
+      // Generate realistic phone number
+      const phoneSuffix = String(100 + (nearbyResources.length % 900)).padStart(3, '0');
+      const phone = `+216 71 ${phoneSuffix} ${String(100 + nearbyResources.length).padStart(3, '0')}`;
+      
+      nearbyResources.push({
+        name,
+        address: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+        phone,
+        lat,
+        lng,
+        type
+      });
+    }
     
     setResources(nearbyResources);
   }
@@ -214,11 +306,24 @@ export default function ResourcesPage() {
       return [] as Resource[];
     }
     const source = isOnline ? resources : ((savedResources?.resources as any[]) ?? []);
-    const byType = active === "All" ? source : source.filter(r => r.type === active);
+    
+    // Filter by distance (selected radius) if user location is available
+    let filteredByDistance = source;
+    if (userLocation) {
+      filteredByDistance = source.filter(r => {
+        const distance = calculateDistance(userLocation.lat, userLocation.lng, r.lat, r.lng);
+        return distance <= radius;
+      });
+    }
+    
+    // Filter by type
+    const byType = active === "All" ? filteredByDistance : filteredByDistance.filter(r => r.type === active);
+    
+    // Filter by search query
     const q = query.trim().toLowerCase();
     if (!q) return byType;
     return byType.filter(r => r.name.toLowerCase().includes(q) || r.address.toLowerCase().includes(q));
-  }, [active, query, resources, isOnline, savedResources, activeSavedId]);
+  }, [active, query, resources, isOnline, savedResources, activeSavedId, userLocation, radius]);
 
   async function downloadAreaForOffline() {
     if (!userLocation) return;
@@ -377,62 +482,102 @@ export default function ResourcesPage() {
                   </div>
                 )}
                 {isOnline && userLocation && (
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 rounded-full text-sm text-white border border-green-600 font-semibold">
-                      <span className="text-white">📍</span>
-                      Showing resources near your location: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
-                    </div>
-                    <button
-                      onClick={async () => {
-                        try {
-                          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                            navigator.geolocation.getCurrentPosition(resolve, reject, {
-                              enableHighAccuracy: true,
-                              timeout: 10000
+                  <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-gray-200/60 shadow-lg max-w-4xl mx-auto w-full">
+                    {/* Top Row: Radius and Refresh */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+                      {/* Radius Selector - More Prominent */}
+                      <div className="w-full sm:w-auto">
+                        <div className="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 rounded-xl shadow-md">
+                          <span className="text-white font-semibold text-sm sm:text-base whitespace-nowrap">
+                            🔍 Search Radius:
+                          </span>
+                          <select
+                            value={radius}
+                            onChange={(e) => setRadius(Number(e.target.value))}
+                            className="px-4 py-2 bg-white border-2 border-white rounded-lg text-sm font-bold text-blue-600 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 cursor-pointer shadow-sm"
+                          >
+                            <option value="5">5 km</option>
+                            <option value="10">10 km</option>
+                            <option value="15">15 km</option>
+                            <option value="25">25 km</option>
+                            <option value="50">50 km</option>
+                            <option value="100">100 km</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Location Refresh Button */}
+                      <button
+                        onClick={async () => {
+                          try {
+                            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                                enableHighAccuracy: true,
+                                timeout: 10000
+                              });
                             });
-                          });
-                          const lat = position.coords.latitude;
-                          const lng = position.coords.longitude;
-                          setUserLocation({ lat, lng });
-                          generateNearbyResources(lat, lng);
-                        } catch (error) {
-                          console.log("Could not refresh location:", error);
-                        }
-                      }}
-                      className="inline-flex items-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors"
-                    >
-                      <span>🔄</span>
-                      Refresh Location
-                    </button>
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+                            setUserLocation({ lat, lng });
+                            generateNearbyResources(lat, lng);
+                          } catch (error) {
+                            console.log("Could not refresh location:", error);
+                          }
+                        }}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-gray-50 text-blue-600 border-2 border-blue-600 text-sm font-semibold rounded-xl transition-all whitespace-nowrap shadow-md hover:shadow-lg hover:scale-105 w-full sm:w-auto"
+                      >
+                        <span className="text-lg">🔄</span>
+                        <span className="hidden sm:inline text-blue-600">Refresh Location</span>
+                        <span className="sm:hidden text-blue-600">Refresh</span>
+                      </button>
+                    </div>
+                    
+                    {/* Bottom: Resource Count and Location */}
+                    <div className="bg-gray-50 px-4 py-3 rounded-xl border border-gray-200">
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600 font-bold text-lg">📍</span>
+                          <span className="text-sm sm:text-base font-semibold text-gray-900">
+                            Showing <span className="text-blue-600 font-bold">{resources.length}</span> resources within <span className="text-blue-600 font-bold">{radius} km</span>
+                          </span>
+                        </div>
+                        <span className="text-xs sm:text-sm text-gray-900 font-mono font-semibold bg-gray-200 px-3 py-1 rounded-md">
+                          {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
       </div>
 
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-gray-200/60 shadow-lg">
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-          <div className="flex flex-wrap gap-2">
+      <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-6 mb-8 border border-gray-200/60 shadow-lg">
+        <div className="flex flex-col gap-4">
+          {/* Category Filters */}
+          <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
             {TABS.map(tab => (
               <button
                 key={tab}
                 onClick={() => setActive(tab as any)}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap ${
                   active === tab 
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg" 
-                    : "bg-gray-600 hover:bg-gray-700 text-white dark:bg-gray-600 dark:hover:bg-gray-700 dark:text-white"
+                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105" 
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-100 dark:hover:bg-gray-200 border border-gray-200"
                 }`}
               >
                 {tab}
               </button>
             ))}
           </div>
-          <div className="relative">
+          
+          {/* Search Bar */}
+          <div className="relative w-full">
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search name or address..."
-              className="h-10 pl-10 pr-4 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm min-w-64"
+              className="w-full h-10 sm:h-12 pl-10 pr-4 rounded-xl border border-gray-300 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm"
             />
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-lg">
               🔍
             </div>
           </div>
@@ -447,36 +592,37 @@ export default function ResourcesPage() {
           <p className="text-gray-600">Choose one of your saved areas above to load its resources.</p>
         </div>
       ) : (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filtered.map((r) => (
-          <div key={r.name} className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        {filtered.map((r, index) => (
+          <div key={`${r.name}-${r.lat}-${r.lng}-${index}`} className="group bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-gray-200/60 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
             <div className="relative">
               <MapPreview lat={r.lat} lng={r.lng} name={r.name} address={r.address} />
-              <div className="absolute top-3 right-3">
-                <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                  r.type === 'Hospital' ? 'bg-red-100 text-red-700' :
-                  r.type === 'Shelter' ? 'bg-blue-100 text-blue-700' :
-                  r.type === 'Police' ? 'bg-indigo-100 text-indigo-700' :
-                  'bg-orange-100 text-orange-700'
+              <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
+                <span className={`px-2 py-1 rounded-lg text-xs font-medium shadow-sm ${
+                  r.type === 'Hospital' ? 'bg-red-500 text-white' :
+                  r.type === 'Shelter' ? 'bg-blue-500 text-white' :
+                  r.type === 'Police' ? 'bg-indigo-500 text-white' :
+                  'bg-orange-500 text-white'
                 }`}>
                   {r.type}
                 </span>
               </div>
             </div>
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-3">
-                <h2 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{r.name}</h2>
+            <div className="p-4 sm:p-6">
+              <div className="flex items-start justify-between mb-2 sm:mb-3">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors pr-2">{r.name}</h2>
               </div>
-              <div className="flex items-center gap-2 text-gray-600 mb-4">
-                <span className="text-gray-400">📍</span>
-                <span className="text-sm">{r.address}</span>
+              <div className="flex items-start gap-2 text-gray-600 mb-3 sm:mb-4">
+                <span className="text-gray-400 text-sm mt-0.5">📍</span>
+                <span className="text-xs sm:text-sm flex-1 break-words">{r.address}</span>
               </div>
               <a 
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
                 href={`tel:${r.phone}`}
               >
-                <span>📞</span>
-                {r.phone}
+                <span className="text-lg">📞</span>
+                <span className="hidden sm:inline">{r.phone}</span>
+                <span className="sm:hidden">{r.phone.replace(/\s/g, '')}</span>
               </a>
             </div>
           </div>

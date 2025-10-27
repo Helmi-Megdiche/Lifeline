@@ -31,7 +31,7 @@ export const getLocalDB = async () => {
 export const getRemoteDB = async () => {
   const Pouch = await ensurePouch();
   if (!remoteDB && Pouch) {
-    const REMOTE_DB_URL = process.env.NEXT_PUBLIC_COUCH_SYNC_URL || 'http://10.133.250.197:4004/pouch/status';
+    const REMOTE_DB_URL = process.env.NEXT_PUBLIC_COUCH_SYNC_URL || 'http://10.96.15.197:4004/pouch/status';
     remoteDB = new Pouch(REMOTE_DB_URL);
   }
   return remoteDB;
@@ -91,9 +91,8 @@ export const initializeDB = async (db?: any) => {
       }
     }
 
-    console.log('PouchDB indexes ensured.');
   } catch (error) {
-    console.warn('PouchDB index ensure failed:', error);
+    // Silently fail
   }
 };
 
@@ -381,7 +380,7 @@ export const isOnline = async (): Promise<boolean> => {
     }
     
     // Try multiple approaches to check online status
-        const apiUrl = 'http://10.133.250.197:4004'; // Use actual WiFi IP for mobile access
+        const apiUrl = 'http://10.96.15.197:4004'; // Use actual WiFi IP for mobile access
     console.log('Checking online status with URL:', apiUrl);
     
     // Try with a very short timeout first

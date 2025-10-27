@@ -67,6 +67,7 @@ interface CreateAlertPayload {
 interface AlertsContextType {
   alerts: Alert[];
   createAlert: (payload: CreateAlertPayload) => Promise<void>;
+  updateAlert: (alertId: string, payload: Partial<CreateAlertPayload>) => Promise<void>;
   reportAlert: (alertId: string) => Promise<void>;
   deleteAlert: (alertId: string) => Promise<void>;
   isLoadingAlerts: boolean;
@@ -85,14 +86,6 @@ const AlertsContext = createContext<AlertsContextType | undefined>(undefined);
 
 export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
   const { user, token, isAuthenticated, isOnline } = useAuth();
-  
-  // Add this debug log
-  console.log('🔍 DEBUG: AlertsProvider mounted', { 
-    user: !!user, 
-    token: !!token, 
-    isAuthenticated, 
-    isOnline 
-  });
 
   // Note: Removed global error suppression as it wasn't effective
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -221,36 +214,18 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Main replication effect
   useEffect(() => {
-    console.log('🔄 ALERTS REPLICATION: Starting setup...');
-    console.log('🔍 Dependencies check:', {
-      token: !!token,
-      userId: !!user?.id,
-      isAuthenticated,
-      localDB: !!localDB
-    });
-    
     // Check if we have all required dependencies
     if (!token || !user?.id || !isAuthenticated || !localDB) {
-      console.log('❌ ALERTS REPLICATION: Missing dependencies, skipping');
       return;
     }
-
-    console.log('✅ ALERTS REPLICATION: All dependencies available');
     
     const REMOTE_URL = `${API_CONFIG.BASE_URL}/alerts/pouch`;
     
     // Create remote database with authed fetch
-    console.log('🔗 Creating remote DB:', REMOTE_URL);
-    
     const remote: any = new PouchDB(REMOTE_URL, {
       skip_setup: true,
       fetch: authedFetch,
     });
-
-    // Check if the URL was modified internally
-    if (remote.name !== REMOTE_URL) {
-      console.error('🚨 URL MODIFIED BY POUCHDB!', REMOTE_URL, '->', remote.name);
-    }
 
     // Store remote DB in state for use in createAlert
     setRemoteAlertsDB(remote);
@@ -263,12 +238,9 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
     // Wrap the async operations in an async function
     const setupReplication = async () => {
       try {
-        console.log('🔍 Testing remote connection...');
         try {
-          const remoteInfo = await remote.info();
-          console.log('✅ Remote connection successful');
+          await remote.info();
         } catch (error) {
-          console.error('❌ Remote connection failed:', error);
           throw error;
         }
         
@@ -317,7 +289,6 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
             setSyncAlertsStatus('error');
           });
 
-        console.log('✅ ALERTS REPLICATION: Started successfully');
 
       } catch (error: any) {
         console.error('❌ REPLICATION SETUP FAILED:', error.message);
@@ -466,8 +437,8 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
   // Fetch alerts when filters change
   useEffect(() => {
     if (localDB && user?.id) {
-      fetchAlerts();
-    }
+          fetchAlerts();
+        }
   }, [fetchAlerts]);
 
   // Periodic refresh of alerts when online
@@ -570,25 +541,129 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [localDB, user, isOnline, fetchAlerts, authedFetch]);
 
+  const updateAlert = useCallback(async (alertId: string, payload: Partial<CreateAlertPayload>) => {
+    if (!localDB || !user?.id) {
+      throw new Error('User not authenticated or PouchDB not initialized.');
+    }
+
+    try {
+      // Get the existing alert
+      const existingAlert = await localDB.get(alertId) as Alert;
+      
+      // Update fields based on payload
+      if (payload.title !== undefined) {
+        existingAlert.title = payload.title;
+      }
+      if (payload.description !== undefined) {
+        existingAlert.description = payload.description;
+      }
+      if (payload.category !== undefined) {
+        existingAlert.category = payload.category;
+      }
+      if (payload.severity !== undefined) {
+        existingAlert.severity = payload.severity;
+      }
+      
+      // Update location if provided
+      if (payload.location) {
+        existingAlert.location = {
+          lat: payload.location.lat,
+          lng: payload.location.lng,
+          address: payload.location.address
+        };
+      } else if (payload.latitude !== undefined && payload.longitude !== undefined) {
+        existingAlert.location = {
+          lat: payload.latitude,
+          lng: payload.longitude
+        };
+      }
+
+      // Save updated alert
+      await localDB.put(existingAlert);
+      
+      // Refresh alerts list
+      await fetchAlerts();
+      
+      // Show success notification
+      showNotification('Alert updated successfully!', 'success');
+    } catch (error) {
+      console.error('❌ Failed to update alert:', error);
+      showNotification('Failed to update alert. Please try again.', 'error');
+      throw error;
+    }
+  }, [localDB, user, fetchAlerts, showNotification]);
+
   const reportAlert = useCallback(async (alertId: string) => {
     if (!localDB) {
       throw new Error('PouchDB not initialized.');
     }
 
     try {
-      const alert = await localDB.get(alertId) as Alert;
-      alert.reportCount = (alert.reportCount || 0) + 1;
-      
-      await localDB.put(alert);
-      console.log('✅ Alert report count updated');
-      
-      // Refresh alerts list
-      await fetchAlerts();
+      // Call the backend API to report the alert
+      if (isOnline && token) {
+        try {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/alerts/${alertId}/report`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ reason: 'User reported this alert' })
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Alert reported successfully:', result);
+            showNotification('Alert reported successfully!', 'success');
+            // Refresh alerts to get updated count
+            await fetchAlerts();
+          } else {
+            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            console.error('❌ Backend error:', errorData);
+            
+            // Handle specific error messages
+            if (response.status === 400 && errorData.message?.includes('already reported')) {
+              showNotification('You have already reported this alert.', 'warning');
+            } else {
+              showNotification(errorData.message || 'Failed to report alert. Please try again.', 'error');
+            }
+            
+            throw new Error(errorData.message || `Backend returned ${response.status}`);
+          }
+        } catch (apiError) {
+          console.error('❌ Failed to report alert to backend:', apiError);
+          if (!(apiError instanceof Error && apiError.message.includes('already reported'))) {
+            showNotification('Failed to report alert. Please try again.', 'error');
+          }
+          throw apiError;
+        }
+      } else {
+        // Offline mode: increment local count
+        const alert = await localDB.get(alertId) as Alert;
+        if (!alert.reportedBy) {
+          alert.reportedBy = [];
+        }
+        
+        // Check if user already reported locally
+        if (!alert.reportedBy.includes(user?.id || '')) {
+          alert.reportedBy.push(user?.id || '');
+          alert.reportCount = alert.reportedBy.length;
+          
+          await localDB.put(alert);
+          console.log('✅ Alert report count updated locally (offline mode)');
+          
+          // Refresh alerts list
+          await fetchAlerts();
+        } else {
+          showNotification('You have already reported this alert.', 'warning');
+        }
+      }
     } catch (error) {
       console.error('❌ Failed to report alert:', error);
+      showNotification('Failed to report alert. Please try again.', 'error');
       throw error;
     }
-  }, [localDB, fetchAlerts]);
+  }, [localDB, fetchAlerts, isOnline, token, user, showNotification]);
 
   const deleteAlert = useCallback(async (alertId: string) => {
     if (!localDB) {
@@ -668,7 +743,7 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
       setSyncAlertsStatus('error');
       return;
     }
-
+    
     setSyncAlertsStatus('syncing');
     
     try {
@@ -720,7 +795,7 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
         setSyncAlertsStatus('idle');
         
         // Refresh alerts list
-        await fetchAlerts();
+      await fetchAlerts();
       } else {
         throw new Error(`Sync failed: ${response.status} ${response.statusText}`);
       }
@@ -751,19 +826,20 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
   }, [isOnline, localDB, manualSyncAlerts]);
 
   const value: AlertsContextType = {
-    alerts,
-    createAlert,
-    reportAlert,
-    deleteAlert,
-    isLoadingAlerts,
-    syncAlertsStatus,
-    filterCategory,
-    setFilterCategory,
-    filterSeverity,
-    setFilterSeverity,
-    mapBounds,
-    setMapBounds,
-    manualSyncAlerts,
+        alerts,
+        createAlert,
+        updateAlert,
+        reportAlert,
+        deleteAlert,
+        isLoadingAlerts,
+        syncAlertsStatus,
+        filterCategory,
+        setFilterCategory,
+        filterSeverity,
+        setFilterSeverity,
+        mapBounds,
+        setMapBounds,
+        manualSyncAlerts,
     showNotification,
   };
 

@@ -49,7 +49,7 @@ export default function ResetPasswordPage() {
     setError('');
 
     try {
-      const response = await fetch('http://10.133.250.197:4004/auth/reset-password', {
+      const response = await fetch('http://10.96.15.197:4004/auth/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

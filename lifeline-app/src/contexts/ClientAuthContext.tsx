@@ -31,59 +31,30 @@ const isOnlineClient = async (): Promise<boolean> => {
   try {
     // First check navigator.onLine
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      console.log('Navigator reports offline');
       return false;
     }
     
     // Try to reach the backend
-    const apiUrl = 'http://10.133.250.197:4004';
-    console.log('Checking online status with URL:', apiUrl);
+    const apiUrl = API_CONFIG.BASE_URL;
     
-    // Try with a very short timeout first
+    // Try with a short timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 500);
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // Increased to 2 seconds for better connection
     
     try {
       const response = await fetch(`${apiUrl}/health`, { 
         method: "GET", 
         cache: "no-cache",
         signal: controller.signal,
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
       });
       
       clearTimeout(timeoutId);
-      const isOnline = response.ok;
-      console.log('Online check result:', isOnline, 'Status:', response.status);
-      return isOnline;
+      return response.ok;
     } catch (fetchError) {
       clearTimeout(timeoutId);
-      console.log('First fetch attempt failed:', fetchError);
-      
-      // Try a second time with a different approach
-      try {
-        const response2 = await fetch(`${apiUrl}/health`, { 
-          method: "GET", 
-          cache: "no-cache",
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
-        const isOnline = response2.ok;
-        console.log('Second online check result:', isOnline, 'Status:', response2.status);
-        return isOnline;
-      } catch (secondError) {
-        console.log('Second fetch attempt also failed:', secondError);
-        return false;
-      }
+      return false;
     }
   } catch (error) {
-    console.log('Online check failed:', error);
     return false;
   }
 };
@@ -97,51 +68,55 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    console.log('🔐 ClientAuthContext useEffect triggered');
-    // Only run on client side
-    if (typeof window !== 'undefined') {
+    // Prevent multiple initializations - use ref to track if already started
+    let isInitializing = false;
+    
+    // Only run once on client side
+    if (typeof window !== 'undefined' && !isInitialized) {
+      isInitializing = true;
+      
       const initializeAuth = async () => {
         try {
-          console.log('🔄 Initializing authentication...');
-          // Check online status
-          const online = await isOnlineClient();
-          setOnlineStatus(online);
-          console.log('🌐 Online status:', online);
-
-          // Load stored user data
+          // Load stored user data immediately without waiting for online check
           const storedToken = localStorage.getItem('lifeline:token');
           const storedUser = localStorage.getItem('lifeline:user');
-          console.log('💾 Stored token:', storedToken ? `${storedToken.substring(0, 20)}...` : 'NO TOKEN');
-          console.log('💾 Stored user:', storedUser);
           
           if (storedToken && storedUser) {
-            console.log('✅ Restoring authentication from localStorage');
             setToken(storedToken);
             setUser(JSON.parse(storedUser));
-            console.log('✅ Authentication restored successfully');
-          } else {
-            console.log('❌ No stored authentication found');
           }
+          
+          // Check online status in the background (don't wait for it, don't log errors)
+          isOnlineClient().then((online) => {
+            setOnlineStatus(online);
+          }).catch(() => {
+            // Silently fail
+            setOnlineStatus(false);
+          });
+          
         } catch (error) {
           console.error('❌ Auth initialization error:', error);
         } finally {
           setIsLoading(false);
           setIsInitialized(true);
-          console.log('✅ Auth initialization complete');
         }
       };
 
       initializeAuth();
 
-      // Check online status periodically
+      // Check online status periodically (with longer interval to avoid spam)
       const interval = setInterval(async () => {
-        const online = await isOnlineClient();
-        setOnlineStatus(online);
-      }, 5000); // Check every 5 seconds
+        try {
+          const online = await isOnlineClient();
+          setOnlineStatus(online);
+        } catch (error) {
+          // Silently fail for periodic checks - no logging
+        }
+      }, 60000); // Check every 60 seconds to reduce spam
 
       return () => clearInterval(interval);
     }
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
 
   const login = async (username: string, password: string) => {
     const response = await fetch(`${API_CONFIG.BASE_URL}/auth/login`, {

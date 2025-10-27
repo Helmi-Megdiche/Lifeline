@@ -1,3 +1,7 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+
 const guides = [
   {
     title: "CPR (Adult)",
@@ -45,13 +49,107 @@ const guides = [
   }
 ];
 
-const emergencyNumbers = [
-  { label: "Local Emergency", number: "112 / 911" },
-  { label: "Poison Control", number: "Check local hotline" },
-  { label: "Fire Department", number: "112 / 911" }
-];
+// Emergency numbers database by country
+const emergencyNumbersByCountry: Record<string, {
+  emergency: string;
+  poison: string;
+  fire: string;
+}> = {
+  'US': { emergency: '911', poison: '1-800-222-1222', fire: '911' },
+  'CA': { emergency: '911', poison: '1-800-268-9017', fire: '911' },
+  'GB': { emergency: '999', poison: '111', fire: '999' },
+  'FR': { emergency: '112', poison: '33-1-40-05-47-15', fire: '18' },
+  'DE': { emergency: '112', poison: '030-19240', fire: '112' },
+  'IT': { emergency: '112', poison: '118', fire: '115' },
+  'ES': { emergency: '112', poison: '915-620-420', fire: '080' },
+  'AU': { emergency: '000', poison: '13-11-26', fire: '000' },
+  'NZ': { emergency: '111', poison: '0800-764-766', fire: '111' },
+  'JP': { emergency: '119', poison: '119', fire: '119' },
+  'CN': { emergency: '110', poison: '120', fire: '119' },
+  'IN': { emergency: '112', poison: '1066', fire: '101' },
+  'BR': { emergency: '192', poison: '0800-722-6001', fire: '193' },
+  'MX': { emergency: '911', poison: '065', fire: '068' },
+  'AR': { emergency: '911', poison: '106', fire: '100' },
+  'ZA': { emergency: '10111', poison: '0861-589-911', fire: '10177' },
+  'EG': { emergency: '112', poison: '123', fire: '180' },
+  'SA': { emergency: '997', poison: '937', fire: '998' },
+  'AE': { emergency: '999', poison: '04-427-9300', fire: '997' },
+  'TR': { emergency: '112', poison: '114', fire: '110' },
+  'GR': { emergency: '112', poison: '210-682-3000', fire: '199' },
+  'PL': { emergency: '112', poison: '606-273-252', fire: '998' },
+  'SE': { emergency: '112', poison: '08-33-12-31', fire: '112' },
+  'NO': { emergency: '112', poison: '815-55-001', fire: '110' },
+  'DK': { emergency: '112', poison: '82-12-12-20', fire: '112' },
+  'FI': { emergency: '112', poison: '09-4744-2929', fire: '112' },
+  'RU': { emergency: '112', poison: '03', fire: '01' },
+  'KR': { emergency: '119', poison: '1339', fire: '119' },
+  'TH': { emergency: '1669', poison: '0-2433-3425', fire: '199' },
+  'VN': { emergency: '113', poison: '04-3793-2992', fire: '114' },
+  'ID': { emergency: '112', poison: '021-425-0767', fire: '113' },
+  'SG': { emergency: '995', poison: '6423-9191', fire: '995' },
+  'MY': { emergency: '999', poison: '1-800-88-8099', fire: '994' },
+  'PH': { emergency: '117', poison: '02-8524-1078', fire: '160' },
+  'TN': { emergency: '197', poison: '198', fire: '198' },
+  'DZ': { emergency: '17', poison: '213-23-62-45-92', fire: '14' },
+  'MA': { emergency: '112', poison: '0537-684-444', fire: '15' },
+  'KE': { emergency: '999', poison: '020-723-2532', fire: '999' },
+  'NG': { emergency: '112', poison: '0809-910-7000', fire: '199' },
+  'GH': { emergency: '112', poison: '051-238-7200', fire: '192' }
+};
+
+const defaultNumbers = { emergency: '112 / 911', poison: 'Check local hotline', fire: '112 / 911' };
 
 export default function GuidesPage() {
+  const [userCountry, setUserCountry] = useState<string>('');
+  const [emergencyNumbers, setEmergencyNumbers] = useState(defaultNumbers);
+  const [isDetecting, setIsDetecting] = useState(true);
+
+  useEffect(() => {
+    const detectCountry = async () => {
+      try {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            async (position) => {
+              try {
+                // Use reverse geocoding to get country
+                const response = await fetch(
+                  `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`,
+                  { 
+                    headers: { 
+                      'User-Agent': 'LifeLine-App/1.0',
+                      'Accept-Language': 'en'
+                    }
+                  }
+                );
+                const data = await response.json();
+                const countryCode = data.address?.country_code?.toUpperCase();
+                
+                if (countryCode) {
+                  setUserCountry(countryCode);
+                  setEmergencyNumbers(emergencyNumbersByCountry[countryCode] || defaultNumbers);
+                }
+              } catch (error) {
+                console.error('Error getting country from coordinates:', error);
+              } finally {
+                setIsDetecting(false);
+              }
+            },
+            (error) => {
+              console.error('Error getting location:', error);
+              setIsDetecting(false);
+            }
+          );
+        } else {
+          setIsDetecting(false);
+        }
+      } catch (error) {
+        console.error('Error in location detection:', error);
+        setIsDetecting(false);
+      }
+    };
+
+    detectCountry();
+  }, []);
   return (
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-10">
@@ -67,18 +165,99 @@ export default function GuidesPage() {
       </div>
 
       <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-gray-200/60 shadow-lg">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <span className="text-red-500">🚨</span>
-          Emergency Numbers
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {emergencyNumbers.map((item, index) => (
-            <div key={index} className="bg-red-500 rounded-xl p-4 border border-red-600">
-              <div className="font-semibold text-white text-sm">{item.label}</div>
-              <div className="text-white font-bold text-lg">{item.number}</div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <span className="text-red-500">🚨</span>
+            Emergency Numbers
+          </h2>
+          {userCountry && (
+            <div className="text-sm text-gray-600 bg-blue-50 px-3 py-1 rounded-full">
+              📍 {userCountry}
             </div>
-          ))}
+          )}
         </div>
+        
+        {isDetecting ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-500"></div>
+              <span className="text-gray-600 text-sm">Detecting your location...</span>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-red-500 rounded-xl p-4 border border-red-600 hover:bg-red-600 transition-colors cursor-pointer">
+              <div className="font-semibold text-white text-sm mb-1">Local Emergency</div>
+              <a href={`tel:${emergencyNumbers.emergency.replace(/[^0-9]/g, '')}`} className="text-white font-bold text-lg block">
+                {emergencyNumbers.emergency}
+              </a>
+            </div>
+            
+            <div className="bg-red-500 rounded-xl p-4 border border-red-600 hover:bg-red-600 transition-colors cursor-pointer">
+              <div className="font-semibold text-white text-sm mb-1">Poison Control</div>
+              <a href={`tel:${emergencyNumbers.poison.replace(/[^0-9]/g, '')}`} className="text-white font-bold text-lg block">
+                {emergencyNumbers.poison}
+              </a>
+            </div>
+            
+            <div className="bg-red-500 rounded-xl p-4 border border-red-600 hover:bg-red-600 transition-colors cursor-pointer">
+              <div className="font-semibold text-white text-sm mb-1">Fire Department</div>
+              <a href={`tel:${emergencyNumbers.fire.replace(/[^0-9]/g, '')}`} className="text-white font-bold text-lg block">
+                {emergencyNumbers.fire}
+              </a>
+            </div>
+          </div>
+        )}
+        
+        {userCountry && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => {
+                setUserCountry('');
+                setEmergencyNumbers(defaultNumbers);
+                setIsDetecting(true);
+                // Trigger location detection again
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                      try {
+                        const response = await fetch(
+                          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`,
+                          { 
+                            headers: { 
+                              'User-Agent': 'LifeLine-App/1.0',
+                              'Accept-Language': 'en'
+                            }
+                          }
+                        );
+                        const data = await response.json();
+                        const countryCode = data.address?.country_code?.toUpperCase();
+                        
+                        if (countryCode) {
+                          setUserCountry(countryCode);
+                          setEmergencyNumbers(emergencyNumbersByCountry[countryCode] || defaultNumbers);
+                        }
+                      } catch (error) {
+                        console.error('Error getting country from coordinates:', error);
+                      } finally {
+                        setIsDetecting(false);
+                      }
+                    },
+                    (error) => {
+                      console.error('Error getting location:', error);
+                      setIsDetecting(false);
+                    }
+                  );
+                } else {
+                  setIsDetecting(false);
+                }
+              }}
+              className="text-sm text-gray-600 hover:text-gray-900 underline transition-colors"
+            >
+              🔄 Reset Location
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
