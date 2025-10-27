@@ -57,6 +57,13 @@ interface Alert {
     username: string;
     comment: string;
     createdAt: string | Date;
+    parentCommentIndex?: number; // For nested replies
+    replies?: Array<{
+      userId: string;
+      username: string;
+      comment: string;
+      createdAt: string | Date;
+    }>;
   }>;
 }
 
@@ -552,11 +559,12 @@ const AlertCard: React.FC<{
   onAddComment: (alertId: string) => void;
   onUpdateComment: (alertId: string, commentIndex: number, currentComment: string) => void;
   onDeleteComment: (alertId: string, commentIndex: number) => void;
+  onReply: (alertId: string, commentIndex: number) => void;
   onUpdate: (alert: Alert) => void;
   onDelete: (alertId: string) => void;
   currentUserId?: string;
   isOnline: boolean;
-}> = ({ alert, onReport, onAddComment, onUpdateComment, onDeleteComment, onUpdate, onDelete, currentUserId, isOnline }) => {
+}> = ({ alert, onReport, onAddComment, onUpdateComment, onDeleteComment, onReply, onUpdate, onDelete, currentUserId, isOnline }) => {
   const getSeverityConfig = (severity: string) => {
     switch (severity) {
       case 'low': return { color: 'green', icon: '🟢', bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200 dark:border-green-800', text: 'text-green-800 dark:text-green-200' };
@@ -699,6 +707,14 @@ const AlertCard: React.FC<{
                       
                       {/* Action buttons */}
                       <div className="flex items-center gap-2 mt-3">
+                        <button
+                          onClick={() => onReply(alert._id, index)}
+                          className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-600 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1 shadow-sm hover:shadow"
+                          title="Reply to this comment"
+                        >
+                          <span>↩️</span>
+                          <span>Reply</span>
+                        </button>
                         {isOwnComment && (
                           <button
                             onClick={() => onUpdateComment(alert._id, index, comment.comment)}
@@ -1006,6 +1022,92 @@ const UpdateCommentModal: React.FC<{
   );
 };
 
+const ReplyModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onAddReply: (alertId: string, commentIndex: number, reply: string) => void;
+  alertId: string;
+  commentIndex: number;
+  targetUsername?: string;
+  targetComment?: string;
+}> = ({ isOpen, onClose, onAddReply, alertId, commentIndex, targetUsername, targetComment }) => {
+  const { theme } = useTheme();
+  const [reply, setReply] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onAddReply(alertId, commentIndex, reply.trim());
+    setReply('');
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
+      <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''}`}>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <span className="text-3xl">↩️</span>
+            Reply
+            {targetUsername && (
+              <span className="text-lg text-gray-500 dark:text-gray-400">to {targetUsername}</span>
+            )}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        {targetComment && (
+          <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg border-l-4 border-blue-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{targetUsername}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300">{targetComment}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              Your Reply
+            </label>
+            <textarea
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              placeholder="Enter your reply..."
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors resize-none h-32"
+              maxLength={500}
+              required
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              {reply.length}/500 characters
+            </p>
+          </div>
+
+          <div className="flex gap-3 sm:flex-row flex-col">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+            >
+              Post Reply
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export default function AlertsPage() {
   const { user, isOnline, isLoading: isAuthLoading } = useAuth();
   const { alerts, isLoadingAlerts, createAlert, updateAlert, reportAlert, addComment, updateComment, deleteComment, deleteAlert } = useAlerts();
@@ -1027,10 +1129,12 @@ export default function AlertsPage() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [showUpdateCommentModal, setShowUpdateCommentModal] = useState(false);
+  const [showReplyModal, setShowReplyModal] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [selectedReportAlertId, setSelectedReportAlertId] = useState<string>('');
   const [selectedCommentAlertId, setSelectedCommentAlertId] = useState<string>('');
   const [selectedCommentForEdit, setSelectedCommentForEdit] = useState<{ alertId: string; commentIndex: number; currentComment: string } | null>(null);
+  const [selectedReplyTarget, setSelectedReplyTarget] = useState<{ alertId: string; commentIndex: number; username: string; comment: string } | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([36.8065, 10.1815]); // Default to Tunis, Tunisia
@@ -1150,6 +1254,30 @@ export default function AlertsPage() {
       await deleteComment(alertId, commentIndex);
     } catch (error) {
       console.error('Failed to delete comment:', error);
+    }
+  };
+
+  const handleOpenReplyModal = (alertId: string, commentIndex: number) => {
+    const alert = alerts.find(a => a._id === alertId);
+    if (alert && alert.comments && alert.comments[commentIndex]) {
+      const targetComment = alert.comments[commentIndex];
+      setSelectedReplyTarget({
+        alertId,
+        commentIndex,
+        username: targetComment.username,
+        comment: targetComment.comment
+      });
+      setShowReplyModal(true);
+    }
+  };
+
+  const handleAddReply = async (alertId: string, commentIndex: number, reply: string) => {
+    // For now, replies are added as regular comments with a note about what they're replying to
+    // We'll extend the comment to include "Replying to @username: original comment text"
+    try {
+      await addComment(alertId, `↩️ Reply to ${selectedReplyTarget?.username}: "${selectedReplyTarget?.comment}" - ${reply}`);
+    } catch (error) {
+      console.error('Failed to add reply:', error);
     }
   };
 
@@ -1530,6 +1658,7 @@ export default function AlertsPage() {
                       onAddComment={handleOpenCommentModal}
                       onUpdateComment={handleUpdateCommentWithModal}
                       onDeleteComment={handleDeleteComment}
+                      onReply={handleOpenReplyModal}
                       onUpdate={handleOpenUpdateModal}
                       onDelete={handleDeleteAlert}
                       currentUserId={user.id}
@@ -1580,6 +1709,19 @@ export default function AlertsPage() {
         }}
         onUpdateComment={handleUpdateComment}
         selectedComment={selectedCommentForEdit}
+      />
+
+      <ReplyModal
+        isOpen={showReplyModal}
+        onClose={() => {
+          setShowReplyModal(false);
+          setSelectedReplyTarget(null);
+        }}
+        onAddReply={handleAddReply}
+        alertId={selectedReplyTarget?.alertId || ''}
+        commentIndex={selectedReplyTarget?.commentIndex || -1}
+        targetUsername={selectedReplyTarget?.username}
+        targetComment={selectedReplyTarget?.comment}
       />
     </div>
   );
