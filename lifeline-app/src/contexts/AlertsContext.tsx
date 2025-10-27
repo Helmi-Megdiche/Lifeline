@@ -656,27 +656,51 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
             // Refresh alerts to get updated count
             await fetchAlerts();
           } else {
-            let errorData: any = { message: 'Unknown error' };
+            console.error('❌ Backend returned error status:', response.status);
+            console.error('❌ Response headers:', Object.fromEntries(response.headers.entries()));
+            
+            let errorData: any = { message: `Backend returned ${response.status}` };
             
             // Try to parse error response
             try {
               const contentType = response.headers.get('content-type');
-              if (contentType && contentType.includes('application/json')) {
-                errorData = await response.json();
-              } else {
-                const text = await response.text();
-                errorData = text ? { message: text } : { message: `Backend returned ${response.status}` };
+              
+              // Clone the response for reading
+              const clonedResponse = response.clone();
+              const text = await clonedResponse.text();
+              
+              console.log('❌ Response Content-Type:', contentType);
+              console.log('❌ Response body text:', text);
+              
+              if (text) {
+                if (contentType && contentType.includes('application/json')) {
+                  try {
+                    errorData = JSON.parse(text);
+                    console.log('❌ Parsed error data:', errorData);
+                  } catch (jsonError) {
+                    console.error('Failed to parse JSON:', jsonError);
+                    errorData = { message: text };
+                  }
+                } else {
+                  errorData = { message: text };
+                }
               }
             } catch (parseError) {
               console.error('Failed to parse error response:', parseError);
               errorData = { message: `Backend returned ${response.status}` };
             }
             
-            console.error('❌ Backend error:', errorData);
+            console.error('❌ Final error data:', errorData);
             
-            // Handle specific error messages
-            const errorMessage = errorData.message || errorData.error || 'Failed to report alert. Please try again.';
-            if (response.status === 400 && errorMessage.toLowerCase().includes('already reported')) {
+            // Handle specific error messages - check multiple possible error field names
+            const errorMessage = errorData.message || 
+                                errorData.error || 
+                                (Array.isArray(errorData.message) ? errorData.message.join(', ') : '') ||
+                                errorData.statusCode || 
+                                'Failed to report alert. Please try again.';
+            
+            if (response.status === 400 && errorMessage && 
+                (errorMessage.toLowerCase().includes('already reported') || errorMessage.includes('already reported'))) {
               showNotification('You have already reported this alert.', 'warning');
               // Don't throw error for already reported - this is expected behavior
               return;
