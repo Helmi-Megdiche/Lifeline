@@ -145,8 +145,8 @@ export class AlertsService {
       throw new NotFoundException('Comment not found');
     }
 
-    // Check if user owns this comment
-    if (alert.comments[commentIndex].userId !== userId) {
+    // Check if user owns this comment (compare as strings to handle ObjectId/string mismatch)
+    if (String(alert.comments[commentIndex].userId) !== String(userId)) {
       throw new BadRequestException('You can only edit your own comments');
     }
 
@@ -167,8 +167,8 @@ export class AlertsService {
       throw new NotFoundException('Comment not found');
     }
 
-    // Check if user owns this comment
-    if (alert.comments[commentIndex].userId !== userId) {
+    // Check if user owns this comment (compare as strings to handle ObjectId/string mismatch)
+    if (String(alert.comments[commentIndex].userId) !== String(userId)) {
       throw new BadRequestException('You can only delete your own comments');
     }
 

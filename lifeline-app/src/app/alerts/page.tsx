@@ -651,7 +651,7 @@ const AlertCard: React.FC<{
           </h4>
           <div className="space-y-3">
             {alert.comments.map((comment, index) => {
-              const isOwnComment = currentUserId === comment.userId;
+              const isOwnComment = String(currentUserId) === String(comment.userId);
               
               return (
                 <div
