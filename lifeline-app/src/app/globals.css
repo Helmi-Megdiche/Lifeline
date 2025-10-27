@@ -692,3 +692,11 @@ html.dark button[class*="bg-purple-500"] {
 html.dark button[class*="bg-purple-600"] {
   background-color: #e9d5ff !important; /* lighter purple */
 }
+
+/* Force comment text to be pure black */
+.alert-comment-text,
+.alert-comment-text *,
+.alert-comment-username,
+.alert-comment-date {
+  color: #000000 !important;
+}

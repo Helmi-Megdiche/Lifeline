@@ -647,7 +647,7 @@ const AlertCard: React.FC<{
             <span className="text-lg">💬</span>
             Comments ({alert.comments.length})
           </h4>
-          <div className="space-y-3 max-h-48 overflow-y-auto">
+          <div className="space-y-3">
             {alert.comments.map((comment, index) => (
               <div
                 key={index}
@@ -655,15 +655,15 @@ const AlertCard: React.FC<{
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold" style={{ color: '#000000' }}>
+                    <span className="text-sm font-semibold alert-comment-username" style={{ color: '#000000' }}>
                       {comment.username}
                     </span>
                   </div>
-                  <span className="text-xs" style={{ color: '#000000' }}>
+                  <span className="text-xs alert-comment-date" style={{ color: '#000000' }}>
                     {new Date(comment.createdAt).toLocaleDateString()}
                   </span>
                 </div>
-                <p className="text-sm break-words" style={{ color: '#000000' }}>
+                <p className="text-sm break-words alert-comment-text" style={{ color: '#000000' }}>
                   {comment.comment}
                 </p>
               </div>
