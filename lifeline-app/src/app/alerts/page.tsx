@@ -645,9 +645,9 @@ const AlertCard: React.FC<{
       {/* Comments Section */}
       {alert.comments && alert.comments.length > 0 && (
         <div className="mb-4 border-t border-gray-200 dark:border-gray-600 pt-4">
-          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-            <span className="text-lg">💬</span>
-            Comments ({alert.comments.length})
+          <h4 className="text-base font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <span className="text-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center">💬</span>
+            <span>Comments <span className="text-blue-600 dark:text-blue-400">({alert.comments.length})</span></span>
           </h4>
           <div className="space-y-3">
             {alert.comments.map((comment, index) => {
@@ -657,49 +657,75 @@ const AlertCard: React.FC<{
               return (
                 <div
                   key={index}
-                  className="comment-box bg-white dark:bg-white rounded-lg p-3 border border-gray-200 dark:border-gray-600"
+                  className="comment-box group bg-white dark:bg-white rounded-xl p-4 border-2 border-gray-200 dark:border-gray-300 hover:border-blue-300 dark:hover:border-blue-400 shadow-sm hover:shadow-md transition-all duration-300"
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2 flex-1">
-                      <span className="text-sm font-semibold alert-comment-username" style={{ color: '#000000' }}>
-                        {comment.username}
-                      </span>
+                  <div className="flex items-start gap-3">
+                    {/* Avatar */}
+                    <div className="flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                        {comment.username.charAt(0).toUpperCase()}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs alert-comment-date" style={{ color: '#000000' }}>
-                        {new Date(comment.createdAt).toLocaleDateString()}
-                      </span>
-                      {isOwnComment && (
-                        <button
-                          onClick={() => onUpdateComment(alert._id, index, comment.comment)}
-                          className="p-1 hover:bg-gray-100 rounded transition-colors ml-2"
-                          title="Edit my comment"
-                        >
-                          <span className="text-xs">✏️</span>
-                        </button>
-                      )}
-                      {canDelete && (
-                        <button
-                          onClick={() => onDeleteComment(alert._id, index)}
-                          className={`p-1.5 rounded transition-colors ${
-                            isOwnAlert && !isOwnComment 
-                              ? 'hover:bg-red-100 active:bg-red-200' 
-                              : 'hover:bg-gray-100 active:bg-gray-200'
-                          }`}
-                          title={isOwnAlert && !isOwnComment ? "Delete comment (You're the alert creator)" : "Delete my comment"}
-                        >
-                          <span className={`text-xs ${
-                            isOwnAlert && !isOwnComment ? 'text-red-600' : ''
-                          }`}>
-                            {isOwnAlert && !isOwnComment ? '👮' : '🗑️'}
+                    
+                    {/* Comment Content */}
+                    <div className="flex-1 min-w-0">
+                      {/* Header with username and date */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-gray-900 alert-comment-username">
+                            {comment.username}
                           </span>
-                        </button>
-                      )}
+                          {isOwnComment && (
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+                              You
+                            </span>
+                          )}
+                          {!isOwnComment && isOwnAlert && (
+                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold flex items-center gap-1">
+                              <span>👮</span> You own this alert
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500 alert-comment-date flex items-center gap-1">
+                          <span>🕐</span>
+                          <span>{new Date(comment.createdAt).toLocaleString()}</span>
+                        </span>
+                      </div>
+                      
+                      {/* Comment text */}
+                      <p className="text-sm text-gray-800 break-words alert-comment-text leading-relaxed">
+                        {comment.comment}
+                      </p>
+                      
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2 mt-3">
+                        {isOwnComment && (
+                          <button
+                            onClick={() => onUpdateComment(alert._id, index, comment.comment)}
+                            className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1 shadow-sm hover:shadow"
+                            title="Edit my comment"
+                          >
+                            <span>✏️</span>
+                            <span>Edit</span>
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => onDeleteComment(alert._id, index)}
+                            className={`px-3 py-1.5 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1 shadow-sm hover:shadow ${
+                              isOwnAlert && !isOwnComment 
+                                ? 'bg-red-50 hover:bg-red-100 text-red-600' 
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                            }`}
+                            title={isOwnAlert && !isOwnComment ? "Delete comment (You're the alert creator)" : "Delete my comment"}
+                          >
+                            <span>{isOwnAlert && !isOwnComment ? '👮' : '🗑️'}</span>
+                            <span>{isOwnAlert && !isOwnComment ? 'Remove as Moderator' : 'Delete'}</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <p className="text-sm break-words alert-comment-text" style={{ color: '#000000' }}>
-                    {comment.comment}
-                  </p>
                 </div>
               );
             })}

@@ -718,6 +718,24 @@ p.alert-comment-text {
   -webkit-text-fill-color: #000000 !important;
 }
 
+/* Ensure comment username is dark */
+.comment-box .alert-comment-username {
+  color: #111827 !important; /* gray-900 */
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Ensure comment date is visible */
+.comment-box .alert-comment-date {
+  color: #6b7280 !important; /* gray-500 */
+  -webkit-text-fill-color: #6b7280 !important;
+}
+
+/* Ensure comment text is readable */
+.comment-box .alert-comment-text {
+  color: #1f2937 !important; /* gray-800 */
+  -webkit-text-fill-color: #1f2937 !important;
+}
+
 /* =========================================== */
 /* Light Mode Overrides for Buttons and Badges */
 /* =========================================== */
