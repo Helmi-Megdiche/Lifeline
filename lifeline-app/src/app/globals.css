@@ -693,10 +693,27 @@ html.dark button[class*="bg-purple-600"] {
   background-color: #e9d5ff !important; /* lighter purple */
 }
 
-/* Force comment text to be pure black */
+/* Force comment text to be pure black - highest specificity */
 .alert-comment-text,
-.alert-comment-text *,
+.alert-comment-text p,
+.alert-comment-text span,
 .alert-comment-username,
-.alert-comment-date {
+.alert-comment-username span,
+.alert-comment-date,
+.alert-comment-date span,
+span.alert-comment-username,
+span.alert-comment-date,
+p.alert-comment-text {
   color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+/* Force all text inside comment boxes to be black */
+.comment-box,
+.comment-box span,
+.comment-box p,
+.comment-box div,
+.comment-box * {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
 }

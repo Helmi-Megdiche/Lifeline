@@ -651,7 +651,7 @@ const AlertCard: React.FC<{
             {alert.comments.map((comment, index) => (
               <div
                 key={index}
-                className="bg-white dark:bg-white rounded-lg p-3 border border-gray-200 dark:border-gray-600"
+                className="comment-box bg-white dark:bg-white rounded-lg p-3 border border-gray-200 dark:border-gray-600"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
