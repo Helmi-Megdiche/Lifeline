@@ -14,7 +14,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   register: (username: string, password: string, email: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   updateProfile: (username: string, email: string) => Promise<void>;
@@ -197,12 +197,70 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('lifeline:token');
-    localStorage.removeItem('lifeline:user');
-    router.push('/auth');
+  const logout = async () => {
+    try {
+      // Clear all user data
+      setToken(null);
+      setUser(null);
+      
+      // Clear localStorage
+      localStorage.removeItem('lifeline:token');
+      localStorage.removeItem('lifeline:user');
+      
+      // Clear IndexedDB for the current user
+      if (typeof window !== 'undefined' && user?.id) {
+        try {
+          const dbName = `lifeline-local-${user.id}`;
+          const db = await import('idb').then(m => m.openDB(dbName));
+          await db.close();
+          
+          // Delete the IndexedDB database
+          const deleteRequest = indexedDB.deleteDatabase(dbName);
+          deleteRequest.onsuccess = () => {
+            console.log('IndexedDB cleared');
+          };
+          
+          // Also delete alerts database
+          const alertsDbName = `lifeline-alerts`;
+          const alertsDeleteRequest = indexedDB.deleteDatabase(alertsDbName);
+          alertsDeleteRequest.onsuccess = () => {
+            console.log('Alerts IndexedDB cleared');
+          };
+        } catch (error) {
+          console.error('Error clearing IndexedDB:', error);
+        }
+      }
+      
+      // Clear all PouchDB databases
+      try {
+        const { default: PouchDB } = await import('pouchdb-browser');
+        
+        // Close and destroy all PouchDB instances
+        const allDatabases = ['lifeline-local', `lifeline-local-${user?.id}`];
+        
+        for (const dbName of allDatabases) {
+          try {
+            const db = new PouchDB(dbName);
+            await db.close();
+            await db.destroy();
+          } catch (error) {
+            // Database might not exist, ignore errors
+          }
+        }
+      } catch (error) {
+        console.error('Error clearing PouchDB:', error);
+      }
+      
+      // Clear localStorage completely to ensure clean state
+      localStorage.clear();
+      
+      // Navigate to auth page
+      router.push('/auth');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Still redirect even if cleanup fails
+      router.push('/auth');
+    }
   };
 
   const refreshOnlineStatus = async () => {

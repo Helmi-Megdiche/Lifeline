@@ -134,9 +134,10 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   // Create local database using useMemo for stability
+  // Reset when user changes to prevent data conflicts
   const localDB = useMemo(() => {
     return new PouchDB('lifeline-alerts');
-  }, []);
+  }, [user?.id]); // Recreate database when user changes
 
   // Build an authed fetch that refreshes headers per call
   const authedFetch = useCallback((url: any, opts: any = {}) => {
