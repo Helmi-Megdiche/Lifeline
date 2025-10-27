@@ -743,23 +743,26 @@ const AlertCard: React.FC<{
         )}
         
         <div className="flex gap-3 ml-auto">
+           {/* Comment button - available to everyone except on expired alerts */}
+           {!isExpired && (
+             <button
+               onClick={() => onAddComment(alert._id)}
+               className="px-5 py-2.5 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-500 border-2 border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg text-sm font-semibold transition-colors shadow-md hover:shadow-lg"
+             >
+               <span className="mr-2">💬</span>
+               Comment
+             </button>
+           )}
+           
+           {/* Report button - only for non-creators on active alerts */}
            {!isOwnAlert && !isExpired && (
-             <>
-               <button
-                 onClick={() => onAddComment(alert._id)}
-                 className="px-5 py-2.5 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-500 border-2 border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg text-sm font-semibold transition-colors shadow-md hover:shadow-lg"
-               >
-                 <span className="mr-2">💬</span>
-                 Comment
-               </button>
-               <button
-                 onClick={() => onReport(alert._id)}
-                 className="px-5 py-2.5 bg-white dark:bg-gray-800 text-red-600 dark:text-red-500 border-2 border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg text-sm font-semibold transition-colors shadow-md hover:shadow-lg"
-               >
-                 <span className="mr-2">🚨</span>
-                 Report
-               </button>
-             </>
+             <button
+               onClick={() => onReport(alert._id)}
+               className="px-5 py-2.5 bg-white dark:bg-gray-800 text-red-600 dark:text-red-500 border-2 border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg text-sm font-semibold transition-colors shadow-md hover:shadow-lg"
+             >
+               <span className="mr-2">🚨</span>
+               Report
+             </button>
            )}
            {isOwnAlert && (
              <>
