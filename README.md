@@ -18,11 +18,34 @@
 - **Share Location** - Share your live location via native sharing
 - **External Maps Integration** - Open in Google/Apple Maps
 
-### 🏥 **Emergency Resources**
-- **Nearby Services** - Find hospitals, shelters, police, fire stations
+### 🏥 **Emergency Resources** (ENHANCED!)
+- **Dynamic Resource Search**:
+  - Search all resources within a user-selectable radius (5, 10, 15, 25, 50, 100 km)
+  - Real-time distance calculation using Haversine formula
+  - Multiple resource types: hospitals, shelters, police, fire stations
+  - Up to 30 resources displayed based on radius
+- **Improved UI/UX**:
+  - Beautiful radius selector with gradient styling
+  - Location display showing "X resources within Y km"
+  - Responsive design for web and mobile
+  - Enhanced filter buttons with better visual feedback
+  - Improved resource cards with map previews
 - **Offline Resource Cache** - Save areas for offline access
-- **Interactive Maps** - Visual resource locations
+- **Interactive Maps** - Visual resource locations on each card
 - **Contact Integration** - Direct phone calls to emergency services
+
+### 📚 **Emergency Guides** (NEW!)
+- **Dynamic Location-Based Emergency Numbers**:
+  - Automatic location detection via geolocation API
+  - Reverse geocoding to determine user's country
+  - Country-specific emergency numbers for 50+ countries
+  - Fallback to universal numbers (112/911) if location unavailable
+- **Features**:
+  - Emergency services, Fire Department, and Poison Control numbers
+  - Click-to-call links for quick access
+  - Location reset button to re-detect location
+  - Loading states and error handling
+  - Local storage caching for offline access
 
 ### 🔄 **Offline-First Sync**
 - **PouchDB Integration** - Local database with cloud sync
@@ -62,12 +85,21 @@
 
 ### Recent Improvements (Latest Update)
 
-#### 🚨 **Emergency Alerts System** (NEW!)
+#### 🚨 **Emergency Alerts System** (ENHANCED!)
 - **Complete Alerts Infrastructure**: Full-featured emergency alert system
   - Create alerts with title, description, category, and severity
+  - **Update alerts** - Edit your existing alerts with a professional modal
+  - Delete your own alerts
+  - Report alerts from other users
   - Real-time synchronization between frontend and backend
   - Offline-first architecture with automatic sync when online
   - Multi-user support - view alerts from all users
+- **Interactive Map Features**:
+  - **My Location button** - Quickly center map on your current location
+  - **Category-specific icons** - Each alert type has its own emoji icon
+  - **Clickable alert popups** - Click alert markers to view details and navigate to full alert
+  - **User location marker** - Shows your position with accuracy circle
+  - **Alert filtering** - Filter by category and severity
 - **Professional UI Components**: Custom-built user interface elements
   - Confirmation modal for alert deletion (replaces browser dialogs)
   - Notification toast system for user feedback (replaces browser alerts)
@@ -75,13 +107,14 @@
   - Center-positioned notifications for better visibility
 - **Smart Offline Handling**: Robust offline-first functionality
   - Create alerts offline - they're queued and synced when online
-  - Delete alerts only when online (prevents data inconsistency)
+  - Delete and update alerts only when online (prevents data inconsistency)
   - Automatic sync when app comes back online
   - Visual indicators for offline/online states
-- **Clean Development Experience**: Optimized for debugging
-  - Removed all unnecessary console logs
-  - Clean terminal output with only essential error messages
-  - Better code organization and maintainability
+- **Report Functionality**:
+  - Report alerts from other users with feedback to backend
+  - Duplicate reporting prevention
+  - Automatic alert hiding after multiple reports (5+ reports)
+  - Real-time report count sync with backend
 
 #### 👤 **Profile Management **
 - **Profile Update Feature**: Users can now edit their username and email
@@ -95,6 +128,14 @@
   - Professional card-based layout with clear information hierarchy
 
 #### 🎨 **UI/UX Enhancements**
+- **Comprehensive Dark Mode Button Styling**:
+  - Universal dark mode rules for consistent button appearance
+  - White buttons: Black text (except Delete/Report = red text)
+  - Colorful buttons (blue, green, orange, etc.): Light backgrounds with black text
+  - Red buttons (Logout, Clear All Data): Keep red background with white text
+  - Yellow buttons (Forgot password): Keep yellow background with white text
+  - Theme toggle and Edit buttons: Black text in dark mode
+  - Applied across all pages: Alerts, Status, History, Maps, Resources, etc.
 - **Improved Dark Mode Colors**: Replaced harsh slate tones with softer, eye-friendly blue-gray palette
   - Background: `#1a1f2e` (was `#0f172a`)
   - Surfaces: `#252b3b` / `#2d3548` (was `#1e293b` / `#334155`)
@@ -404,6 +445,7 @@ NEXT_PUBLIC_API_URL=https://your-api-domain.com
 - `POST /alerts` - Create new alert
 - `GET /alerts` - Get all alerts
 - `GET /alerts/my` - Get user's own alerts
+- `PUT /alerts/:id` - Update existing alert (online only)
 - `PUT /alerts/:id/report` - Report an alert
 - `DELETE /alerts/:id` - Delete alert (online only)
 
