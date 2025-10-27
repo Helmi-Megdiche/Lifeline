@@ -946,16 +946,36 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
             if (result.alert) {
               try {
                 const sanitizedAlert = sanitizeMongoDoc(result.alert);
-                await localDB.put(sanitizedAlert);
-              } catch (putError: any) {
-                if (putError.status !== 409) {
-                  console.error('Failed to update local alert:', putError);
+                console.log('📝 Alert with comments from backend:', sanitizedAlert.comments);
+                
+                // Try to get the existing alert to preserve _rev
+                try {
+                  const existingAlert = await localDB.get(alertId) as Alert;
+                  sanitizedAlert._rev = existingAlert._rev;
+                  console.log('📄 Found existing alert, preserving _rev:', existingAlert._rev);
+                } catch (e) {
+                  console.log('⚠️ Alert not found in local DB, will create new');
                 }
+                
+                const putResult = await localDB.put(sanitizedAlert);
+                console.log('✅ Updated alert in local database with new comment', putResult);
+                
+                // Verify the update was successful
+                const updatedAlert = await localDB.get(alertId) as Alert;
+                console.log('📊 Verified comments in updated alert:', updatedAlert.comments?.length || 0);
+                
+              } catch (putError: any) {
+                console.error('❌ Failed to update local alert:', putError);
+                console.error('Error details:', putError.status, putError.message);
+                // Continue anyway - will need to sync
               }
             }
             
             showNotification('Comment added successfully!', 'success');
+            
+            // Immediately refresh to show the updated alert
             await fetchAlerts();
+            console.log('🔄 Refreshed alerts after comment');
           } else {
             throw new Error('Failed to add comment');
           }
