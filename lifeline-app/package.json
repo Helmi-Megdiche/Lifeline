@@ -1,0 +1,36 @@
+{
+  "name": "lifeline-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "dev:https": "next dev --turbopack --experimental-https --experimental-https-key ./certs/key.pem --experimental-https-cert ./certs/cert.pem",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "setup-https": "node setup-https.js"
+  },
+  "dependencies": {
+    "leaflet": "1.9.4",
+    "next": "15.5.4",
+    "next-pwa": "^5.6.0",
+    "pouchdb-browser": "^9.0.0",
+    "pouchdb-find": "^9.0.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-leaflet": "5.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/leaflet": "^1.9.21",
+    "@types/node": "^20",
+    "@types/pouchdb": "^6.4.2",
+    "@types/pouchdb-browser": "^6.1.5",
+    "@types/pouchdb-core": "^7.0.15",
+    "@types/pouchdb-find": "^7.3.3",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "mkcert": "^3.2.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
