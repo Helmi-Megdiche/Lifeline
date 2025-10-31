@@ -6,8 +6,8 @@
 }
 
 .dark {
-  --background: #1a1f2e;
-  --foreground: #f1f5f9;
+  --background: #0f172a;
+  --foreground: #f8fafc;
 }
 
 /* Theme variables */
@@ -34,15 +34,15 @@ body {
   background-attachment: fixed;
 }
 
-/* Dark mode specific styles for emergency app - softer gradient */
+/* Dark mode specific styles for emergency app - professional slate background */
 .dark body {
-  background: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
   background-attachment: fixed !important;
 }
 
 /* Override the inline style for dark mode */
 .dark body[style] {
-  background: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
   background-attachment: fixed !important;
 }
 
@@ -77,10 +77,13 @@ html.dark .card-footer {
   background-color: #2563eb !important;
 }
 
-/* Dark mode backdrop blur adjustments - softer backgrounds */
-.dark .backdrop-blur-sm {
-  backdrop-filter: blur(8px);
-  background-color: rgba(37, 43, 59, 0.85);
+/* Dark mode backdrop blur adjustments - professional card backgrounds */
+.dark .backdrop-blur-sm,
+.dark .backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  background-color: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
 }
 
 /* Dark mode border adjustments - softer borders */
@@ -94,24 +97,24 @@ html.dark .card-footer {
 
 /* Force dark mode colors to apply */
 html.dark {
-  background-color: #1a1f2e !important;
+  background-color: #0f172a !important;
 }
 
 html.dark body {
-  background: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
   background-attachment: fixed !important;
 }
 
 /* Force dark mode colors to apply with maximum specificity */
 html.dark body {
-  background-color: #1a1f2e !important;
-  background-image: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+  background-color: #0f172a !important;
+  background-image: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
   background-attachment: fixed !important;
 }
 
 html.dark {
-  background-color: #1a1f2e !important;
-  background-image: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+  background-color: #0f172a !important;
+  background-image: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
 }
 
 /* Nuclear option - force dark mode background */
@@ -119,20 +122,21 @@ html.dark,
 html.dark body,
 body.dark,
 html[class*="dark"] body {
-  background: #1a1f2e !important;
-  background-image: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
   background-attachment: fixed !important;
 }
 
 /* Final override - this should work now */
 html.dark body {
-  background: linear-gradient(135deg, #1a1f2e 0%, #242938 100%) !important;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%) !important;
 }
 
 /* Force navbar dark mode */
 html.dark header {
-  background-color: #252b3b !important;
-  border-color: #374151 !important;
+  background-color: rgba(30, 41, 59, 0.8) !important;
+  backdrop-filter: blur(12px) !important;
+  border-color: #475569 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3) !important;
 }
 
 html.dark header nav {
@@ -161,7 +165,7 @@ html.dark h6 {
 html.dark p,
 html.dark span,
 html.dark div {
-  color: #cbd5e1 !important;
+  color: #e2e8f0 !important;
 }
 
 /* Force better contrast for main content */
@@ -172,32 +176,68 @@ html.dark .text-gray-800 {
 }
 
 html.dark .text-gray-900 {
-  color: #f1f5f9 !important;
+  color: #f8fafc !important;
 }
 
-/* Ensure input text is clear in dark mode */
+/* Enhanced card backgrounds in dark mode */
+html.dark .bg-white,
+html.dark .bg-white\/90,
+html.dark .bg-white\/80 {
+  background-color: rgba(30, 41, 59, 0.9) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+/* Ensure input text is clear in dark mode - use lighter background to match Username/Password */
 html.dark input[type="text"],
 html.dark input[type="password"],
 html.dark input[type="email"],
-html.dark textarea {
-  color: #f1f5f9 !important; /* Light text for dark background */
-  background-color: #2d3548 !important; /* Dark surface background */
-  border-color: #374151 !important; /* Slightly lighter border */
+html.dark textarea,
+html.dark input {
+  color: #1f2937 !important; /* Dark text for light background */
+  background-color: rgba(255, 255, 255, 0.9) !important; /* White/light grey background - matching Username/Password */
+  border-color: #d1d5db !important; /* Light grey border */
 }
 
-/* Force placeholder text to be visible */
+html.dark input[type="text"]:focus,
+html.dark input[type="password"]:focus,
+html.dark input[type="email"]:focus,
+html.dark textarea:focus,
+html.dark input:focus {
+  border-color: #3b82f6 !important; /* Blue focus ring */
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.95) !important; /* Slightly brighter on focus */
+}
+
+/* Fix eye icon buttons - ensure no white background */
+html.dark button[aria-label*="password"],
+html.dark button[aria-label*="Hide password"],
+html.dark button[aria-label*="Show password"] {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+html.dark button[aria-label*="password"]:hover,
+html.dark button[aria-label*="Hide password"]:hover,
+html.dark button[aria-label*="Show password"]:hover {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Force placeholder text to be visible - dark text for light background */
 html.dark input::placeholder,
 html.dark textarea::placeholder {
-  color: #94a3b8 !important; /* Light gray placeholder */
-  opacity: 1 !important;
+  color: #9ca3af !important; /* Grey placeholder text for light background */
+  opacity: 0.7 !important;
 }
 
 /* Ensure all input elements have proper contrast */
 html.dark input,
 html.dark textarea,
 html.dark select {
-  color: #f1f5f9 !important;
-  background-color: #2d3548 !important;
+  color: #f8fafc !important;
+  background-color: #1e293b !important;
   border-color: #374151 !important;
 }
 

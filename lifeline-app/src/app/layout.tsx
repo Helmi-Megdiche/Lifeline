@@ -5,7 +5,7 @@ import "./globals.css";
 import { ClientAuthProvider } from "@/contexts/ClientAuthContext";
 import { ClientSyncProvider } from "@/components/ClientSyncProvider";
 import { AuthGuard } from "@/components/AuthGuard";
-import { ConditionalHeader } from "@/components/ConditionalHeader";
+import Navbar from "@/components/Navbar";
 import InstallPrompt from "./InstallPrompt";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AlertsProvider } from "@/contexts/AlertsContext";
@@ -47,7 +47,28 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
           <body
             className={`${geistSans.variable} ${geistMono.variable} antialiased text-gray-900 dark:text-dark-text-primary min-h-screen bg-white dark:bg-dark-bg-primary transition-colors duration-300`}
+            suppressHydrationWarning
           >
+            {/* Prevent FOUC (Flash of Unstyled Content) for dark mode - must run before React hydrates */}
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  (function() {
+                    try {
+                      const theme = localStorage.getItem('lifeline-theme');
+                      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                      const shouldBeDark = theme === 'dark' || (!theme && prefersDark);
+                      if (shouldBeDark) {
+                        document.documentElement.classList.add('dark');
+                      } else {
+                        document.documentElement.classList.remove('dark');
+                      }
+                    } catch (e) {}
+                  })();
+                `,
+              }}
+              suppressHydrationWarning
+            />
         {/* Subtle medical cross pattern overlay */}
         <div 
           className="fixed inset-0 z-0 opacity-[0.02]"
@@ -60,7 +81,7 @@ export default function RootLayout({
         ></div>
         
         <ThemeProvider>
-          <ConditionalHeader />
+          <Navbar />
           {/* Register service worker (once on client) */}
           <script
             dangerouslySetInnerHTML={{

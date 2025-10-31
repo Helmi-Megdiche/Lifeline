@@ -57,11 +57,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setThemeState(newTheme);
   };
 
-  // Prevent hydration mismatch by not rendering until mounted
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
+  // Always provide the context, even before mounting to prevent errors
+  // The theme will be updated once mounted and localStorage is read
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}

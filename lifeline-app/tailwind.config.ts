@@ -47,11 +47,11 @@ const config: Config = {
           800: '#166534',
           900: '#14532d',
         },
-        // Dark mode specific colors - softer, more pleasant palette
+        // Dark mode specific colors - black theme
         'dark-bg': {
-          primary: '#1a1f2e',    // Softer dark blue-gray (less harsh than slate-900)
-          secondary: '#242938',   // Slightly lighter background
-          tertiary: '#2d3548',    // Even lighter for layering
+          primary: '#000000',    // Pure black background
+          secondary: '#0a0a0a',   // Slightly lighter black for cards
+          tertiary: '#1a1a1a',    // Even lighter for layering
         },
         'dark-text': {
           primary: '#f1f5f9',     // Soft white (easier on eyes)
