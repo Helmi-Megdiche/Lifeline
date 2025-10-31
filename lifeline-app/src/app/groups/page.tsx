@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useGroups } from '@/contexts/GroupsContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -21,6 +22,8 @@ export default function GroupsPage() {
   const [loadingInvites, setLoadingInvites] = useState(false);
   const [showInvites, setShowInvites] = useState(false);
   const [preview, setPreview] = useState<{ group: any; members: any[] } | null>(null);
+
+  const InvitationsModal = dynamic(() => import('./InvitationsModal'), { ssr: false });
 
   useEffect(() => {
     const loadInvites = async () => {
@@ -126,91 +129,27 @@ export default function GroupsPage() {
         </button>
       </div>
 
-      {/* Invitations Modal */}
+      {/* Invitations Modal (code-split) */}
       {showInvites && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg card-surface rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Pending Invitations</h2>
-              <button
-                onClick={() => setShowInvites(false)}
-                aria-label="Close invitations"
-                className="p-2 rounded-lg bg-transparent text-gray-500 hover:text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            {loadingInvites ? (
-              <div className="text-sm text-gray-500 dark:text-gray-400">Loading...</div>
-            ) : invites.length === 0 ? (
-              <p className="text-gray-600 dark:text-gray-400 text-sm">No invitations at the moment.</p>
-            ) : (
-              <div className="space-y-3">
-                {invites.map((inv) => (
-                  <div key={inv.id} className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <button
-                        className="text-blue-600 dark:text-blue-400 font-medium hover:underline"
-                        onClick={async () => {
-                          const data = await getInvitationPreview(inv.id);
-                          setPreview(data);
-                        }}
-                      >
-                        {inv.groupName || 'Group'}
-                      </button>
-                      <div className="flex gap-2">
-                        <button
-                          className="px-3 py-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm"
-                          onClick={async () => {
-                            await acceptInvitation(inv.id);
-                            setInvites(prev => prev.filter(i => i.id !== inv.id));
-                            alert('Invitation accepted. You have joined the group.');
-                          }}
-                        >
-                          Accept
-                        </button>
-                        <button
-                          className="px-3 py-1 rounded-md bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-900 dark:text-white text-sm"
-                          onClick={async () => {
-                            await declineInvitation(inv.id);
-                            setInvites(prev => prev.filter(i => i.id !== inv.id));
-                          }}
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    </div>
-                    {preview && (
-                      <div className="mt-3 text-sm text-gray-800 dark:text-gray-200">
-                        <div className="mb-2">
-                          <div className="font-semibold">{preview.group?.name}</div>
-                          {preview.group?.description && (
-                            <div className="text-gray-600 dark:text-gray-400">{preview.group.description}</div>
-                          )}
-                        </div>
-                        <div className="mb-2">
-                          <div className="font-medium">Members</div>
-                          <ul className="list-disc ml-5">
-                            {preview.members?.map((m: any) => (
-                              <li key={m.id} className="flex items-center gap-2">
-                                <span>{typeof m.user === 'object' ? m.user?.username : 'User'}</span>
-                                {m.role === 'admin' && (
-                                  <span className="px-2 py-0.5 rounded text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100">Admin</span>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <InvitationsModal
+          invites={invites}
+          loading={loadingInvites}
+          onClose={() => setShowInvites(false)}
+          onPreview={async (id: string) => {
+            const data = await getInvitationPreview(id);
+            setPreview(data);
+          }}
+          preview={preview}
+          onAccept={async (id: string) => {
+            await acceptInvitation(id);
+            setInvites(prev => prev.filter(i => i.id !== id));
+            alert('Invitation accepted. You have joined the group.');
+          }}
+          onDecline={async (id: string) => {
+            await declineInvitation(id);
+            setInvites(prev => prev.filter(i => i.id !== id));
+          }}
+        />
       )}
       <div className="flex justify-between items-start gap-3 flex-wrap">
         <div>

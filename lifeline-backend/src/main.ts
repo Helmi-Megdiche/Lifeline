@@ -2,16 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import * as bodyParser from 'body-parser';
 import { AppModule } from './app.module';
+import * as mongoose from 'mongoose';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn'],
+  });
   
-          // Add request logging middleware
-          app.use((req, res, next) => {
-            if (req.url.includes('_bulk_docs')) {
-            }
-            next();
-          });
+  // Disable Mongoose debug logs explicitly
+  mongoose.set('debug', false);
   
   // Increase body size limits for PouchDB/CouchDB sync
   app.use(bodyParser.json({ limit: '10mb' }));

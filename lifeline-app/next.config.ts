@@ -77,7 +77,8 @@ const withPWA = require('next-pwa')({
 });
 
 module.exports = withPWA({
-  reactStrictMode: true,
+  // Disable Strict Mode in dev to reduce double renders and memory in development
+  reactStrictMode: false,
   // Allow cross-origin requests from mobile devices
   async headers() {
     return [
