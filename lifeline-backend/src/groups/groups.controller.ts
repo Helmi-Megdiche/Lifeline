@@ -71,5 +71,17 @@ export class GroupsController {
   async getGroupStatus(@Param('id') id: string, @Req() req: any) {
     return this.groupsService.getGroupStatusSummary(id, req.user.userId);
   }
+
+  // Chat endpoints
+  @Get(':id/messages')
+  async listMessages(@Param('id') id: string, @Req() req: any) {
+    const since = (req.query?.since as string) || undefined;
+    return this.groupsService.listMessages(id, req.user.userId, since);
+  }
+
+  @Post(':id/messages')
+  async sendMessage(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+    return this.groupsService.sendMessage(id, req.user.userId, req.user.username, body.text);
+  }
 }
 

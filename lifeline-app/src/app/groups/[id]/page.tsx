@@ -8,6 +8,7 @@ import { API_CONFIG } from '@/lib/config';
 import { useAuth } from '@/contexts/ClientAuthContext';
 import InviteMemberModal from '@/components/InviteMemberModal';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 
 interface GroupDetails {
   _id: string;
@@ -443,6 +444,19 @@ export default function GroupDetailsPage() {
           </div>
         </div>
       )}
+
+      {/* Go to Group Chat */}
+      <div className="card-surface bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex justify-end">
+        <Link
+          href={`/groups/${params.id}/chat`}
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm md:text-base shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h6m-6 4h10" />
+          </svg>
+          Open Group Chat
+        </Link>
+      </div>
 
       {/* Members List */}
       <div className="card-surface bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">

@@ -5,12 +5,14 @@ import { Group, GroupDocument } from '../schemas/group.schema';
 import { GroupMember, GroupMemberDocument } from '../schemas/group.schema';
 import { CreateGroupDto, UpdateGroupDto, AddMemberDto, UpdateMemberRoleDto, UpdateMemberStatusDto } from '../dto/group.dto';
 import { StatusService } from '../status/status.service';
+import { Message } from '../schemas/message.schema';
 
 @Injectable()
 export class GroupsService {
   constructor(
     @InjectModel(Group.name) private groupModel: Model<GroupDocument>,
     @InjectModel(GroupMember.name) private memberModel: Model<GroupMemberDocument>,
+    @InjectModel(Message.name) private messageModel: Model<any>,
     private readonly statusService: StatusService,
   ) {}
 
@@ -37,6 +39,71 @@ export class GroupsService {
     console.log('✅ Created member record:', memberRecord._id, 'for user:', userIdStr, 'in group:', (savedGroup._id as any).toString());
     
     return savedGroup;
+  }
+
+  // Group chat
+  async listMessages(groupId: string, userId: string, since?: string) {
+    // authorize: user must be owner or member
+    const group = await this.groupModel.findById(groupId);
+    if (!group) throw new NotFoundException('Group not found');
+    const userIdStr = userId.toString();
+    const isOwner = (group.ownerId as any).toString() === userIdStr;
+    const member = await this.memberModel.findOne({
+      $or: [
+        { groupId: groupId, userId: userIdStr },
+        { groupId: groupId, userId: new Types.ObjectId(userIdStr) },
+        { groupId: new Types.ObjectId(groupId), userId: userIdStr },
+        { groupId: new Types.ObjectId(groupId), userId: new Types.ObjectId(userIdStr) },
+        { groupId: group._id, userId: userIdStr },
+      ],
+    });
+    if (!isOwner && !member) throw new ForbiddenException('You are not a member of this group');
+
+    const query: any = { groupId: new Types.ObjectId(groupId) };
+    if (since) {
+      const t = new Date(since);
+      if (!isNaN(t.getTime())) query.createdAt = { $gt: t };
+    }
+    const msgs = await this.messageModel.find(query).sort({ createdAt: 1 }).limit(200).lean();
+    return msgs.map(m => ({
+      id: (m._id as any).toString(),
+      userId: m.userId,
+      username: m.username,
+      text: m.text,
+      createdAt: m.createdAt,
+    }));
+  }
+
+  async sendMessage(groupId: string, userId: string, username: string, text: string) {
+    const group = await this.groupModel.findById(groupId);
+    if (!group) throw new NotFoundException('Group not found');
+    const userIdStr = userId.toString();
+    const isOwner = (group.ownerId as any).toString() === userIdStr;
+    const member = await this.memberModel.findOne({
+      $or: [
+        { groupId: groupId, userId: userIdStr },
+        { groupId: groupId, userId: new Types.ObjectId(userIdStr) },
+        { groupId: new Types.ObjectId(groupId), userId: userIdStr },
+        { groupId: new Types.ObjectId(groupId), userId: new Types.ObjectId(userIdStr) },
+        { groupId: group._id, userId: userIdStr },
+      ],
+    });
+    if (!isOwner && !member) throw new ForbiddenException('You are not a member of this group');
+    if (!text || !text.trim()) throw new BadRequestException('Message is empty');
+
+    const doc = await this.messageModel.create({
+      groupId: new Types.ObjectId(groupId),
+      userId: userIdStr,
+      username,
+      text: text.trim().slice(0, 2000),
+    });
+    return {
+      id: (doc._id as any).toString(),
+      userId: doc.userId,
+      username: doc.username,
+      text: doc.text,
+      createdAt: doc.createdAt,
+    };
   }
 
   async getUserGroups(userId: string): Promise<any[]> {

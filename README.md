@@ -9,6 +9,9 @@
 - Group management: admins/owners can edit name, description, and type.
 - Leaving groups: any member can leave; owner blocked if other members remain.
 - Performance: reduced dev memory usage; dynamic import for invitations modal; quieter backend logs.
+- Group chat: Dedicated page at `groups/[id]/chat` with REST endpoints (`GET/POST /groups/:id/messages`).
+- Member location preview: click member to view last known coordinates and open in Google Maps.
+- Light/Dark UX: fixed chat light-mode backgrounds; compact Invite/Back buttons.
 
 ## 🌟 Features
 
