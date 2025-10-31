@@ -2,22 +2,20 @@
 
 import React from 'react';
 
-type Invitation = { id: string; groupName?: string };
+type Invitation = { id: string; groupName?: string; groupId?: string };
 
 export default function InvitationsModal({
   invites,
   loading,
   onClose,
-  onPreview,
-  preview,
+  onOpenGroup,
   onAccept,
   onDecline,
 }: {
   invites: Invitation[];
   loading: boolean;
   onClose: () => void;
-  onPreview: (id: string) => Promise<void> | void;
-  preview: { group: any; members: any[] } | null;
+  onOpenGroup: (groupId: string) => void;
   onAccept: (id: string) => Promise<void> | void;
   onDecline: (id: string) => Promise<void> | void;
 }) {
@@ -47,7 +45,7 @@ export default function InvitationsModal({
                 <div className="flex items-center justify-between">
                   <button
                     className="text-blue-600 dark:text-blue-400 font-medium hover:underline"
-                    onClick={() => onPreview(inv.id)}
+                    onClick={() => inv.groupId && onOpenGroup(inv.groupId)}
                   >
                     {inv.groupName || 'Group'}
                   </button>
@@ -66,29 +64,6 @@ export default function InvitationsModal({
                     </button>
                   </div>
                 </div>
-                {preview && (
-                  <div className="mt-3 text-sm text-gray-800 dark:text-gray-200">
-                    <div className="mb-2">
-                      <div className="font-semibold">{preview.group?.name}</div>
-                      {preview.group?.description && (
-                        <div className="text-gray-600 dark:text-gray-400">{preview.group.description}</div>
-                      )}
-                    </div>
-                    <div className="mb-2">
-                      <div className="font-medium">Members</div>
-                      <ul className="list-disc ml-5">
-                        {preview.members?.map((m: any) => (
-                          <li key={m.id} className="flex items-center gap-2">
-                            <span>{typeof m.user === 'object' ? m.user?.username : 'User'}</span>
-                            {m.role === 'admin' && (
-                              <span className="px-2 py-0.5 rounded text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100">Admin</span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
               </div>
             ))}
           </div>

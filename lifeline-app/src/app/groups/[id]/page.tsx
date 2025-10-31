@@ -32,17 +32,30 @@ export default function GroupDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { user, token } = useAuth();
-  const { groups, updateStatus, deleteGroup, createInvitation } = useGroups();
+  const { groups, updateStatus, deleteGroup, createInvitation, listMyInvitations, acceptInvitation, declineInvitation } = useGroups();
   const [groupDetails, setGroupDetails] = useState<GroupDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusCounts, setStatusCounts] = useState({ safe: 0, need_help: 0, in_danger: 0, offline: 0, unknown: 0 });
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [userGlobalStatus, setUserGlobalStatus] = useState<string | null>(null);
+  const [pendingInviteId, setPendingInviteId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchGroupDetails();
   }, [params.id]);
+
+  // Load pending invitation for this group (if any)
+  useEffect(() => {
+    const loadInvite = async () => {
+      try {
+        const list = await listMyInvitations();
+        const found = list.find((i: any) => i.groupId === params.id);
+        setPendingInviteId(found?.id || null);
+      } catch {}
+    };
+    loadInvite();
+  }, [params.id, listMyInvitations]);
 
   const fetchGroupDetails = async () => {
     if (!token || !params.id) return;
@@ -281,6 +294,34 @@ export default function GroupDetailsPage() {
           )}
         </div>
       </div>
+
+      {/* Pending invitation banner for this group */}
+      {pendingInviteId && (
+        <div className="card-surface bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex items-center justify-between">
+          <div className="text-gray-800 dark:text-gray-100 font-medium">You have been invited to join this group.</div>
+          <div className="flex gap-3">
+            <button
+              className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm"
+              onClick={async () => {
+                await acceptInvitation(pendingInviteId);
+                setPendingInviteId(null);
+                await fetchGroupDetails();
+              }}
+            >
+              Accept
+            </button>
+            <button
+              className="px-4 py-2 rounded-md bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-900 dark:text-white text-sm"
+              onClick={async () => {
+                await declineInvitation(pendingInviteId);
+                setPendingInviteId(null);
+              }}
+            >
+              Decline
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Invite Member Button */}
       {groupDetails.isAdmin && (

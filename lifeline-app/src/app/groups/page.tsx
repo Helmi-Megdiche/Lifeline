@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { GroupType } from '@/types/group';
 
 export default function GroupsPage() {
-  const { groups, isLoading, createGroup, deleteGroup, listMyInvitations, acceptInvitation, declineInvitation, getInvitationPreview } = useGroups();
+  const { groups, isLoading, createGroup, deleteGroup, listMyInvitations, acceptInvitation, declineInvitation } = useGroups();
   const router = useRouter();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newGroup, setNewGroup] = useState({
@@ -21,8 +21,6 @@ export default function GroupsPage() {
   const [invites, setInvites] = useState<{ id: string; groupName?: string }[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(false);
   const [showInvites, setShowInvites] = useState(false);
-  const [preview, setPreview] = useState<{ group: any; members: any[] } | null>(null);
-
   const InvitationsModal = dynamic(() => import('./InvitationsModal'), { ssr: false });
 
   useEffect(() => {
@@ -135,11 +133,10 @@ export default function GroupsPage() {
           invites={invites}
           loading={loadingInvites}
           onClose={() => setShowInvites(false)}
-          onPreview={async (id: string) => {
-            const data = await getInvitationPreview(id);
-            setPreview(data);
+          onOpenGroup={(groupId: string) => {
+            setShowInvites(false);
+            router.push(`/groups/${groupId}`);
           }}
-          preview={preview}
           onAccept={async (id: string) => {
             await acceptInvitation(id);
             setInvites(prev => prev.filter(i => i.id !== id));
