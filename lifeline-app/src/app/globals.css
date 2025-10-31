@@ -51,6 +51,24 @@ body {
   background-color: #dc2626 !important;
 }
 
+/* Explicit surfaces for group cards to avoid mode inversion from global overrides */
+html:not(.dark) .card-surface {
+  background-color: #ffffff !important;
+}
+html.dark .card-surface {
+  background-color: #1f2937 !important; /* gray-800 */
+}
+
+/* Footer surface under action buttons */
+html:not(.dark) .card-footer {
+  background-color: #f9fafb !important; /* gray-50 */
+  border-color: #e5e7eb !important;     /* gray-200 */
+}
+html.dark .card-footer {
+  background-color: #374151 !important; /* gray-700 */
+  border-color: #374151 !important;
+}
+
 .dark .bg-green-500 {
   background-color: #16a34a !important;
 }
@@ -186,6 +204,34 @@ html.dark select {
 /* Force Profile page status labels to be visible */
 html.dark .text-black {
   color: #ffffff !important;
+}
+
+/* =============================
+   Groups surfaces (explicit)
+   ============================= */
+html:not(.dark) .card-surface {
+  background-color: #ffffff !important;
+}
+html.dark .card-surface {
+  background-color: #1f2937 !important; /* gray-800 */
+}
+
+html:not(.dark) .card-footer {
+  background-color: #f9fafb !important; /* gray-50 */
+  border-color: #e5e7eb !important;     /* gray-200 */
+}
+html.dark .card-footer {
+  background-color: #1f2937 !important; /* match card */
+  border-color: #1f2937 !important;
+}
+
+/* Strengthen dark footer override to defeat any utility leftovers */
+html.dark .card-surface .card-footer {
+  background-color: #1f2937 !important;
+}
+html.dark .card-footer::before,
+html.dark .card-footer::after {
+  background-color: #1f2937 !important;
 }
 
 html .text-black {
@@ -772,4 +818,66 @@ html:not(.dark) .bg-blue-100 {
 
 html:not(.dark) .bg-blue-100 * {
   color: #1e40af !important;
+}
+
+/* Modern glassmorphism for cards */
+.glass-card, .glassy-surface {
+  background: rgba(31, 41, 55, 0.65); /* gray-800 dark semi-opaque */
+  border-radius: 1.5rem;
+  box-shadow: 0 6px 42px 4px rgba(16,18,31,0.15), 0 1.5px 6px 0 rgba(63, 63, 104, 0.06);
+  backdrop-filter: blur(18px) saturate(150%);
+}
+
+/* Card surface for details/hero: bigger radius/shadow */
+.card-surface {
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 24px 4px rgba(24, 24, 37, 0.12);
+}
+
+.card-footer {
+  border-radius: 0 0 1.5rem 1.5rem;
+  box-shadow: none;
+}
+
+/* Glassy chip (pill badge) */
+.chip-glass {
+  background: rgba(31, 41, 55, 0.58);
+  backdrop-filter: blur(10px) saturate(140%);
+  border-radius: 9999px;
+  color: #fff;
+  font-weight: 500;
+  padding: 2px 16px;
+  font-size: 0.93rem;
+  display: inline-block;
+  border: 1px solid rgba(209,213,219,0.22);
+  box-shadow: 0 2px 10px 1px rgba(20,20,40,0.04);
+  margin-right: 4px;
+}
+
+/* Animation utility */
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(28px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeInUp 0.66s cubic-bezier(.61,1.64,.29,.96) 0.05s both;
+}
+
+/* Utility: force white text in light mode only (used for status chips etc) */
+html:not(.dark) .light-text-white {
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+
+/* Light mode force helpers (for modals) */
+html:not(.dark) .force-light-surface {
+  background-color: #ffffff !important;
+  border-color: #e5e7eb !important;
+}
+html:not(.dark) .force-light-input {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+html:not(.dark) .force-light-muted {
+  color: #6b7280 !important;
 }

@@ -6,6 +6,8 @@ import { API_CONFIG } from '@/lib/config';
 import { offlineSyncManager, groupsCache } from '@/lib/offline-sync';
 import { Group, CreateGroupDto, UpdateGroupDto, UserStatus, GroupMember, AddMemberDto } from '@/types/group';
 
+interface InvitationItem { id: string; groupName?: string; groupId?: string; inviterId?: string; createdAt?: string }
+
 interface GroupsContextType {
   groups: Group[];
   isLoading: boolean;
@@ -18,6 +20,12 @@ interface GroupsContextType {
   updateStatus: (groupId: string, status: UserStatus) => Promise<void>;
   refreshGroups: () => Promise<void>;
   syncPendingActions: () => Promise<void>;
+  // Invitations
+  createInvitation: (groupId: string, inviteeId: string) => Promise<void>;
+  listMyInvitations: () => Promise<InvitationItem[]>;
+  acceptInvitation: (invitationId: string) => Promise<void>;
+  declineInvitation: (invitationId: string) => Promise<void>;
+  getInvitationPreview: (invitationId: string) => Promise<{ group: any; members: any[] } | null>;
 }
 
 const GroupsContext = createContext<GroupsContextType | undefined>(undefined);
@@ -518,6 +526,51 @@ export const GroupsProvider = ({ children }: { children: React.ReactNode }) => {
     await fetchGroups();
   }, [fetchGroups]);
 
+  // Invitations
+  const createInvitation = useCallback(async (groupId: string, inviteeId: string): Promise<void> => {
+    if (!user || !token) throw new Error('User not authenticated');
+    const resp = await fetch(`${API_CONFIG.BASE_URL}/groups/${groupId}/invitations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ inviteeId })
+    });
+    if (!resp.ok) {
+      let msg = 'Failed to create invitation';
+      try { const j = await resp.json(); msg = j.message || msg; } catch {}
+      throw new Error(msg);
+    }
+  }, [user, token]);
+
+  const listMyInvitations = useCallback(async (): Promise<InvitationItem[]> => {
+    if (!user || !token) throw new Error('User not authenticated');
+    const resp = await fetch(`${API_CONFIG.BASE_URL}/invitations`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    const list = (data.data || []).map((it: any) => ({ id: it._id, groupName: it.groupId?.name, groupId: it.groupId?._id || it.groupId, inviterId: it.inviterId, createdAt: it.createdAt }));
+    return list;
+  }, [user, token]);
+
+  const acceptInvitation = useCallback(async (invitationId: string): Promise<void> => {
+    if (!user || !token) throw new Error('User not authenticated');
+    const resp = await fetch(`${API_CONFIG.BASE_URL}/invitations/${invitationId}/accept`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+    if (!resp.ok) throw new Error('Failed to accept invitation');
+    await fetchGroups();
+  }, [user, token, fetchGroups]);
+
+  const declineInvitation = useCallback(async (invitationId: string): Promise<void> => {
+    if (!user || !token) throw new Error('User not authenticated');
+    const resp = await fetch(`${API_CONFIG.BASE_URL}/invitations/${invitationId}/decline`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+    if (!resp.ok) throw new Error('Failed to decline invitation');
+  }, [user, token]);
+
+  const getInvitationPreview = useCallback(async (invitationId: string) => {
+    if (!user || !token) return null;
+    const resp = await fetch(`${API_CONFIG.BASE_URL}/invitations/${invitationId}/preview`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.data || null;
+  }, [user, token]);
+
   const value: GroupsContextType = {
     groups,
     isLoading,
@@ -530,6 +583,11 @@ export const GroupsProvider = ({ children }: { children: React.ReactNode }) => {
     updateStatus,
     refreshGroups,
     syncPendingActions,
+    createInvitation,
+    listMyInvitations,
+    acceptInvitation,
+    declineInvitation,
+    getInvitationPreview,
   };
 
   return <GroupsContext.Provider value={value}>{children}</GroupsContext.Provider>;

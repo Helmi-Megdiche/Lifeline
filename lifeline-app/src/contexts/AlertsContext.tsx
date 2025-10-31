@@ -384,9 +384,9 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
       let result;
       try {
         result = await localDB.find({
-          selector,
-          limit: 1000,
-        });
+        selector,
+        limit: 1000,
+      });
       } catch (dbError: any) {
         if (dbError.name === 'QuotaExceededError' || dbError.message?.includes('quota')) {
           console.error('⚠️ Storage quota exceeded during fetch:', dbError);

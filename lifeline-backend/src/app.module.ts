@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { PouchModule } from './pouch/pouch.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { GroupsModule } from './groups/groups.module';
+import { InvitationsModule } from './invitations/invitations.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { GroupsModule } from './groups/groups.module';
     PouchModule,
     AlertsModule,
     GroupsModule,
+    InvitationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

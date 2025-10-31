@@ -83,36 +83,58 @@ export default function Home() {
     console.log('Payload status type:', typeof payload.status);
     console.log('Payload timestamp type:', typeof payload.timestamp);
     
-            try {
-              // Save to both IndexedDB (legacy) and PouchDB (new)
-              const clean = {
-                status: payload.status,
-                timestamp: payload.timestamp,
-                latitude: payload.latitude ?? undefined,
-                longitude: payload.longitude ?? undefined,
-                userId: user?.id,
-              } as const;
-              await Promise.all([
-                saveStatus(payload),
-                isClient && localDB ? saveStatusToPouch(clean) : Promise.resolve()
-              ]);
+    try {
+      const clean = {
+        status: payload.status,
+        timestamp: payload.timestamp,
+        latitude: payload.latitude ?? undefined,
+        longitude: payload.longitude ?? undefined,
+        userId: user?.id,
+      } as const;
 
-          const isOnline = await isReallyOnline();
-          // Do not POST directly; rely on PouchDB replication to avoid duplicates
-          if (!isOnline) {
-            await queueStatus(payload);
+      // Always keep the local save (legacy)
+      await saveStatus(payload);
+      if (isClient && localDB) {
+        await saveStatusToPouch(clean);
+      }
+
+      const isOnline = await isReallyOnline();
+
+      // NEW: Direct REST POST to persist in Mongo when online
+      if (isOnline && user?.id) {
+        try {
+          const resp = await fetch(`${API_CONFIG.BASE_URL}/status`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: user.id,
+              status: payload.status,
+              timestamp: payload.timestamp,
+              latitude: payload.latitude,
+              longitude: payload.longitude,
+            }),
+          });
+          if (!resp.ok) {
+            const txt = await resp.text();
+            console.warn('Status POST failed:', resp.status, txt);
           }
-          setMessage(isOnline ? "Status saved (sync in progress)" : "Status saved offline - will sync when online");
-
-          localStorage.setItem("lifeline:lastStatus", JSON.stringify({ ...payload, synced: isOnline }));
-          setTimeout(() => setMessage(null), AUTO_HIDE_MS);
-        } catch (e) {
-          console.error('Error saving status:', e);
-          setMessage("Failed to save status");
-        } finally {
-          setIsSaving(false);
+        } catch (postErr) {
+          console.warn('Status POST error (will rely on local only):', postErr);
         }
-      };
+      }
+
+      setMessage(isOnline ? "Status saved (synced to server)" : "Status saved offline - will sync when online");
+      localStorage.setItem("lifeline:lastStatus", JSON.stringify({ ...payload, synced: isOnline }));
+      setTimeout(() => setMessage(null), AUTO_HIDE_MS);
+    } catch (e) {
+      console.error('Error saving status:', e);
+      setMessage("Failed to save status");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto">

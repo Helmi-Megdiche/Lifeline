@@ -126,4 +126,10 @@ export class StatusService {
       updatedAt: status.updatedAt,
     }));
   }
+
+  async findByUserIds(userIds: string[]): Promise<CheckInStatus[]> {
+    if (!userIds || userIds.length === 0) return [] as any;
+    const docs = await this.statusModel.find({ userId: { $in: userIds } }).lean();
+    return docs as any;
+  }
 }

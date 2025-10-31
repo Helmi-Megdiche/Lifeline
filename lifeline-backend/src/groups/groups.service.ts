@@ -4,12 +4,14 @@ import { Model, Types } from 'mongoose';
 import { Group, GroupDocument } from '../schemas/group.schema';
 import { GroupMember, GroupMemberDocument } from '../schemas/group.schema';
 import { CreateGroupDto, UpdateGroupDto, AddMemberDto, UpdateMemberRoleDto, UpdateMemberStatusDto } from '../dto/group.dto';
+import { StatusService } from '../status/status.service';
 
 @Injectable()
 export class GroupsService {
   constructor(
     @InjectModel(Group.name) private groupModel: Model<GroupDocument>,
     @InjectModel(GroupMember.name) private memberModel: Model<GroupMemberDocument>,
+    private readonly statusService: StatusService,
   ) {}
 
   async createGroup(userId: string, createGroupDto: CreateGroupDto): Promise<GroupDocument> {
@@ -70,7 +72,22 @@ export class GroupsService {
     
     const groups = await this.groupModel.find({ _id: { $in: allGroupIds } }).sort({ createdAt: -1 });
     console.log('✅ Returning', groups.length, 'groups');
-    
+
+    // Compute member counts per group in a legacy-safe way (handles string or ObjectId groupId)
+    const groupIdToCount: Record<string, number> = {};
+    await Promise.all(groups.map(async (g) => {
+      const gid = (g._id as any);
+      const gidStr = gid.toString();
+      const cnt = await this.memberModel.countDocuments({
+        $or: [
+          { groupId: gid },
+          // Legacy records may have stored groupId as string
+          { groupId: gidStr },
+        ],
+      });
+      groupIdToCount[gidStr] = cnt;
+    }));
+
     // Enrich groups with member info and isAdmin status
     const enriched = groups.map(group => {
       const groupIdStr = (group._id as any).toString();
@@ -84,8 +101,8 @@ export class GroupsService {
       const memberInfo = groupMembers[0];
       const isOwner = (group.ownerId as any).toString() === userIdStr;
       
-      // Count actual members for this group
-      const memberCount = groupMembers.length;
+      // Count actual members for this group (from aggregation)
+      const memberCount = groupIdToCount[groupIdStr] ?? 0;
       
       const result = {
         ...group.toObject(),
@@ -104,73 +121,90 @@ export class GroupsService {
     if (!group) {
       throw new NotFoundException('Group not found');
     }
-    
-    // Convert both to strings for comparison
     const ownerIdStr = (group.ownerId as any).toString();
     const userIdStr = userId.toString();
-    
-    console.log('🔍 getGroupDetails - groupId:', groupId);
-    console.log('📊 ownerId (string):', ownerIdStr);
-    console.log('👤 userId (string):', userIdStr);
-    
-    // Check if user is owner
     const isOwner = ownerIdStr === userIdStr;
-    console.log('✅ Is owner:', isOwner);
-    
-    // Check if user is a member (handle both ObjectId and String types explicitly)
-    const member = await this.memberModel.findOne({ 
+    // Find requesting user's member entry, if present
+    const member = await this.memberModel.findOne({
       $or: [
-        // Direct values (let Mongoose cast where possible)
         { groupId: groupId, userId: userId },
         { groupId: groupId, userId: userIdStr },
         { groupId: groupId.toString(), userId: userId },
         { groupId: groupId.toString(), userId: userIdStr },
-        // Explicit ObjectId-cast variants for robustness
         { groupId: new Types.ObjectId(groupId), userId: new Types.ObjectId(userIdStr) },
         { groupId: new Types.ObjectId(groupId), userId: userIdStr },
         { groupId: group._id, userId: new Types.ObjectId(userIdStr) }
       ]
     });
-    console.log('📋 Member record:', member ? 'Found' : 'Not found');
-    if (member) {
-      console.log('   Member data:', { role: member.role, groupId: member.groupId });
-    }
-    
-    // Allow if user is owner OR member
     if (!isOwner && !member) {
-      console.log('❌ Access denied - user is neither owner nor member');
       throw new ForbiddenException('You are not a member of this group');
     }
-    
-    console.log('✅ Access granted');
-    
-    // Get all members with their details
-    // groupId might be ObjectId or String, so try both
-    const members = await this.memberModel.find({ 
+    const members = await this.memberModel.find({
       $or: [
         { groupId: groupId },
         { groupId: group._id }
       ]
     }).populate('userId', 'username email');
-    
-    console.log('👥 Found', members.length, 'members for group');
-    if (members.length > 0) {
-      members.forEach((m, i) => {
-        console.log(`   Member ${i + 1}:`, { userId: m.userId, role: m.role });
-      });
-    }
-    
+
+    // Fix memberUserIds list:
+    const memberUserIds = members
+      .map(m => {
+        if (m.userId && typeof m.userId === 'object' && '_id' in m.userId && m.userId._id) {
+          return String(m.userId._id);
+        }
+        if (typeof m.userId === 'string') {
+          return m.userId;
+        }
+        return undefined;
+      })
+      .filter((id): id is string => typeof id === 'string');
+    // Batch fetch all statuses for group users via StatusService
+    const statusDocs = await this.statusService.findByUserIds(memberUserIds);
+    // Map userId => latest status (or undefined)
+    const userIdToStatus = new Map<string, string>();
+    statusDocs.forEach((doc: any) => {
+      let normStatus = doc.status === 'help' ? 'need_help' : (doc.status === 'safe' ? 'safe' : doc.status);
+      userIdToStatus.set(String(doc.userId), normStatus || 'unknown');
+    });
+
+    // Build normalized status counts from global statuses
+    const statusCounts = { safe: 0, need_help: 0, in_danger: 0, offline: 0, unknown: 0 } as Record<string, number>;
+
+    console.log('[getGroupDetails] Returning members array:', members.map(m => {
+      const memberUserId = (m.userId && typeof m.userId === 'object' && '_id' in m.userId && m.userId._id)
+        ? String(m.userId._id)
+        : (typeof m.userId === 'string' ? m.userId : undefined);
+      const globalStatus = (memberUserId && userIdToStatus.get(memberUserId)) || 'unknown';
+      return {
+        id: memberUserId,
+        username: (m.userId && typeof m.userId === 'object' && 'username' in m.userId)
+          ? (m.userId as any).username
+          : undefined,
+        statusReturned: globalStatus
+      };
+    }));
+
     return {
       ...group.toObject(),
-      members: members.map(m => ({
-        _id: m._id,
-        userId: m.userId,
-        role: m.role,
-        status: m.status,
-        statusUpdatedAt: m.statusUpdatedAt,
-        joinedAt: m.joinedAt,
-      })),
+      members: members.map(m => {
+        const memberUserId = (m.userId && typeof m.userId === 'object' && '_id' in m.userId && m.userId._id) ? String(m.userId._id) : (typeof m.userId === 'string' ? m.userId : undefined);
+        const globalStatus = (memberUserId && userIdToStatus.get(memberUserId)) || 'unknown';
+        if (statusCounts[globalStatus] !== undefined) {
+          statusCounts[globalStatus]++;
+        } else {
+          statusCounts.unknown++;
+        }
+        return {
+          _id: m._id,
+          userId: m.userId,
+          role: m.role,
+          status: globalStatus, // always latest global
+          statusUpdatedAt: m.statusUpdatedAt,
+          joinedAt: m.joinedAt,
+        };
+      }),
       memberCount: members.length,
+      statusCounts,
       isAdmin: member?.role === 'admin' || isOwner,
     };
   }

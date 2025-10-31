@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGroups } from '@/contexts/GroupsContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { GroupType } from '@/types/group';
 
 export default function GroupsPage() {
-  const { groups, isLoading, createGroup, deleteGroup } = useGroups();
+  const { groups, isLoading, createGroup, deleteGroup, listMyInvitations, acceptInvitation, declineInvitation, getInvitationPreview } = useGroups();
   const router = useRouter();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newGroup, setNewGroup] = useState({
@@ -17,6 +17,36 @@ export default function GroupsPage() {
   });
   const [isCreating, setIsCreating] = useState(false);
   const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+  const [invites, setInvites] = useState<{ id: string; groupName?: string }[]>([]);
+  const [loadingInvites, setLoadingInvites] = useState(false);
+  const [showInvites, setShowInvites] = useState(false);
+  const [preview, setPreview] = useState<{ group: any; members: any[] } | null>(null);
+
+  useEffect(() => {
+    const loadInvites = async () => {
+      setLoadingInvites(true);
+      try {
+        const res = await listMyInvitations();
+        setInvites(res);
+      } finally {
+        setLoadingInvites(false);
+      }
+    };
+    loadInvites();
+  }, [listMyInvitations]);
+
+  const getTypeGradient = (type: GroupType) => {
+    switch (type) {
+      case GroupType.FAMILY:
+        return 'from-pink-500/70 via-rose-500/70 to-fuchsia-500/70';
+      case GroupType.FRIENDS:
+        return 'from-blue-500/70 via-indigo-500/70 to-violet-500/70';
+      case GroupType.WORK:
+        return 'from-amber-500/70 via-orange-500/70 to-red-500/70';
+      default:
+        return 'from-emerald-500/70 via-teal-500/70 to-cyan-500/70';
+    }
+  };
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,12 +109,117 @@ export default function GroupsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Groups</h1>
+    <div className="space-y-8">
+      {/* Header actions */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowInvites(true)}
+          className="relative bg-white/80 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 px-4 py-2 rounded-xl shadow hover:shadow-md transition flex items-center gap-2"
+          title="View invitations"
+        >
+          <span>Invitations</span>
+          {loadingInvites ? (
+            <span className="text-xs text-gray-500">...</span>
+          ) : invites.length > 0 ? (
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-semibold">{invites.length}</span>
+          ) : null}
+        </button>
+      </div>
+
+      {/* Invitations Modal */}
+      {showInvites && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-lg card-surface rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Pending Invitations</h2>
+              <button
+                onClick={() => setShowInvites(false)}
+                aria-label="Close invitations"
+                className="p-2 rounded-lg bg-transparent text-gray-500 hover:text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {loadingInvites ? (
+              <div className="text-sm text-gray-500 dark:text-gray-400">Loading...</div>
+            ) : invites.length === 0 ? (
+              <p className="text-gray-600 dark:text-gray-400 text-sm">No invitations at the moment.</p>
+            ) : (
+              <div className="space-y-3">
+                {invites.map((inv) => (
+                  <div key={inv.id} className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <button
+                        className="text-blue-600 dark:text-blue-400 font-medium hover:underline"
+                        onClick={async () => {
+                          const data = await getInvitationPreview(inv.id);
+                          setPreview(data);
+                        }}
+                      >
+                        {inv.groupName || 'Group'}
+                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          className="px-3 py-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm"
+                          onClick={async () => {
+                            await acceptInvitation(inv.id);
+                            setInvites(prev => prev.filter(i => i.id !== inv.id));
+                            alert('Invitation accepted. You have joined the group.');
+                          }}
+                        >
+                          Accept
+                        </button>
+                        <button
+                          className="px-3 py-1 rounded-md bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-900 dark:text-white text-sm"
+                          onClick={async () => {
+                            await declineInvitation(inv.id);
+                            setInvites(prev => prev.filter(i => i.id !== inv.id));
+                          }}
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                    {preview && (
+                      <div className="mt-3 text-sm text-gray-800 dark:text-gray-200">
+                        <div className="mb-2">
+                          <div className="font-semibold">{preview.group?.name}</div>
+                          {preview.group?.description && (
+                            <div className="text-gray-600 dark:text-gray-400">{preview.group.description}</div>
+                          )}
+                        </div>
+                        <div className="mb-2">
+                          <div className="font-medium">Members</div>
+                          <ul className="list-disc ml-5">
+                            {preview.members?.map((m: any) => (
+                              <li key={m.id} className="flex items-center gap-2">
+                                <span>{typeof m.user === 'object' ? m.user?.username : 'User'}</span>
+                                {m.role === 'admin' && (
+                                  <span className="px-2 py-0.5 rounded text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100">Admin</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      <div className="flex justify-between items-start gap-3 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Groups</h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Create private circles to coordinate quickly with family, friends or coworkers.</p>
+        </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-md"
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-blue-600/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900"
         >
           + New Group
         </button>
@@ -101,9 +236,12 @@ export default function GroupsPage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7">
           {groups.map((group) => (
-            <div key={group._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div key={group._id} className="card-surface relative rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg hover:shadow-2xl transition-all hover:-translate-y-1">
+              {/* Accent bar */}
+              <div className={`h-1.5 w-full bg-gradient-to-r ${getTypeGradient(group.type)}`}></div>
+
               {/* Main Link Area */}
               <Link
                 href={group._id.startsWith('temp-') ? '#' : `/groups/${group._id}`}
@@ -113,9 +251,17 @@ export default function GroupsPage() {
                 } : undefined}
                 className="block p-6"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="text-4xl">{getGroupIcon(group.type)}</div>
-                  <div className="flex gap-2">
+                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="text-4xl select-none">{getGroupIcon(group.type)}</div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white leading-tight">{group.name}</h3>
+                      {group.description && (
+                        <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-1">{group.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 items-start">
                     {group._id.startsWith('temp-') && (
                       <span className="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-2 py-1 rounded text-xs font-medium">
                         Pending
@@ -128,30 +274,26 @@ export default function GroupsPage() {
                     )}
                   </div>
                 </div>
-                
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  {group.name}
-                </h3>
-                
-                {group.description && (
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">
-                    {group.description}
-                  </p>
-                )}
-                
                 <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                  <span>{group.type}</span>
-                  <span>{group.memberCount || 0} members</span>
+                  <span className="inline-flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-medium">{group.type}</span>
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-medium">{group.memberCount || 0} {group.memberCount === 1 ? 'member' : 'members'}</span>
+                    {!group._id.startsWith('temp-') && (
+                      <span className="ml-1 inline-flex items-center text-blue-600 dark:text-blue-400 text-xs font-medium">View →</span>
+                    )}
+                  </div>
                 </div>
               </Link>
               
               {/* Delete Button - Only show if user created this group or is admin */}
               {group.isAdmin && (
-                <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+                <div className="card-footer px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
                   <button
                     onClick={(e) => handleDeleteGroup(e, group._id)}
                     disabled={deletingGroupId === group._id || group._id.startsWith('temp-')}
-                    className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                    className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-4 py-2.5 rounded-lg font-medium transition-colors text-sm"
                   >
                     {deletingGroupId === group._id ? 'Deleting...' : '🗑️ Delete Group'}
                   </button>
@@ -162,10 +304,19 @@ export default function GroupsPage() {
         </div>
       )}
 
+      {/* Floating Action Button (mobile/desktop) */}
+      <button
+        onClick={() => setShowCreateModal(true)}
+        className="fixed bottom-6 right-6 z-40 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xl shadow-blue-600/40 w-14 h-14 flex items-center justify-center text-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+        aria-label="Create new group"
+      >
+        +
+      </button>
+
       {/* Create Group Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+          <div className="bg-white dark:bg-gray-800 force-light-surface rounded-lg max-w-md w-full p-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
               Create New Group
             </h2>
@@ -180,7 +331,7 @@ export default function GroupsPage() {
                   required
                   value={newGroup.name}
                   onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white force-light-input"
                   placeholder="e.g., My Family"
                 />
               </div>
@@ -193,7 +344,7 @@ export default function GroupsPage() {
                   value={newGroup.description}
                   onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white force-light-input"
                   placeholder="Optional description..."
                 />
               </div>
@@ -205,7 +356,7 @@ export default function GroupsPage() {
                 <select
                   value={newGroup.type}
                   onChange={(e) => setNewGroup({ ...newGroup, type: e.target.value as GroupType })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white force-light-input"
                 >
                   {Object.values(GroupType).map((type) => (
                     <option key={type} value={type}>
