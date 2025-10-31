@@ -7,6 +7,7 @@ import { UserStatus, GroupType } from '@/types/group';
 import { API_CONFIG } from '@/lib/config';
 import { useAuth } from '@/contexts/ClientAuthContext';
 import InviteMemberModal from '@/components/InviteMemberModal';
+import dynamic from 'next/dynamic';
 
 interface GroupDetails {
   _id: string;
@@ -43,6 +44,9 @@ export default function GroupDetailsPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editForm, setEditForm] = useState<{ name: string; description: string; type: GroupType } | null>(null);
   const [leftGroup, setLeftGroup] = useState(false);
+  const [locModal, setLocModal] = useState<{ username: string; coords: { lat: number; lng: number } | null; updatedAt?: number | string | null } | null>(null);
+
+  const MemberLocationModal = dynamic(() => import('../MemberLocationModal'), { ssr: false });
 
   useEffect(() => {
     fetchGroupDetails();
@@ -394,17 +398,19 @@ export default function GroupDetailsPage() {
         </div>
       )}
 
-      {/* Invite Member Button */}
+      {/* Invite Member (compact and responsive) */}
       {groupDetails.isAdmin && (
-        <div className="card-surface bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+        <div className="mt-2 mb-2 flex justify-end">
           <button
             onClick={() => setIsInviteModalOpen(true)}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-lg"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-sm md:text-base shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Invite member"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Invite Member
+            <span className="hidden sm:inline">Invite Member</span>
+            <span className="sm:hidden">Invite</span>
           </button>
         </div>
       )}
@@ -470,7 +476,25 @@ export default function GroupDetailsPage() {
               return (
                 <div
                   key={member._id || memberUserId}
-                  className="flex items-center justify-between p-4 bg-gray-50/80 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                  className="flex items-center justify-between p-4 bg-gray-50/80 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                  onClick={async () => {
+                    try {
+                      if (!memberUserId) return;
+                      const resp = await fetch(`${API_CONFIG.BASE_URL}/status/user/${memberUserId}/latest`);
+                      if (resp.ok) {
+                        const j = await resp.json();
+                        const d = j.data || null;
+                        const coords = d && typeof d.latitude === 'number' && typeof d.longitude === 'number'
+                          ? { lat: d.latitude, lng: d.longitude }
+                          : null;
+                        setLocModal({ username, coords, updatedAt: d?.updatedAt || d?.timestamp });
+                      } else {
+                        setLocModal({ username, coords: null });
+                      }
+                    } catch {
+                      setLocModal({ username, coords: null });
+                    }
+                  }}
                 >
                   <div className="flex items-center gap-4">
                     <div className="text-3xl">{getStatusIcon(member.status)}</div>
@@ -526,6 +550,16 @@ export default function GroupDetailsPage() {
             : []
         }
       />
+
+      {/* Member location modal */}
+      {locModal && (
+        <MemberLocationModal
+          onClose={() => setLocModal(null)}
+          username={locModal.username}
+          coords={locModal.coords}
+          updatedAt={locModal.updatedAt || null}
+        />
+      )}
 
       {/* Edit Group Modal (admins) */}
       {isEditOpen && editForm && (

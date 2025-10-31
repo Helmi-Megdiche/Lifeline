@@ -32,6 +32,12 @@ export class StatusController {
     return { success: true, data: statuses };
   }
 
+  @Get('user/:userId/latest')
+  async findLatest(@Param('userId') userId: string) {
+    const status = await this.statusService.findLatestByUserId(userId);
+    return { success: true, data: status };
+  }
+
   @Get('sync')
   async findAllForSync() {
     const statuses = await this.statusService.findAllForSync();

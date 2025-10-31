@@ -85,6 +85,12 @@ export class StatusService {
     return this.statusModel.find({ userId }).sort({ createdAt: -1 }).exec();
   }
 
+  async findLatestByUserId(userId: string): Promise<CheckInStatus | null> {
+    // Single-document per user; return that
+    const doc = await this.statusModel.findOne({ userId }).exec();
+    return doc;
+  }
+
   async findById(id: string): Promise<CheckInStatus | null> {
     // Support non-ObjectId string _id
     return this.statusModel.findOne({ _id: id }).exec();
