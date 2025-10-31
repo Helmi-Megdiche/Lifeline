@@ -51,6 +51,12 @@ export class GroupsController {
     return { message: 'Member removed successfully' };
   }
 
+  @Post(':id/leave')
+  async leave(@Param('id') id: string, @Req() req: any) {
+    await this.groupsService.leaveGroup(id, req.user.userId);
+    return { message: 'Left group successfully' };
+  }
+
   @Patch(':id/members/:userId/role')
   async updateMemberRole(@Param('id') id: string, @Param('userId') userId: string, @Body() updateRoleDto: UpdateMemberRoleDto, @Req() req: any) {
     return this.groupsService.updateMemberRole(id, userId, updateRoleDto, req.user.userId);

@@ -2,6 +2,14 @@
 
 **Offline-first emergency communication and resource app** - A Progressive Web App (PWA) that works seamlessly online and offline, with real-time location tracking and emergency resource management.
 
+## 🔥 Latest changes
+
+- Unified member status comes from global MongoDB status; removed per‑group updates.
+- Invitations: list, accept/decline, navigate to group details from modal, preview before joining.
+- Group management: admins/owners can edit name, description, and type.
+- Leaving groups: any member can leave; owner blocked if other members remain.
+- Performance: reduced dev memory usage; dynamic import for invitations modal; quieter backend logs.
+
 ## 🌟 Features
 
 ### 📱 **Progressive Web App (PWA)**

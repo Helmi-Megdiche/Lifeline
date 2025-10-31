@@ -17,6 +17,7 @@ interface GroupsContextType {
   deleteGroup: (id: string) => Promise<void>;
   addMember: (groupId: string, userId: string) => Promise<void>;
   removeMember: (groupId: string, userId: string) => Promise<void>;
+  leaveGroup: (groupId: string) => Promise<void>;
   updateStatus: (groupId: string, status: UserStatus) => Promise<void>;
   refreshGroups: () => Promise<void>;
   syncPendingActions: () => Promise<void>;
@@ -363,6 +364,23 @@ export const GroupsProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [user, token]);
 
+  const leaveGroup = useCallback(async (groupId: string): Promise<void> => {
+    if (!user || !token) throw new Error('User not authenticated');
+    const resp = await fetch(`${API_CONFIG.BASE_URL}/groups/${groupId}/leave`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!resp.ok) throw new Error('Failed to leave group');
+    // Optimistically remove from local state and cache
+    setGroups(prev => prev.filter(g => g._id !== groupId));
+    try {
+      const cached = await groupsCache.getCachedGroups();
+      await groupsCache.cacheGroups(cached.filter((g: any) => g._id !== groupId));
+    } catch {}
+    // Refresh groups from server to ensure consistency
+    await fetchGroups();
+  }, [user, token, fetchGroups]);
+
   // Update status
   const updateStatus = useCallback(async (groupId: string, status: UserStatus): Promise<void> => {
     if (!user || !token) {
@@ -588,6 +606,7 @@ export const GroupsProvider = ({ children }: { children: React.ReactNode }) => {
     acceptInvitation,
     declineInvitation,
     getInvitationPreview,
+    leaveGroup,
   };
 
   return <GroupsContext.Provider value={value}>{children}</GroupsContext.Provider>;

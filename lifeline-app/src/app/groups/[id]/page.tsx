@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useGroups } from '@/contexts/GroupsContext';
-import { UserStatus } from '@/types/group';
+import { UserStatus, GroupType } from '@/types/group';
 import { API_CONFIG } from '@/lib/config';
 import { useAuth } from '@/contexts/ClientAuthContext';
 import InviteMemberModal from '@/components/InviteMemberModal';
@@ -32,7 +32,7 @@ export default function GroupDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { user, token } = useAuth();
-  const { groups, updateStatus, deleteGroup, createInvitation, listMyInvitations, acceptInvitation, declineInvitation } = useGroups();
+  const { groups, updateStatus, deleteGroup, createInvitation, listMyInvitations, acceptInvitation, declineInvitation, updateGroup, leaveGroup } = useGroups();
   const [groupDetails, setGroupDetails] = useState<GroupDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +40,9 @@ export default function GroupDetailsPage() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [userGlobalStatus, setUserGlobalStatus] = useState<string | null>(null);
   const [pendingInviteId, setPendingInviteId] = useState<string | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<{ name: string; description: string; type: GroupType } | null>(null);
+  const [leftGroup, setLeftGroup] = useState(false);
 
   useEffect(() => {
     fetchGroupDetails();
@@ -70,6 +73,46 @@ export default function GroupDetailsPage() {
       });
 
       if (!detailsResponse.ok) {
+        // If forbidden, try to load a limited preview via pending invitation
+        if (detailsResponse.status === 403) {
+          try {
+            const invites = await listMyInvitations();
+            const match = invites.find((i: any) => i.groupId === params.id);
+            if (match?.id) {
+              setPendingInviteId(match.id);
+              const previewResp = await fetch(`${API_CONFIG.BASE_URL}/invitations/${match.id}/preview`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+              });
+              if (previewResp.ok) {
+                const pdata = await previewResp.json();
+                const pv = pdata.data || {};
+                const members = Array.isArray(pv.members) ? pv.members.map((m: any) => ({
+                  userId: m.user?._id ? { _id: m.user._id, username: m.user.username, email: m.user.email } : m.user,
+                  role: m.role,
+                  status: 'unknown',
+                })) : [];
+                const gd: GroupDetails = {
+                  _id: pv.group?._id || (params.id as string),
+                  name: pv.group?.name || 'Group',
+                  ownerId: pv.group?.ownerId || '',
+                  description: pv.group?.description || '',
+                  type: pv.group?.type || 'GROUP',
+                  createdAt: pv.group?.createdAt || new Date().toISOString(),
+                  updatedAt: pv.group?.updatedAt || new Date().toISOString(),
+                  members,
+                  memberCount: members.length,
+                  isAdmin: false,
+                  statusCounts: { safe: 0, need_help: 0, in_danger: 0, offline: 0, unknown: members.length },
+                };
+                setGroupDetails(gd);
+                setStatusCounts(gd.statusCounts!);
+                return; // Render preview without throwing
+              }
+            }
+          } catch (e) {
+            // ignore and fall through to error
+          }
+        }
         const errorText = await detailsResponse.text();
         console.error('❌ Failed to fetch group details:', detailsResponse.status, errorText);
         throw new Error(`Failed to fetch group details: ${detailsResponse.status}`);
@@ -215,6 +258,21 @@ export default function GroupDetailsPage() {
     );
   }
 
+  if (leftGroup) {
+    return (
+      <div className="max-w-xl mx-auto card-surface rounded-2xl shadow-lg p-8 text-center">
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">You left this group</h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">You are no longer a member of this group.</p>
+        <button
+          onClick={() => router.push('/groups')}
+          className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          Go to My Groups
+        </button>
+      </div>
+    );
+  }
+
   if (error || !groupDetails) {
     return (
       <div className="text-center py-12">
@@ -289,6 +347,19 @@ export default function GroupDetailsPage() {
                 style={{ minWidth: 140 }}
               >
                 Delete Group
+              </button>
+              <button
+                onClick={() => {
+                  setEditForm({
+                    name: groupDetails.name || '',
+                    description: groupDetails.description || '',
+                    type: (groupDetails.type as any) as GroupType,
+                  });
+                  setIsEditOpen(true);
+                }}
+                className="ml-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-5 py-2 rounded-lg font-semibold shadow transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 dark:focus:ring-offset-gray-900"
+              >
+                Edit
               </button>
             </div>
           )}
@@ -372,6 +443,22 @@ export default function GroupDetailsPage() {
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
           Members ({groupDetails.memberCount})
         </h2>
+        {/* Leave Group button for non-owners */}
+        {groupDetails.ownerId !== user?.id && (
+          <div className="flex justify-end mb-3">
+            <button
+              className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white"
+              onClick={async () => {
+                if (confirm('Leave this group?')) {
+                  await leaveGroup(groupDetails._id);
+                  setLeftGroup(true);
+                }
+              }}
+            >
+              Leave Group
+            </button>
+          </div>
+        )}
         <div className="space-y-3">
           {groupDetails.members && groupDetails.members.length > 0 ? (
             groupDetails.members.map((member: any) => {
@@ -439,6 +526,73 @@ export default function GroupDetailsPage() {
             : []
         }
       />
+
+      {/* Edit Group Modal (admins) */}
+      {isEditOpen && editForm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="card-surface rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-xl w-full max-w-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Group</h2>
+              <button
+                onClick={() => setIsEditOpen(false)}
+                aria-label="Close edit"
+                className="p-2 rounded-lg bg-transparent text-gray-500 hover:text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  await updateGroup(groupDetails._id, editForm);
+                  await fetchGroupDetails();
+                  setIsEditOpen(false);
+                } catch (err: any) {
+                  alert(err.message || 'Failed to update group');
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                <textarea
+                  rows={3}
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Group Type</label>
+                <select
+                  value={editForm.type}
+                  onChange={(e) => setEditForm({ ...editForm, type: e.target.value as unknown as GroupType })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  {Object.values(GroupType).map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setIsEditOpen(false)} className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
+                <button type="submit" className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

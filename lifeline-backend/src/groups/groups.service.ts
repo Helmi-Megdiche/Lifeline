@@ -219,8 +219,16 @@ export class GroupsService {
     const ownerIdStr = (group.ownerId as any).toString();
     
     // Check if user is the owner or an admin
-    const member = await this.memberModel.findOne({ groupId, userId: userIdStr });
-    if (!member || (member.role !== 'admin' && ownerIdStr !== userIdStr)) {
+    const member = await this.memberModel.findOne({ 
+      $or: [
+        { groupId: groupId, userId: userIdStr },
+        { groupId: groupId, userId: new Types.ObjectId(userIdStr) },
+        { groupId: new Types.ObjectId(groupId), userId: userIdStr },
+        { groupId: new Types.ObjectId(groupId), userId: new Types.ObjectId(userIdStr) },
+        { groupId: group._id, userId: userIdStr },
+      ]
+    });
+    if ((!member || member.role !== 'admin') && ownerIdStr !== userIdStr) {
       throw new ForbiddenException('You do not have permission to update this group');
     }
     
@@ -334,6 +342,30 @@ export class GroupsService {
     }
     
     await this.memberModel.deleteOne({ groupId, userId: targetUserId });
+  }
+
+  async leaveGroup(groupId: string, userId: string): Promise<void> {
+    const group = await this.groupModel.findById(groupId);
+    if (!group) {
+      throw new NotFoundException('Group not found');
+    }
+    const userIdStr = userId.toString();
+    const ownerIdStr = (group.ownerId as any).toString();
+    // If owner and there are other members, forbid leaving
+    if (ownerIdStr === userIdStr) {
+      const members = await this.memberModel.countDocuments({ groupId });
+      if (members > 0) {
+        throw new ForbiddenException('Owner cannot leave while other members remain. Transfer ownership or delete the group.');
+      }
+    }
+    await this.memberModel.deleteOne({
+      $or: [
+        { groupId, userId: userIdStr },
+        { groupId: new Types.ObjectId(groupId), userId: userIdStr },
+        { groupId, userId: new Types.ObjectId(userIdStr) },
+        { groupId: new Types.ObjectId(groupId), userId: new Types.ObjectId(userIdStr) },
+      ],
+    });
   }
 
   async updateMemberRole(groupId: string, targetUserId: string, updateRoleDto: UpdateMemberRoleDto, adminUserId: string): Promise<GroupMemberDocument> {
