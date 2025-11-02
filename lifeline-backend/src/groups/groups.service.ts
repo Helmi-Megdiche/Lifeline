@@ -397,18 +397,103 @@ export class GroupsService {
       throw new NotFoundException('Group not found');
     }
     
-    // Check if admin user is a member with admin role or is the owner
-    const adminMember = await this.memberModel.findOne({ groupId, userId: adminUserId });
-    if (group.ownerId.toString() !== adminUserId && (!adminMember || adminMember.role !== 'admin')) {
+    // Convert to strings for consistent comparison
+    const ownerIdStr = (group.ownerId as any).toString();
+    const adminUserIdStr = adminUserId.toString();
+    const targetUserIdStr = targetUserId.toString();
+    
+    // Check if admin user is the owner
+    const isOwner = ownerIdStr === adminUserIdStr;
+    
+    // Check if admin user is a member with admin role
+    const adminMember = await this.memberModel.findOne({ 
+      groupId, 
+      $or: [
+        { userId: adminUserId },
+        { userId: adminUserIdStr }
+      ]
+    });
+    
+    const isAdminMember = adminMember && adminMember.role === 'admin';
+    
+    // Only allow if user is owner OR admin member
+    if (!isOwner && !isAdminMember) {
       throw new ForbiddenException('Only admins can remove members');
     }
     
     // Cannot remove the owner
-    if (targetUserId === group.ownerId.toString()) {
+    if (targetUserIdStr === ownerIdStr) {
       throw new BadRequestException('Cannot remove the group owner');
     }
     
-    await this.memberModel.deleteOne({ groupId, userId: targetUserId });
+    // Convert to ObjectId for consistent MongoDB queries
+    let groupIdObj: Types.ObjectId;
+    let targetUserIdObj: Types.ObjectId;
+    
+    try {
+      groupIdObj = new Types.ObjectId(groupId);
+    } catch (error) {
+      console.error(`Invalid groupId format: ${groupId}`);
+      throw new BadRequestException('Invalid group ID format');
+    }
+    
+    try {
+      targetUserIdObj = new Types.ObjectId(targetUserId);
+    } catch (error) {
+      console.error(`Invalid userId format: ${targetUserId}`);
+      throw new BadRequestException('Invalid user ID format');
+    }
+    
+    // Verify member exists before deletion using ObjectId
+    const memberToDelete = await this.memberModel.findOne({
+      groupId: groupIdObj,
+      userId: targetUserIdObj
+    });
+    
+    if (!memberToDelete) {
+      console.warn(`⚠️ Member ${targetUserIdStr} not found in group ${groupId} (ObjectId: ${groupIdObj}, ${targetUserIdObj})`);
+      
+      // Try one more time with string format in case of any type mismatch
+      const memberCheck = await this.memberModel.findOne({
+        $or: [
+          { groupId: groupIdObj, userId: targetUserIdObj },
+          { groupId: groupId, userId: targetUserId },
+          { groupId: groupId, userId: targetUserIdStr }
+        ]
+      });
+      
+      if (!memberCheck) {
+        throw new NotFoundException('Member not found in this group');
+      }
+      
+      // If found with alternative query, use the found document's IDs
+      const foundGroupId = memberCheck.groupId.toString();
+      const foundUserId = memberCheck.userId.toString();
+      
+      // Delete using the found IDs
+      const deleteResult = await this.memberModel.deleteOne({ 
+        _id: memberCheck._id
+      });
+      
+      if (deleteResult.deletedCount === 0) {
+        throw new NotFoundException('Failed to remove member from group');
+      }
+      
+      console.log(`✅ Removed member ${foundUserId} from group ${foundGroupId} by admin ${adminUserIdStr}`);
+      return;
+    }
+    
+    // Delete the member using ObjectId (standard path)
+    const deleteResult = await this.memberModel.deleteOne({ 
+      _id: memberToDelete._id
+    });
+    
+    if (deleteResult.deletedCount === 0) {
+      console.error(`❌ Failed to delete member ${targetUserIdStr} from group ${groupId}`);
+      throw new NotFoundException('Failed to remove member from group');
+    }
+    
+    console.log(`✅ Removed member ${targetUserIdStr} from group ${groupId} by admin ${adminUserIdStr}`);
   }
 
   async leaveGroup(groupId: string, userId: string): Promise<void> {

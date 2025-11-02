@@ -338,10 +338,23 @@ export const GroupsProvider = ({ children }: { children: React.ReactNode }) => {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to remove member');
+          // Try to extract error message from response
+          let errorMessage = 'Failed to remove member';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.error || errorMessage;
+          } catch {
+            // If response is not JSON, use status text
+            errorMessage = response.statusText || errorMessage;
+          }
+          throw new Error(errorMessage);
         }
-      } catch (error) {
-        // Add to pending actions
+      } catch (error: any) {
+        // If it's already an Error with a message, rethrow it
+        if (error instanceof Error) {
+          throw error;
+        }
+        // Otherwise, add to pending actions and throw
         await offlineSyncManager.addPendingAction({
           action: 'REMOVE_MEMBER',
           endpoint: `/groups/${groupId}/members/${userId}`,
@@ -349,7 +362,7 @@ export const GroupsProvider = ({ children }: { children: React.ReactNode }) => {
           data: {},
           timestamp: new Date().toISOString(),
         });
-        throw error;
+        throw new Error(error.message || 'Failed to remove member');
       }
     } else {
       // Add to pending actions
