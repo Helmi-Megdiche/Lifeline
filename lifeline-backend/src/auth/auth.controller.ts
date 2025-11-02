@@ -39,6 +39,25 @@ export class AuthController {
     return { success: true, message: 'Password reset successfully' };
   }
 
+  // New OTP-based password reset endpoints
+  @Post('forgot-password-otp')
+  @HttpCode(HttpStatus.OK)
+  async forgotPasswordOTP(@Body() body: ForgotPasswordDto) {
+    return await this.authService.requestPasswordResetOTP(body.email);
+  }
+
+  @Post('verify-otp')
+  @HttpCode(HttpStatus.OK)
+  async verifyOTP(@Body() body: { email: string; otp: string }) {
+    return await this.authService.verifyOTP(body.email, body.otp);
+  }
+
+  @Post('reset-password-otp')
+  @HttpCode(HttpStatus.OK)
+  async resetPasswordOTP(@Body() body: { email: string; otp: string; newPassword: string }) {
+    return await this.authService.resetPasswordWithOTP(body.email, body.otp, body.newPassword);
+  }
+
   @Put('profile')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)

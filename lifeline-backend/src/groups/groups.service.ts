@@ -451,7 +451,6 @@ export class GroupsService {
     });
     
     if (!memberToDelete) {
-      console.warn(`⚠️ Member ${targetUserIdStr} not found in group ${groupId} (ObjectId: ${groupIdObj}, ${targetUserIdObj})`);
       
       // Try one more time with string format in case of any type mismatch
       const memberCheck = await this.memberModel.findOne({
@@ -478,9 +477,7 @@ export class GroupsService {
       if (deleteResult.deletedCount === 0) {
         throw new NotFoundException('Failed to remove member from group');
       }
-      
-      console.log(`✅ Removed member ${foundUserId} from group ${foundGroupId} by admin ${adminUserIdStr}`);
-      return;
+            return;
     }
     
     // Delete the member using ObjectId (standard path)

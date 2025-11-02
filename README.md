@@ -4,6 +4,8 @@
 
 ## 🔥 Latest changes
 
+- **OTP-Based Password Reset**: New secure password reset flow using email-based OTP verification. Users can request a 6-digit OTP code, verify it, and reset their password securely. Complete modal interface with multi-step process.
+- **Enhanced Members List UI**: Improved light mode colors and contrast for better readability. White background with darker text, professional styling with better shadows and borders.
 - **Admin Member Management**: Group admins can now remove members from groups permanently (with restrictions: cannot remove owner or themselves).
 - **Member Location Viewing**: Click any member card to view their last known location with interactive map modal.
 - **Enhanced Authentication UI**: Complete redesign of login/register page with modern styling, improved dark mode support, and better user experience.
@@ -105,7 +107,13 @@
 - **User Isolation** - Data separation between users
 - **HTTPS Support** - Secure connections for mobile geolocation
 - **Profile Management** - Update username and email with validation
-- **Password Reset** - Email-based password recovery system
+- **OTP-Based Password Reset** (NEW!) - Secure password recovery with email OTP verification
+  - Request 6-digit OTP code via email
+  - Verify OTP before password reset
+  - 15-minute OTP expiration for security
+  - Professional multi-step modal interface
+  - Full dark/light mode support
+  - Mobile-responsive design
 - **Enhanced Auth UI** - Modern, professional login/register interface with improved dark mode support
 
 ### 🎨 **User Interface & Experience**
@@ -500,8 +508,11 @@ NEXT_PUBLIC_API_URL=https://your-api-domain.com
 #### Authentication
 - `POST /auth/register` - User registration
 - `POST /auth/login` - User login
-- `POST /auth/forgot-password` - Request password reset
-- `POST /auth/reset-password` - Reset password with token
+- `POST /auth/forgot-password` - Request password reset (legacy token-based)
+- `POST /auth/reset-password` - Reset password with token (legacy)
+- `POST /auth/forgot-password-otp` - Request password reset OTP (sends 6-digit code via email)
+- `POST /auth/verify-otp` - Verify OTP code for password reset
+- `POST /auth/reset-password-otp` - Reset password with verified OTP
 - `PUT /auth/profile` - Update user profile (username/email)
 
 #### Status Management

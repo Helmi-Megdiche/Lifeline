@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/ClientAuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import Link from 'next/link';
+import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,6 +18,7 @@ export default function AuthPage() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editUsername, setEditUsername] = useState('');
   const [editEmail, setEditEmail] = useState('');
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const { login, register, forgotPassword, updateProfile, isAuthenticated, logout, isLoading, isOnline, user, refreshOnlineStatus } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
@@ -353,9 +355,20 @@ export default function AuthPage() {
           </div>
         </div>
         <div className="space-y-2">
-          <label htmlFor="password" className="block text-sm font-semibold text-gray-700 dark:text-dark-text-secondary">
-            Password
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 dark:text-dark-text-secondary">
+              Password
+            </label>
+            {isLogin && (
+              <button
+                type="button"
+                onClick={() => setShowForgotPasswordModal(true)}
+                className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline dark:hover:underline transition-all duration-200 px-2 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30"
+              >
+                Forgot Password?
+              </button>
+            )}
+          </div>
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
@@ -443,6 +456,12 @@ export default function AuthPage() {
         </div>
       )}
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal 
+        isOpen={showForgotPasswordModal} 
+        onClose={() => setShowForgotPasswordModal(false)} 
+      />
     </div>
   );
 }

@@ -17,6 +17,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   register: (username: string, password: string, email: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
+  requestPasswordResetOTP: (email: string) => Promise<{ success: boolean; message: string }>;
+  verifyOTP: (email: string, otp: string) => Promise<{ success: boolean; token: string; message: string }>;
+  resetPasswordWithOTP: (email: string, otp: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
   updateProfile: (username: string, email: string) => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -167,6 +170,57 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const requestPasswordResetOTP = async (email: string): Promise<{ success: boolean; message: string }> => {
+    const online = await isOnlineClient();
+    if (!online) throw new Error('You are offline. Connect to the internet to reset password.');
+    const response = await fetch(`${API_CONFIG.BASE_URL}/auth/forgot-password-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!response.ok) {
+      let message = 'Failed to send OTP';
+      try { const data = await response.json(); message = data.message || message; } catch {}
+      throw new Error(message);
+    }
+    const data = await response.json();
+    return data;
+  };
+
+  const verifyOTP = async (email: string, otp: string): Promise<{ success: boolean; token: string; message: string }> => {
+    const online = await isOnlineClient();
+    if (!online) throw new Error('You are offline. Connect to the internet to verify OTP.');
+    const response = await fetch(`${API_CONFIG.BASE_URL}/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp }),
+    });
+    if (!response.ok) {
+      let message = 'Invalid or expired OTP';
+      try { const data = await response.json(); message = data.message || message; } catch {}
+      throw new Error(message);
+    }
+    const data = await response.json();
+    return data;
+  };
+
+  const resetPasswordWithOTP = async (email: string, otp: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    const online = await isOnlineClient();
+    if (!online) throw new Error('You are offline. Connect to the internet to reset password.');
+    const response = await fetch(`${API_CONFIG.BASE_URL}/auth/reset-password-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp, newPassword }),
+    });
+    if (!response.ok) {
+      let message = 'Failed to reset password';
+      try { const data = await response.json(); message = data.message || message; } catch {}
+      throw new Error(message);
+    }
+    const data = await response.json();
+    return data;
+  };
+
   const updateProfile = async (username: string, email: string) => {
     const online = await isOnlineClient();
     if (!online) throw new Error('You are offline. Connect to the internet to update profile.');
@@ -276,7 +330,7 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, register, forgotPassword, updateProfile, isAuthenticated, isLoading, isOnline: onlineStatus, refreshOnlineStatus }}>
+    <AuthContext.Provider value={{ user, token, login, logout, register, forgotPassword, requestPasswordResetOTP, verifyOTP, resetPasswordWithOTP, updateProfile, isAuthenticated, isLoading, isOnline: onlineStatus, refreshOnlineStatus }}>
       {children}
     </AuthContext.Provider>
   );

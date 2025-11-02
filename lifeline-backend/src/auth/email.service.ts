@@ -58,4 +58,47 @@ export class EmailService {
       throw new Error('Failed to send password reset email');
     }
   }
+
+  async sendOTPEmail(email: string, otp: string): Promise<void> {
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'helmimegdiche07@gmail.com',
+      to: email,
+      subject: 'Password Reset OTP - Lifeline App',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+            <h2 style="color: white; margin: 0;">Password Reset Request</h2>
+          </div>
+          <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">Hello,</p>
+            <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">You have requested to reset your password for your Lifeline App account.</p>
+            <p style="color: #374151; font-size: 16px; margin-bottom: 30px;">Please use the following OTP code to verify your identity:</p>
+            <div style="text-align: center; margin: 40px 0;">
+              <div style="background: white; border: 3px solid #2563eb; border-radius: 12px; padding: 25px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0; font-weight: 600; letter-spacing: 1px;">YOUR OTP CODE</p>
+                <p style="color: #2563eb; font-size: 36px; font-weight: bold; letter-spacing: 8px; margin: 0; font-family: 'Courier New', monospace;">${otp}</p>
+              </div>
+            </div>
+            <p style="color: #dc2626; font-size: 14px; margin-top: 30px; font-weight: 600;">
+              ⚠️ This OTP will expire in 15 minutes.
+            </p>
+            <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
+              If you didn't request this password reset, please ignore this email. Your account remains secure.
+            </p>
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+            <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+              This email was sent from Lifeline App. Please do not reply to this email.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send OTP email:', error);
+      throw new Error('Failed to send OTP email');
+    }
+  }
 }

@@ -73,6 +73,115 @@ export class AuthService {
     await this.emailService.sendPasswordResetEmail(email, resetToken);
   }
 
+  // New OTP-based password reset methods
+  async requestPasswordResetOTP(email: string): Promise<{ success: boolean; message: string }> {
+    // Find user by email
+    const user = await this.userModel.findOne({ email }).exec();
+    if (!user) {
+      // For security, don't reveal if email exists
+      return { success: true, message: 'If an account exists with this email, an OTP has been sent.' };
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Generate a secure random token for password reset
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    
+    // Set expiration time (15 minutes from now for OTP)
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+
+    // Delete any existing unused tokens for this user
+    await this.passwordResetTokenModel.deleteMany({
+      userId: (user._id as any).toString(),
+      used: false,
+      otpVerified: false,
+    }).exec();
+
+    // Save the reset token with OTP to database
+    await this.passwordResetTokenModel.create({
+      userId: (user._id as any).toString(),
+      token: resetToken,
+      otp: otp,
+      expiresAt,
+      used: false,
+      otpVerified: false,
+    });
+
+    // Send email with OTP
+    await this.emailService.sendOTPEmail(email, otp);
+
+    return { success: true, message: 'OTP sent to your email address.' };
+  }
+
+  async verifyOTP(email: string, otp: string): Promise<{ success: boolean; token: string; message: string }> {
+    // Find user by email
+    const user = await this.userModel.findOne({ email }).exec();
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or OTP');
+    }
+
+    // Find the reset token with matching OTP
+    const resetTokenDoc = await this.passwordResetTokenModel.findOne({
+      userId: (user._id as any).toString(),
+      otp: otp,
+      used: false,
+      expiresAt: { $gt: new Date() }, // Not expired
+    }).exec();
+
+    if (!resetTokenDoc) {
+      throw new UnauthorizedException('Invalid or expired OTP');
+    }
+
+    // Mark OTP as verified
+    await this.passwordResetTokenModel.findByIdAndUpdate(resetTokenDoc._id, {
+      otpVerified: true,
+    }).exec();
+
+    return { 
+      success: true, 
+      token: resetTokenDoc.token,
+      message: 'OTP verified successfully' 
+    };
+  }
+
+  async resetPasswordWithOTP(email: string, otp: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    // Find user by email
+    const user = await this.userModel.findOne({ email }).exec();
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Find the reset token with verified OTP
+    const resetTokenDoc = await this.passwordResetTokenModel.findOne({
+      userId: (user._id as any).toString(),
+      otp: otp,
+      otpVerified: true,
+      used: false,
+      expiresAt: { $gt: new Date() },
+    }).exec();
+
+    if (!resetTokenDoc) {
+      throw new UnauthorizedException('Invalid or expired OTP. Please request a new OTP.');
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update user's password
+    await this.userModel.findByIdAndUpdate(user._id, {
+      password: hashedPassword,
+    }).exec();
+
+    // Mark the token as used
+    await this.passwordResetTokenModel.findByIdAndUpdate(resetTokenDoc._id, {
+      used: true,
+    }).exec();
+
+    return { success: true, message: 'Password reset successfully' };
+  }
+
   async resetPassword(token: string, newPassword: string): Promise<void> {
     // Find the reset token
     const resetTokenDoc = await this.passwordResetTokenModel.findOne({
