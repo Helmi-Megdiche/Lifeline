@@ -322,15 +322,15 @@ export default function AuthPage() {
               Email Address
             </label>
             <div className="relative">
-              <input
-                type="email"
-                id="email"
+            <input
+              type="email"
+              id="email"
                 className="w-full px-4 py-3.5 bg-white/80 dark:bg-dark-surface-primary backdrop-blur-sm border-2 border-gray-200 dark:border-dark-border-primary rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 transition-all duration-200 text-gray-900 dark:text-dark-text-primary font-medium placeholder:text-gray-400 dark:placeholder:text-dark-text-tertiary"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                required
-              />
+              required
+            />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-dark-text-tertiary pointer-events-none">📧</span>
             </div>
           </div>
@@ -340,15 +340,15 @@ export default function AuthPage() {
             Username
           </label>
           <div className="relative">
-            <input
-              type="text"
-              id="username"
+          <input
+            type="text"
+            id="username"
               className="w-full px-4 py-3.5 bg-white/80 dark:bg-dark-surface-primary backdrop-blur-sm border-2 border-gray-200 dark:border-dark-border-primary rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 transition-all duration-200 text-gray-900 dark:text-dark-text-primary font-medium placeholder:text-gray-400 dark:placeholder:text-dark-text-tertiary"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
               placeholder="Enter your username"
-              required
-            />
+            required
+          />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-dark-text-tertiary pointer-events-none">👤</span>
           </div>
         </div>
@@ -425,23 +425,23 @@ export default function AuthPage() {
           <p className="text-sm text-gray-600 dark:text-dark-text-secondary mb-2">
             {isLogin ? "Don't have an account?" : "Already have an account?"}
           </p>
-          <button
-            onClick={() => setIsLogin(!isLogin)}
+        <button
+          onClick={() => setIsLogin(!isLogin)}
             disabled={!isOnline && isLogin}
             className="group inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-900 dark:text-dark-text-primary hover:text-black dark:hover:text-dark-text-primary bg-white dark:bg-blue-950/30 hover:bg-gray-50 dark:hover:bg-blue-950/50 border border-gray-300 dark:border-blue-800/50 hover:border-gray-400 dark:hover:border-blue-700/50 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-blue-950/30 shadow-sm hover:shadow-md"
-          >
+        >
             <span className="text-base">{isLogin ? '✨' : '🔐'}</span>
             <span>{isLogin ? 'Create an account' : 'Sign in to your account'}</span>
             <span className="group-hover:translate-x-0.5 transition-transform text-gray-900 dark:text-dark-text-primary">→</span>
-          </button>
-        </div>  
-        {!isOnline && (
-          <div className="mt-4 text-center">
+        </button>
+      </div>
+      {!isOnline && (
+        <div className="mt-4 text-center">
             <p className="text-xs text-gray-500 dark:text-dark-text-tertiary bg-gray-50/50 dark:bg-dark-surface-secondary/50 px-3 py-2 rounded-lg">
               ⚠️ Offline mode: Only login is available. Connect to internet for registration.
-            </p>
-          </div>
-        )}
+          </p>
+        </div>
+      )}
       </div>
     </div>
   );

@@ -4,13 +4,16 @@
 
 ## 🔥 Latest changes
 
+- **Admin Member Management**: Group admins can now remove members from groups permanently (with restrictions: cannot remove owner or themselves).
+- **Member Location Viewing**: Click any member card to view their last known location with interactive map modal.
+- **Enhanced Authentication UI**: Complete redesign of login/register page with modern styling, improved dark mode support, and better user experience.
+- **Professional Dark Mode**: Upgraded to black-based dark theme with improved contrast and visibility across all components.
 - Unified member status comes from global MongoDB status; removed per‑group updates.
 - Invitations: list, accept/decline, navigate to group details from modal, preview before joining.
 - Group management: admins/owners can edit name, description, and type.
 - Leaving groups: any member can leave; owner blocked if other members remain.
 - Performance: reduced dev memory usage; dynamic import for invitations modal; quieter backend logs.
 - Group chat: Dedicated page at `groups/[id]/chat` with REST endpoints (`GET/POST /groups/:id/messages`).
-- Member location preview: click member to view last known coordinates and open in Google Maps.
 - Light/Dark UX: fixed chat light-mode backgrounds; compact Invite/Back buttons.
 
 ## 🌟 Features
@@ -81,12 +84,29 @@
   - Alert creator moderation controls
   - Professional UI with avatars and badges
 
+### 👥 **Groups & Collaboration** (NEW!)
+- **Group Management**: Create, edit, and delete groups with customizable names, descriptions, and types (Family, Friends, Work, Other)
+- **Member Invitations**: Send invitations to other users to join your groups
+- **Invitation System**: View, accept, decline, and preview invitations before joining
+- **Role Management**: Group owners and admins can manage member roles
+- **Admin Permissions**: 
+  - Admins can remove members from groups permanently
+  - Cannot remove group owner or themselves
+  - Full member management capabilities
+- **Member Location Viewing**: Click any member card to view their last known location with interactive map modal
+- **Group Chat**: Dedicated chat page for group communication (`groups/[id]/chat`)
+- **Leave Group**: Members can leave groups (owners restricted if other members exist)
+- **Status Tracking**: View member statuses (Safe, Need Help, In Danger, Offline, Unknown) in real-time
+- **Member Status Icons**: Visual indicators for each member's current status
+- **Unified Status System**: Member statuses sync from global MongoDB status collection
+
 ### 🔐 **Security & Authentication**
 - **JWT Authentication** - Secure user sessions
 - **User Isolation** - Data separation between users
 - **HTTPS Support** - Secure connections for mobile geolocation
 - **Profile Management** - Update username and email with validation
 - **Password Reset** - Email-based password recovery system
+- **Enhanced Auth UI** - Modern, professional login/register interface with improved dark mode support
 
 ### 🎨 **User Interface & Experience**
 - **Dark Mode Support** - Complete theme switching with proper contrast
@@ -488,6 +508,26 @@ NEXT_PUBLIC_API_URL=https://your-api-domain.com
 - `POST /status` - Create/update status
 - `GET /status/user/:userId` - Get user status
 - `GET /status/sync` - Get sync status
+- `GET /status/user/:userId/latest` - Get latest status with location data
+
+#### Groups Management
+- `POST /groups` - Create a new group
+- `GET /groups` - Get all groups for authenticated user
+- `GET /groups/:id` - Get group details with members
+- `PUT /groups/:id` - Update group (name, description, type) - admin/owner only
+- `DELETE /groups/:id` - Delete group - owner only
+- `POST /groups/:id/members` - Add member to group - admin/owner only
+- `DELETE /groups/:id/members/:userId` - Remove member from group - admin only (cannot remove owner or self)
+- `POST /groups/:id/leave` - Leave a group
+- `POST /groups/:id/messages` - Send message to group chat
+- `GET /groups/:id/messages` - Get group chat messages
+
+#### Invitations
+- `POST /invitations` - Create invitation (send invite to user)
+- `GET /invitations/my` - Get user's pending invitations
+- `GET /invitations/:id/preview` - Preview group details before accepting
+- `POST /invitations/:id/accept` - Accept an invitation
+- `POST /invitations/:id/decline` - Decline an invitation
 
 #### Alerts Management
 - `POST /alerts` - Create new alert

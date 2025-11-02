@@ -34,7 +34,7 @@ export default function GroupDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { user, token } = useAuth();
-  const { groups, updateStatus, deleteGroup, createInvitation, listMyInvitations, acceptInvitation, declineInvitation, updateGroup, leaveGroup } = useGroups();
+  const { groups, updateStatus, deleteGroup, createInvitation, listMyInvitations, acceptInvitation, declineInvitation, updateGroup, leaveGroup, removeMember } = useGroups();
   const [groupDetails, setGroupDetails] = useState<GroupDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -460,9 +460,18 @@ export default function GroupDetailsPage() {
 
       {/* Members List */}
       <div className="card-surface bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          Members ({groupDetails.memberCount})
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Members ({groupDetails.memberCount})
+          </h2>
+          <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="font-medium">Click members to view their location</span>
+          </div>
+        </div>
         {/* Leave Group button for non-owners */}
         {groupDetails.ownerId !== user?.id && (
           <div className="flex justify-end mb-3">
@@ -486,15 +495,23 @@ export default function GroupDetailsPage() {
               const email = typeof member.userId === 'object' ? member.userId?.email : '';
               const memberUserId = typeof member.userId === 'object' ? member.userId?._id : member.userId;
               const isCurrentUser = memberUserId === user?.id;
+              const isAdmin = groupDetails.isAdmin;
+
+              // Don't allow removing the owner
+              const isOwner = memberUserId === groupDetails.ownerId;
+              const canRemove = isAdmin && !isOwner && !isCurrentUser;
 
               return (
                 <div
                   key={member._id || memberUserId}
-                  className="flex items-center justify-between p-4 bg-gray-50/80 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                  className="flex items-center justify-between p-4 bg-gray-50/80 dark:bg-gray-700/50 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:shadow-md cursor-pointer border-2 border-transparent hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-200"
                   onClick={async () => {
+                    // Show location when clicking on member card
                     try {
                       if (!memberUserId) return;
-                      const resp = await fetch(`${API_CONFIG.BASE_URL}/status/user/${memberUserId}/latest`);
+                      const resp = await fetch(`${API_CONFIG.BASE_URL}/status/user/${memberUserId}/latest`, {
+                        headers: { 'Authorization': `Bearer ${token}` },
+                      });
                       if (resp.ok) {
                         const j = await resp.json();
                         const d = j.data || null;
@@ -509,15 +526,19 @@ export default function GroupDetailsPage() {
                       setLocModal({ username, coords: null });
                     }
                   }}
+                  title={`Click to view ${username}'s location`}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 flex-1">
                     <div className="text-3xl">{getStatusIcon(member.status)}</div>
-                    <div>
+                    <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-gray-900 dark:text-white">
                           {username}
                           {isCurrentUser && (
                             <span className="text-blue-600 dark:text-blue-400"> (You)</span>
+                          )}
+                          {isOwner && (
+                            <span className="text-purple-600 dark:text-purple-400"> (Owner)</span>
                           )}
                         </span>
                         {member.role === 'admin' && (
@@ -538,6 +559,52 @@ export default function GroupDetailsPage() {
                     >
                       {getStatusLabel(member.status)}
                     </span>
+                    {canRemove && (
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation(); // Prevent triggering the location modal
+                          const confirmMessage = `Are you sure you want to remove ${username} from this group? This action cannot be undone.`;
+                          if (!confirm(confirmMessage)) {
+                            return;
+                          }
+
+                          try {
+                            if (!memberUserId) return;
+                            await removeMember(groupDetails._id, memberUserId);
+                            // Refresh group details after removal
+                            await fetchGroupDetails();
+                          } catch (error: any) {
+                            alert(error.message || 'Failed to remove member');
+                          }
+                        }}
+                        className="flex items-center gap-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 px-2 py-1.5 rounded-lg transition-all duration-200"
+                        title={`Remove ${username} from the group`}
+                        aria-label={`Remove ${username}`}
+                      >
+                        <svg 
+                          className="w-5 h-5" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span className="text-xs font-medium hidden sm:inline">Remove</span>
+                      </button>
+                    )}
+                    <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 opacity-70">
+                      <svg 
+                        className="w-5 h-5" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span className="text-xs font-medium hidden sm:inline">View Location</span>
+                    </div>
                   </div>
                 </div>
               );

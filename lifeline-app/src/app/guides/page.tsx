@@ -210,7 +210,7 @@ export default function GuidesPage() {
         )}
         
         {userCountry && (
-          <div className="mt-4 text-center">
+          <div className="mt-6 flex justify-center">
             <button
               onClick={() => {
                 setUserCountry('');
@@ -252,9 +252,10 @@ export default function GuidesPage() {
                   setIsDetecting(false);
                 }
               }}
-              className="text-sm text-gray-600 hover:text-gray-900 underline transition-colors"
+              className="group inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-2 border-blue-300 dark:border-blue-700/50 hover:border-blue-400 dark:hover:border-blue-600/50 rounded-xl text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              🔄 Reset Location
+              <span className="text-lg transition-transform group-hover:rotate-180 duration-500">🔄</span>
+              <span>Reset Location</span>
             </button>
           </div>
         )}
