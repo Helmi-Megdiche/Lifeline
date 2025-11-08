@@ -5,6 +5,13 @@ import { useAuth } from '@/contexts/ClientAuthContext';
 import { useAlerts } from '@/contexts/AlertsContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import dynamic from 'next/dynamic';
+import { useEmergencyListener } from '@/hooks/useEmergencyListener';
+import EmergencyListenerIndicator from '@/components/EmergencyListenerIndicator';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+
+const getEmergencyDetectionKey = (userId?: string) => {
+  return userId ? `lifeline:emergencyDetectionEnabled:${userId}` : 'lifeline:emergencyDetectionEnabled';
+};
 
 // Import Leaflet CSS - REQUIRED for map tiles to display
 import 'leaflet/dist/leaflet.css';
@@ -83,6 +90,9 @@ const AlertCreateModal: React.FC<{
   });
   const [location, setLocation] = useState(userLocation || { lat: 0, lng: 0 });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Lock body scroll when modal is open
+  useLockBodyScroll(isOpen);
 
   // Update location when userLocation changes
   useEffect(() => {
@@ -145,8 +155,8 @@ const AlertCreateModal: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-3 sm:p-4">
-      <div className={`${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} rounded-xl sm:rounded-2xl max-w-lg w-full max-h-[85vh] sm:max-h-[80vh] overflow-y-auto shadow-2xl border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] overflow-hidden" style={{ padding: 0, margin: 0 }}>
+      <div className={`fixed ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} rounded-xl sm:rounded-2xl max-w-lg w-full max-h-[85vh] sm:max-h-[80vh] overflow-y-auto shadow-2xl border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`} style={{ transform: 'translate(-50%, -50%)', position: 'fixed', top: '50%', left: '50%', margin: 0 }}>
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <h2 className={`text-xl sm:text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
@@ -343,6 +353,9 @@ const AlertUpdateModal: React.FC<{
   });
   const [location, setLocation] = useState(userLocation || { lat: 0, lng: 0 });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Lock body scroll when modal is open
+  useLockBodyScroll(isOpen);
 
   // Populate form with alert data when modal opens
   useEffect(() => {
@@ -394,8 +407,8 @@ const AlertUpdateModal: React.FC<{
   if (!isOpen || !alert) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-3 sm:p-4">
-      <div className={`${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} rounded-xl sm:rounded-2xl max-w-lg w-full max-h-[85vh] sm:max-h-[80vh] overflow-y-auto shadow-2xl border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] overflow-hidden" style={{ padding: 0, margin: 0 }}>
+      <div className={`fixed ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} rounded-xl sm:rounded-2xl max-w-lg w-full max-h-[85vh] sm:max-h-[80vh] overflow-y-auto shadow-2xl border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`} style={{ transform: 'translate(-50%, -50%)', position: 'fixed', top: '50%', left: '50%', margin: 0 }}>
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <h2 className={`text-xl sm:text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
@@ -567,11 +580,11 @@ const AlertCard: React.FC<{
 }> = ({ alert, onReport, onAddComment, onUpdateComment, onDeleteComment, onReply, onUpdate, onDelete, currentUserId, isOnline }) => {
   const getSeverityConfig = (severity: string) => {
     switch (severity) {
-      case 'low': return { color: 'green', icon: '🟢', bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-200 dark:border-green-800', text: 'text-green-800 dark:text-green-200' };
-      case 'medium': return { color: 'yellow', icon: '🟡', bg: 'bg-yellow-50 dark:bg-yellow-900/20', border: 'border-yellow-200 dark:border-yellow-800', text: 'text-yellow-800 dark:text-yellow-200' };
-      case 'high': return { color: 'orange', icon: '🟠', bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-200 dark:border-orange-800', text: 'text-orange-800 dark:text-orange-200' };
-      case 'critical': return { color: 'red', icon: '🔴', bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-200 dark:border-red-800', text: 'text-red-800 dark:text-red-200' };
-      default: return { color: 'gray', icon: '⚪', bg: 'bg-gray-50 dark:bg-gray-900/20', border: 'border-gray-200 dark:border-gray-800', text: 'text-gray-800 dark:text-gray-200' };
+      case 'low': return { color: 'green', icon: '🟢', bg: 'bg-green-100 dark:bg-green-900/20', border: 'border-green-300 dark:border-green-800', text: 'text-green-800 dark:text-green-200' };
+      case 'medium': return { color: 'yellow', icon: '🟡', bg: 'bg-yellow-100 dark:bg-yellow-900/20', border: 'border-yellow-300 dark:border-yellow-800', text: 'text-yellow-800 dark:text-yellow-200' };
+      case 'high': return { color: 'orange', icon: '🟠', bg: 'bg-orange-100 dark:bg-orange-900/20', border: 'border-orange-300 dark:border-orange-800', text: 'text-orange-800 dark:text-orange-200' };
+      case 'critical': return { color: 'red', icon: '🔴', bg: 'bg-red-100 dark:bg-red-900/20', border: 'border-red-300 dark:border-red-800', text: 'text-red-800 dark:text-red-200' };
+      default: return { color: 'gray', icon: '⚪', bg: 'bg-gray-100 dark:bg-gray-900/20', border: 'border-gray-300 dark:border-gray-800', text: 'text-gray-800 dark:text-gray-200' };
     }
   };
 
@@ -628,7 +641,9 @@ const AlertCard: React.FC<{
 
       {/* Title and Description */}
       <h3 className="font-bold text-lg sm:text-xl text-gray-900 dark:text-white mb-3 line-clamp-2 leading-tight">{alert.title}</h3>
-      <p className="text-base text-gray-700 dark:text-gray-300 mb-4 leading-relaxed line-clamp-3">{alert.description || 'No description provided.'}</p>
+      <div className="bg-white/60 dark:bg-gray-800/40 rounded-lg p-3 mb-4 border border-gray-200/50 dark:border-gray-700/50">
+        <p className="text-base font-medium text-gray-900 dark:text-gray-300 leading-relaxed line-clamp-3">{alert.description || 'No description provided.'}</p>
+      </div>
       
       {/* Metadata */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -831,6 +846,9 @@ const ReportModal: React.FC<{
   alertId: string;
 }> = ({ isOpen, onClose, onReport, alertId }) => {
   const { theme } = useTheme();
+  
+  // Lock body scroll when modal is open
+  useLockBodyScroll(isOpen);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -841,8 +859,8 @@ const ReportModal: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
-      <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''}`}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 overflow-hidden" style={{ padding: 0, margin: 0 }}>
+      <div className={`fixed bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''} max-h-[90vh] overflow-y-auto`} style={{ transform: 'translate(-50%, -50%)', position: 'fixed', top: '50%', left: '50%', margin: 0 }}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <span className="text-3xl">🚨</span>
@@ -889,6 +907,9 @@ const AddCommentModal: React.FC<{
   alertId: string;
 }> = ({ isOpen, onClose, onAddComment, alertId }) => {
   const { theme } = useTheme();
+  
+  // Lock body scroll when modal is open
+  useLockBodyScroll(isOpen);
   const [comment, setComment] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -901,8 +922,8 @@ const AddCommentModal: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
-      <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''}`}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 overflow-hidden" style={{ padding: 0, margin: 0 }}>
+      <div className={`fixed bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''} max-h-[90vh] overflow-y-auto`} style={{ transform: 'translate(-50%, -50%)', position: 'fixed', top: '50%', left: '50%', margin: 0 }}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <span className="text-3xl">💬</span>
@@ -962,6 +983,9 @@ const UpdateCommentModal: React.FC<{
   selectedComment: { alertId: string; commentIndex: number; currentComment: string } | null;
 }> = ({ isOpen, onClose, onUpdateComment, selectedComment }) => {
   const { theme } = useTheme();
+  
+  // Lock body scroll when modal is open
+  useLockBodyScroll(isOpen);
   const [comment, setComment] = useState('');
 
   useEffect(() => {
@@ -982,8 +1006,8 @@ const UpdateCommentModal: React.FC<{
   if (!isOpen || !selectedComment) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
-      <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''}`}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 overflow-hidden" style={{ padding: 0, margin: 0 }}>
+      <div className={`fixed bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''} max-h-[90vh] overflow-y-auto`} style={{ transform: 'translate(-50%, -50%)', position: 'fixed', top: '50%', left: '50%', margin: 0 }}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <span className="text-3xl">✏️</span>
@@ -1046,6 +1070,9 @@ const ReplyModal: React.FC<{
   targetComment?: string;
 }> = ({ isOpen, onClose, onAddReply, alertId, commentIndex, targetUsername, targetComment }) => {
   const { theme } = useTheme();
+  
+  // Lock body scroll when modal is open
+  useLockBodyScroll(isOpen);
   const [reply, setReply] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -1058,8 +1085,8 @@ const ReplyModal: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
-      <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''}`}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 overflow-hidden" style={{ padding: 0, margin: 0 }}>
+      <div className={`fixed bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''} max-h-[90vh] overflow-y-auto`} style={{ transform: 'translate(-50%, -50%)', position: 'fixed', top: '50%', left: '50%', margin: 0 }}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <span className="text-3xl">↩️</span>
@@ -1126,6 +1153,57 @@ export default function AlertsPage() {
   const { user, isOnline, isLoading: isAuthLoading } = useAuth();
   const { alerts, isLoadingAlerts, createAlert, updateAlert, reportAlert, addComment, updateComment, deleteComment, deleteAlert } = useAlerts();
   
+  // Emergency detection state
+  const [emergencyDetectionEnabled, setEmergencyDetectionEnabled] = useState(false);
+  
+  // Initialize emergency listener
+  const emergencyListener = useEmergencyListener({
+    enabled: emergencyDetectionEnabled,
+    amplitudeThreshold: 0.7,
+    keywords: ['help', 'sos', 'emergency', 'lifeline'],
+    recordingDuration: 10000,
+  });
+  
+  // Load emergency detection setting and listen for changes - user-specific
+  useEffect(() => {
+    if (!user?.id) {
+      setEmergencyDetectionEnabled(false);
+      return;
+    }
+
+    const EMERGENCY_DETECTION_KEY = getEmergencyDetectionKey(user.id);
+    
+    const loadSetting = () => {
+      const saved = localStorage.getItem(EMERGENCY_DETECTION_KEY);
+      if (saved !== null) {
+        setEmergencyDetectionEnabled(JSON.parse(saved));
+      } else {
+        // Default to false if no setting found
+        setEmergencyDetectionEnabled(false);
+      }
+    };
+    
+    loadSetting();
+    
+    // Listen for changes from Profile page
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === EMERGENCY_DETECTION_KEY) {
+        loadSetting();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom event (same-origin)
+    const handleCustomChange = () => loadSetting();
+    window.addEventListener('emergency-detection-changed', handleCustomChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('emergency-detection-changed', handleCustomChange);
+    };
+  }, [user?.id]);
+  
   // Show loading state while authentication is being checked
   if (isAuthLoading) {
     return (
@@ -1141,6 +1219,180 @@ export default function AlertsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+
+  // Fix Leaflet popup background color for light/dark mode - AGGRESSIVE APPROACH
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const bgColor = theme === 'dark' ? '#1f2937' : '#ffffff';
+    const textColor = theme === 'dark' ? '#f9fafb' : '#000000';
+
+    // Inject style tag with maximum priority - insert at end of head
+    let styleTag = document.getElementById('leaflet-popup-override-styles');
+    if (styleTag) styleTag.remove();
+    styleTag = document.createElement('style');
+    styleTag.id = 'leaflet-popup-override-styles';
+    document.head.appendChild(styleTag);
+    styleTag.textContent = `
+      body .leaflet-popup-content-wrapper,
+      body .leaflet-container .leaflet-popup-content-wrapper,
+      body div.leaflet-popup-content-wrapper,
+      html body .leaflet-popup-content-wrapper {
+        background: ${bgColor} !important;
+        background-color: ${bgColor} !important;
+        background-image: none !important;
+        color: ${textColor} !important;
+      }
+      body .leaflet-popup-tip,
+      html body .leaflet-popup-tip {
+        background: ${bgColor} !important;
+        background-color: ${bgColor} !important;
+        background-image: none !important;
+      }
+      body .leaflet-popup-content,
+      html body .leaflet-popup-content {
+        color: ${textColor} !important;
+      }
+    `;
+
+    // Override Leaflet's style setter to force our colors
+    const overrideStyleSetter = (element: any) => {
+      if (!element || element._lifelineStyleOverridden) return;
+      element._lifelineStyleOverridden = true;
+
+      const originalSetAttribute = element.setAttribute.bind(element);
+      element.setAttribute = function(name: string, value: string) {
+        if (name === 'style' && this.classList?.contains('leaflet-popup-content-wrapper')) {
+          // Force our colors regardless of what Leaflet tries to set
+          const forcedStyle = `background: ${bgColor} !important; background-color: ${bgColor} !important; color: ${textColor} !important; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);`;
+          return originalSetAttribute(name, forcedStyle);
+        }
+        return originalSetAttribute(name, value);
+      };
+    };
+
+    const styleLeafletPopups = () => {
+      const popups = document.querySelectorAll('.leaflet-popup-content-wrapper');
+      popups.forEach((popup: any) => {
+        if (!popup) return;
+        overrideStyleSetter(popup);
+        // Force set the style
+        popup.setAttribute('style', `background: ${bgColor} !important; background-color: ${bgColor} !important; color: ${textColor} !important; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);`);
+      });
+
+      const tips = document.querySelectorAll('.leaflet-popup-tip');
+      tips.forEach((tip: any) => {
+        if (!tip) return;
+        tip.setAttribute('style', `background: ${bgColor} !important; background-color: ${bgColor} !important;`);
+      });
+
+      const popupContents = document.querySelectorAll('.leaflet-popup-content');
+      popupContents.forEach((content: any) => {
+        if (!content) return;
+        content.setAttribute('style', (content.getAttribute('style') || '') + ` color: ${textColor} !important;`);
+      });
+    };
+
+    // Listen to Leaflet's popupopen event
+    const handlePopupOpen = () => {
+      // Style immediately when popup opens
+      setTimeout(styleLeafletPopups, 0);
+      setTimeout(styleLeafletPopups, 10);
+      setTimeout(styleLeafletPopups, 50);
+      setTimeout(styleLeafletPopups, 100);
+    };
+
+    // Add global Leaflet event listener
+    const L = require('leaflet');
+    const mapElements = document.querySelectorAll('.leaflet-container');
+    mapElements.forEach((mapEl: any) => {
+      if (mapEl._leaflet_id) {
+        const map = (L as any).map._instances?.[mapEl._leaflet_id];
+        if (map) {
+          map.on('popupopen', handlePopupOpen);
+        }
+      }
+    });
+
+    // Also use the global event system
+    if ((window as any).L) {
+      (window as any).L.Map?.include({
+        openPopup: function(popup: any) {
+          const original = (L as any).Map.prototype.openPopup;
+          if (original) {
+            original.call(this, popup);
+            setTimeout(styleLeafletPopups, 0);
+            setTimeout(styleLeafletPopups, 50);
+          }
+        }
+      });
+    }
+
+    // Style popups immediately and multiple times to catch Leaflet's delayed rendering
+    styleLeafletPopups();
+    setTimeout(styleLeafletPopups, 10);
+    setTimeout(styleLeafletPopups, 50);
+    setTimeout(styleLeafletPopups, 100);
+    setTimeout(styleLeafletPopups, 200);
+    setTimeout(styleLeafletPopups, 500);
+
+    // Watch for new popups being added AND style changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        // Watch for new nodes
+        mutation.addedNodes.forEach((node: any) => {
+          if (node.nodeType === 1) {
+            if (node.classList?.contains('leaflet-popup-content-wrapper')) {
+              overrideStyleSetter(node);
+              styleLeafletPopups();
+            }
+            const wrapper = node.querySelector?.('.leaflet-popup-content-wrapper');
+            if (wrapper) {
+              overrideStyleSetter(wrapper);
+              styleLeafletPopups();
+            }
+          }
+        });
+
+        // Watch for style attribute changes
+        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+          const target = mutation.target as any;
+          if (target?.classList?.contains('leaflet-popup-content-wrapper')) {
+            // Immediately override any style changes
+            setTimeout(() => {
+              target.setAttribute('style', `background: ${bgColor} !important; background-color: ${bgColor} !important; color: ${textColor} !important;`);
+            }, 0);
+          }
+        }
+      });
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style']
+    });
+
+    // Also listen for map events - check very frequently
+    const interval = setInterval(styleLeafletPopups, 100);
+
+    return () => {
+      observer.disconnect();
+      clearInterval(interval);
+      // Clean up event listeners
+      const L = require('leaflet');
+      const mapElements = document.querySelectorAll('.leaflet-container');
+      mapElements.forEach((mapEl: any) => {
+        if (mapEl._leaflet_id) {
+          const map = (L as any).map._instances?.[mapEl._leaflet_id];
+          if (map) {
+            map.off('popupopen', handlePopupOpen);
+          }
+        }
+      });
+    };
+  }, [theme]);
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [showUpdateCommentModal, setShowUpdateCommentModal] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
@@ -1317,6 +1569,14 @@ export default function AlertsPage() {
 
   return (
     <div className={`min-h-screen overflow-x-hidden ${theme === 'dark' ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
+      {/* Emergency Listener Indicator */}
+      <EmergencyListenerIndicator 
+        isListening={emergencyListener.isListening}
+        isRecording={emergencyListener.isRecording}
+        amplitude={emergencyListener.amplitude}
+        transcript={emergencyListener.transcript}
+      />
+      
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-full">
         {/* Header */}
         <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 mb-4 sm:mb-6`}>
@@ -1566,8 +1826,43 @@ export default function AlertsPage() {
                         position={[alert.location.lat, alert.location.lng]}
                         icon={customIcon}
                       >
-                        <Popup maxWidth={300}>
-                          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 min-w-[250px]">
+                        <Popup 
+                          maxWidth={300}
+                          eventHandlers={{
+                            add: (e: any) => {
+                              // Style popup immediately when it's added to the map
+                              setTimeout(() => {
+                                const wrapper = e.popup?._container?.querySelector('.leaflet-popup-content-wrapper');
+                                if (wrapper) {
+                                  if (theme === 'dark') {
+                                    wrapper.setAttribute('style', 'background-color: #1f2937 !important; background: #1f2937 !important; color: #f9fafb !important;');
+                                  } else {
+                                    wrapper.setAttribute('style', 'background-color: #ffffff !important; background: #ffffff !important; color: #000000 !important;');
+                                  }
+                                }
+                                const tip = e.popup?._container?.querySelector('.leaflet-popup-tip');
+                                if (tip) {
+                                  if (theme === 'dark') {
+                                    tip.setAttribute('style', 'background-color: #1f2937 !important; background: #1f2937 !important;');
+                                  } else {
+                                    tip.setAttribute('style', 'background-color: #ffffff !important; background: #ffffff !important;');
+                                  }
+                                }
+                              }, 0);
+                              setTimeout(() => {
+                                const wrapper = e.popup?._container?.querySelector('.leaflet-popup-content-wrapper');
+                                if (wrapper) {
+                                  if (theme === 'dark') {
+                                    wrapper.setAttribute('style', 'background-color: #1f2937 !important; background: #1f2937 !important; color: #f9fafb !important;');
+                                  } else {
+                                    wrapper.setAttribute('style', 'background-color: #ffffff !important; background: #ffffff !important; color: #000000 !important;');
+                                  }
+                                }
+                              }, 50);
+                            }
+                          }}
+                        >
+                          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 min-w-[250px] text-black dark:text-white">
                             {/* Header with severity and category icons */}
                             <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-200 dark:border-gray-600">
                               <span className="text-2xl">{getSeverityIcon(alert.severity)}</span>
@@ -1588,7 +1883,9 @@ export default function AlertsPage() {
                             <h3 className="font-bold text-gray-900 dark:text-white mb-2 text-base line-clamp-1">{alert.title}</h3>
                             
                             {/* Description */}
-                            <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 line-clamp-2">{alert.description || 'No description available'}</p>
+                            <div className="bg-white/70 dark:bg-gray-800/50 rounded-md p-2 mb-3 border border-gray-200/50 dark:border-gray-700/50">
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-300 line-clamp-2">{alert.description || 'No description available'}</p>
+                            </div>
                             
                             {/* Footer with username and time */}
                             <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400 mb-3 pb-3 border-b border-gray-200 dark:border-gray-600">
@@ -1737,6 +2034,7 @@ export default function AlertsPage() {
         targetUsername={selectedReplyTarget?.username}
         targetComment={selectedReplyTarget?.comment}
       />
+
     </div>
   );
 }

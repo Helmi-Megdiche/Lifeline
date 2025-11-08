@@ -12,17 +12,30 @@ export class AlertsService {
   ) {}
 
   async createAlert(userId: string, username: string, createAlertDto: CreateAlertDto): Promise<Alert> {
-    // Generate deduplication hash
-    const dedupHash = this.generateDedupHash(createAlertDto);
+    // Check if this is a voice alert (title starts with "Voice:")
+    const isVoiceAlert = createAlertDto.title?.toLowerCase().startsWith('voice:');
     
-    // Check for duplicate alerts within the last hour
+    // Generate deduplication hash
+    // For voice alerts, include userId and timestamp to allow retries from same user/location
+    const dedupHash = isVoiceAlert 
+      ? this.generateDedupHashForVoice(createAlertDto, userId)
+      : this.generateDedupHash(createAlertDto);
+    
+    // Check for duplicate alerts
+    // Voice alerts: 2 minute window (allows quick retries if first attempt fails)
+    // Regular alerts: 1 hour window
+    const dedupWindow = isVoiceAlert ? 2 * 60 * 1000 : 60 * 60 * 1000; // 2 minutes vs 1 hour
     const existingAlert = await this.alertModel.findOne({
       dedupHash,
-      createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }, // Last hour
+      createdAt: { $gte: new Date(Date.now() - dedupWindow) },
       status: 'active'
     }).exec();
 
     if (existingAlert) {
+      if (isVoiceAlert) {
+        // For voice alerts, provide a more helpful message
+        throw new ConflictException('A similar voice alert was created recently. Please wait a moment before trying again.');
+      }
       throw new ConflictException('Similar alert already exists');
     }
 
@@ -42,7 +55,8 @@ export class AlertsService {
       ...createAlertDto,
       dedupHash,
       expiresAt,
-      synced: false,
+      // Alerts created by the server should be considered synced
+      synced: true,
     });
 
     return await alert.save();
@@ -284,6 +298,24 @@ export class AlertsService {
       lat: Math.round(createAlertDto.location.lat * 100) / 100, // Round to 2 decimal places
       lng: Math.round(createAlertDto.location.lng * 100) / 100,
       title: createAlertDto.title.toLowerCase().trim()
+    };
+    
+    return crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
+  }
+
+  // For voice alerts, include userId and timestamp to allow retries from same user
+  private generateDedupHashForVoice(createAlertDto: CreateAlertDto, userId: string): string {
+    // Round timestamp to nearest 2 minutes (120000 ms = 2 minutes)
+    // This allows the same user to create a new alert after 2 minutes from the same location
+    const timeWindow = Math.floor(Date.now() / 120000) * 120000;
+    
+    const data = {
+      userId: String(userId), // Include userId so different users can alert from same location
+      category: createAlertDto.category,
+      lat: Math.round(createAlertDto.location.lat * 100) / 100, // Round to 2 decimal places
+      lng: Math.round(createAlertDto.location.lng * 100) / 100,
+      title: createAlertDto.title.toLowerCase().trim(),
+      timeWindow: timeWindow // Include 2-minute time window
     };
     
     return crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');

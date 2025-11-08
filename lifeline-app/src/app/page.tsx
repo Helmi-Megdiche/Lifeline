@@ -67,7 +67,8 @@ export default function Home() {
   async function isReallyOnline(): Promise<boolean> {
     // More reliable online check - try to actually reach the server
     try {
-      const response = await fetch('http://10.96.15.197:4004/health', { method: "GET", cache: "no-cache" });
+      const healthUrl = getApiUrl('/health');
+      const response = await fetch(healthUrl, { method: "GET", cache: "no-cache" });
       return response.ok;
     } catch {
       return false;
@@ -77,13 +78,15 @@ export default function Home() {
   const handleStatusSave = async (status: "safe" | "help") => {
     setIsSaving(true);
     setLocationDenied(false);
-    const payload: CheckInStatus = await buildPayload(status);
-    
-    console.log('Payload being sent:', payload);
-    console.log('Payload status type:', typeof payload.status);
-    console.log('Payload timestamp type:', typeof payload.timestamp);
+    setMessage(null); // Clear any previous messages
     
     try {
+      const payload: CheckInStatus = await buildPayload(status);
+      
+      console.log('Payload being sent:', payload);
+      console.log('Payload status type:', typeof payload.status);
+      console.log('Payload timestamp type:', typeof payload.timestamp);
+      
       const clean = {
         status: payload.status,
         timestamp: payload.timestamp,
@@ -93,20 +96,54 @@ export default function Home() {
       } as const;
 
       // Always keep the local save (legacy)
-      await saveStatus(payload);
-      if (isClient && localDB) {
-        await saveStatusToPouch(clean);
+      try {
+        await saveStatus(payload);
+      } catch (idbErr) {
+        console.warn('IndexedDB save failed (non-critical):', idbErr);
+      }
+
+      // Save to PouchDB
+      if (isClient && localDB && user?.id) {
+        try {
+          await saveStatusToPouch(clean);
+          console.log('✅ Status saved to PouchDB');
+        } catch (pouchErr: any) {
+          // Handle PouchDB conflicts
+          if (pouchErr.status === 409) {
+            console.warn('PouchDB conflict, retrying...');
+            try {
+              // Get latest version and retry
+              const docId = `user_${user.id}_status`;
+              const existing = await localDB.get(docId);
+              const updated = {
+                ...existing,
+                ...clean,
+                _rev: existing._rev,
+                synced: false,
+              };
+              await localDB.put(updated);
+              console.log('✅ Status saved to PouchDB after conflict resolution');
+            } catch (retryErr) {
+              console.error('Failed to save to PouchDB after conflict:', retryErr);
+              throw retryErr;
+            }
+          } else {
+            console.error('PouchDB save error:', pouchErr);
+            throw pouchErr;
+          }
+        }
       }
 
       const isOnline = await isReallyOnline();
 
-      // NEW: Direct REST POST to persist in Mongo when online
+      // Direct REST POST to persist in Mongo when online
       if (isOnline && user?.id) {
         try {
           const resp = await fetch(`${API_CONFIG.BASE_URL}/status`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: JSON.stringify({
               userId: user.id,
@@ -116,7 +153,19 @@ export default function Home() {
               longitude: payload.longitude,
             }),
           });
-          if (!resp.ok) {
+          if (resp.ok) {
+            console.log('✅ Status synced to server');
+            // Mark as synced in PouchDB
+            if (isClient && localDB && user?.id) {
+              try {
+                const docId = `user_${user.id}_status`;
+                const doc = await localDB.get(docId);
+                await localDB.put({ ...doc, synced: true });
+              } catch (syncErr) {
+                console.warn('Failed to mark status as synced:', syncErr);
+              }
+            }
+          } else {
             const txt = await resp.text();
             console.warn('Status POST failed:', resp.status, txt);
           }
@@ -128,9 +177,10 @@ export default function Home() {
       setMessage(isOnline ? "Status saved (synced to server)" : "Status saved offline - will sync when online");
       localStorage.setItem("lifeline:lastStatus", JSON.stringify({ ...payload, synced: isOnline }));
       setTimeout(() => setMessage(null), AUTO_HIDE_MS);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error saving status:', e);
-      setMessage("Failed to save status");
+      setMessage(e?.message || "Failed to save status. Please try again.");
+      setTimeout(() => setMessage(null), AUTO_HIDE_MS * 2);
     } finally {
       setIsSaving(false);
     }

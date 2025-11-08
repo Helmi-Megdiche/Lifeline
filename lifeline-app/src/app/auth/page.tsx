@@ -357,8 +357,8 @@ export default function AuthPage() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label htmlFor="password" className="block text-sm font-semibold text-gray-700 dark:text-dark-text-secondary">
-              Password
-            </label>
+            Password
+          </label>
             {isLogin && (
               <button
                 type="button"

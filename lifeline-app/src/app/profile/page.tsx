@@ -5,6 +5,10 @@ import { useAuth } from "@/contexts/ClientAuthContext";
 import { API_CONFIG } from "@/lib/config";
 import { useRouter } from "next/navigation";
 
+const getEmergencyDetectionKey = (userId?: string) => {
+  return userId ? `lifeline:emergencyDetectionEnabled:${userId}` : 'lifeline:emergencyDetectionEnabled';
+};
+
 export default function ProfilePage() {
   const { user, token, logout, forgotPassword } = useAuth();
   const router = useRouter();
@@ -14,6 +18,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
+  const [emergencyDetectionEnabled, setEmergencyDetectionEnabled] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -26,8 +31,54 @@ export default function ProfilePage() {
         username: user.username || "",
         email: "",
       });
+      
+      // Load emergency detection setting - user-specific
+      const EMERGENCY_DETECTION_KEY = getEmergencyDetectionKey(user.id);
+      const saved = localStorage.getItem(EMERGENCY_DETECTION_KEY);
+      if (saved !== null) {
+        setEmergencyDetectionEnabled(JSON.parse(saved));
+      } else {
+        // Default to false if no setting found for this user
+        setEmergencyDetectionEnabled(false);
+      }
+    } else {
+      // Reset when user logs out
+      setEmergencyDetectionEnabled(false);
     }
   }, [user]);
+  
+  const handleToggleEmergencyDetection = async () => {
+    if (!user?.id) return;
+    
+    const newValue = !emergencyDetectionEnabled;
+    setEmergencyDetectionEnabled(newValue);
+    const EMERGENCY_DETECTION_KEY = getEmergencyDetectionKey(user.id);
+    localStorage.setItem(EMERGENCY_DETECTION_KEY, JSON.stringify(newValue));
+    
+    // Dispatch custom event for same-origin updates
+    window.dispatchEvent(new CustomEvent('emergency-detection-changed'));
+    
+    // Request notification permission if enabling
+    if (newValue && 'Notification' in window && Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+    
+    // Request microphone permission if enabling
+    if (newValue) {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        console.error('Microphone permission denied:', err);
+        alert('Microphone permission is required for emergency detection. Please enable it in your browser settings.');
+        setEmergencyDetectionEnabled(false);
+        if (user?.id) {
+          const EMERGENCY_DETECTION_KEY = getEmergencyDetectionKey(user.id);
+          localStorage.setItem(EMERGENCY_DETECTION_KEY, JSON.stringify(false));
+        }
+        window.dispatchEvent(new CustomEvent('emergency-detection-changed'));
+      }
+    }
+  };
 
   // Fetch user email from backend if available
   useEffect(() => {
@@ -249,6 +300,47 @@ export default function ProfilePage() {
                   className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-lg transition-colors"
                 >
                   Forgot password
+                </button>
+              </div>
+            </div>
+
+            {/* Emergency Detection Toggle */}
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-xl p-4 border-2 border-red-200 dark:border-red-800">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">🚨</span>
+                    <h3 className="text-lg font-bold text-black dark:text-white">
+                      Emergency Voice Detection
+                    </h3>
+                  </div>
+                  <p className="text-sm font-semibold text-black dark:text-gray-300 mb-2 leading-relaxed">
+                    Automatically detects screams or emergency keywords ("help", "SOS") and creates alerts
+                  </p>
+                  <p className={`text-xs font-semibold ${
+                    emergencyDetectionEnabled 
+                      ? 'text-green-700 dark:text-green-400' 
+                      : 'text-gray-700 dark:text-gray-400'
+                  }`}>
+                    {emergencyDetectionEnabled 
+                      ? '✅ Active - Listening for emergencies' 
+                      : '⚠️ Inactive - Manual recording only'}
+                  </p>
+                </div>
+                <button
+                  onClick={handleToggleEmergencyDetection}
+                  className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
+                    emergencyDetectionEnabled 
+                      ? 'bg-red-500' 
+                      : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                  aria-label="Toggle emergency detection"
+                >
+                  <span
+                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                      emergencyDetectionEnabled ? 'translate-x-7' : 'translate-x-1'
+                    }`}
+                  />
                 </button>
               </div>
             </div>

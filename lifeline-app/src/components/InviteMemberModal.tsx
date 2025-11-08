@@ -140,7 +140,7 @@ export default function InviteMemberModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 overflow-hidden" style={{ padding: 0, margin: 0 }}>
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/60 dark:bg-black/70 backdrop-blur-md"
@@ -151,14 +151,24 @@ export default function InviteMemberModal({
       <div 
         ref={modalRef}
         className={`
-          relative w-full max-w-lg mx-auto rounded-2xl shadow-2xl
+          fixed
+          w-full max-w-lg rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto
           ${theme === 'dark' 
             ? 'bg-dark-surface-primary/95 border border-dark-border-primary' 
             : 'bg-white/95 border border-gray-200/60'
           }
-          backdrop-blur-xl transform transition-all duration-300 ease-out
+          backdrop-blur-xl transition-all duration-300 ease-out
           ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}
         `}
+        style={{ 
+          transform: `translate(-50%, -50%) ${isOpen ? 'scale(1)' : 'scale(0.95)'}`,
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          margin: 0,
+          WebkitTransform: `translate(-50%, -50%) ${isOpen ? 'scale(1)' : 'scale(0.95)'}`,
+          msTransform: `translate(-50%, -50%) ${isOpen ? 'scale(1)' : 'scale(0.95)'}`
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

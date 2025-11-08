@@ -280,8 +280,14 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
           alertsDeleteRequest.onsuccess = () => {
             console.log('Alerts IndexedDB cleared');
           };
-        } catch (error) {
-          console.error('Error clearing IndexedDB:', error);
+        } catch (error: any) {
+          // Silently handle IndexedDB errors during logout
+          if (error.name !== 'QuotaExceededError' && 
+              error.name !== 'indexed_db_went_bad' &&
+              !error.message?.includes('indexed_db_went_bad') &&
+              !error.message?.includes('QuotaExceededError')) {
+            console.error('Error clearing IndexedDB:', error);
+          }
         }
       }
       
@@ -301,8 +307,14 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
             // Database might not exist, ignore errors
           }
         }
-      } catch (error) {
-        console.error('Error clearing PouchDB:', error);
+      } catch (error: any) {
+        // Silently handle IndexedDB/PouchDB errors during logout
+        if (error.name !== 'QuotaExceededError' && 
+            error.name !== 'indexed_db_went_bad' &&
+            !error.message?.includes('indexed_db_went_bad') &&
+            !error.message?.includes('QuotaExceededError')) {
+          console.error('Error clearing PouchDB:', error);
+        }
       }
       
       // Clear localStorage completely to ensure clean state

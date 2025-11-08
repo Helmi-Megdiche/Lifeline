@@ -10,6 +10,7 @@ import InstallPrompt from "./InstallPrompt";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AlertsProvider } from "@/contexts/AlertsContext";
 import { GroupsProvider } from "@/contexts/GroupsContext";
+import GlobalEmergencyListener from "@/components/GlobalEmergencyListener";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -100,6 +101,7 @@ export default function RootLayout({
                     <ClientSyncProvider>
                       <AlertsProvider>
                         <GroupsProvider>
+                          <GlobalEmergencyListener />
                           <InstallPrompt />
                           {children}
                         </GroupsProvider>

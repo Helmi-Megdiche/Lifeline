@@ -31,7 +31,9 @@ export const getLocalDB = async () => {
 export const getRemoteDB = async () => {
   const Pouch = await ensurePouch();
   if (!remoteDB && Pouch) {
-    const REMOTE_DB_URL = process.env.NEXT_PUBLIC_COUCH_SYNC_URL || 'http://10.96.15.197:4004/pouch/status';
+    // Use dynamic backend URL detection
+    const { getApiUrl } = await import('./config');
+    const REMOTE_DB_URL = process.env.NEXT_PUBLIC_COUCH_SYNC_URL || getApiUrl('/pouch/status');
     remoteDB = new Pouch(REMOTE_DB_URL);
   }
   return remoteDB;
@@ -105,29 +107,51 @@ export const saveStatusToPouch = async (status: {
   userId: string;
 }) => {
   const _id = `user_${status.userId}_status`;
-  try {
-    let existing: any;
-    try { existing = await localDB.get(_id); } catch {}
-    const next = {
-      _id,
-      _rev: existing?._rev,
-      userId: status.userId,
-      status: status.status,
-      timestamp: status.timestamp,
-      latitude: status.latitude,
-      longitude: status.longitude,
-      synced: false,
-      createdAt: existing?.createdAt || new Date().toISOString(),
-      statusHistory: Array.isArray(existing?.statusHistory)
-        ? [...existing.statusHistory, { status: status.status, timestamp: status.timestamp }]
-        : [{ status: status.status, timestamp: status.timestamp }],
-    } as any;
-    const result = await localDB.put(next);
-    console.log('Single status upserted to PouchDB:', result);
-    return result;
-  } catch (error) {
-    console.error('Error upserting status to PouchDB:', error);
-    throw error;
+  let retries = 0;
+  const maxRetries = 3;
+  
+  while (retries < maxRetries) {
+    try {
+      let existing: any;
+      try { 
+        existing = await localDB.get(_id); 
+      } catch (getErr: any) {
+        // Document doesn't exist yet, that's fine
+        if (getErr.status !== 404) {
+          console.warn('Unexpected error getting status doc:', getErr);
+        }
+      }
+      
+      const next = {
+        _id,
+        _rev: existing?._rev,
+        userId: status.userId,
+        status: status.status,
+        timestamp: status.timestamp,
+        latitude: status.latitude,
+        longitude: status.longitude,
+        synced: false,
+        createdAt: existing?.createdAt || new Date().toISOString(),
+        statusHistory: Array.isArray(existing?.statusHistory)
+          ? [...existing.statusHistory, { status: status.status, timestamp: status.timestamp }]
+          : [{ status: status.status, timestamp: status.timestamp }],
+      } as any;
+      
+      const result = await localDB.put(next);
+      console.log('✅ Single status upserted to PouchDB:', result);
+      return result;
+    } catch (error: any) {
+      // Handle conflict errors by retrying with latest revision
+      if (error.status === 409 && retries < maxRetries - 1) {
+        console.warn(`PouchDB conflict (attempt ${retries + 1}/${maxRetries}), retrying...`);
+        retries++;
+        // Small delay before retry
+        await new Promise(resolve => setTimeout(resolve, 100 * retries));
+        continue;
+      }
+      console.error('Error upserting status to PouchDB:', error);
+      throw error;
+    }
   }
 };
 
@@ -380,7 +404,9 @@ export const isOnline = async (): Promise<boolean> => {
     }
     
     // Try multiple approaches to check online status
-        const apiUrl = 'http://10.96.15.197:4004'; // Use actual WiFi IP for mobile access
+    // Use dynamic backend URL detection
+    const { getApiUrl } = await import('./config');
+    const apiUrl = getApiUrl('/health');
     console.log('Checking online status with URL:', apiUrl);
     
     // Try with a very short timeout first
@@ -388,7 +414,7 @@ export const isOnline = async (): Promise<boolean> => {
     const timeoutId = setTimeout(() => controller.abort(), 500); // Very short timeout
     
     try {
-      const response = await fetch(`${apiUrl}/health`, { 
+      const response = await fetch(apiUrl, { 
         method: "GET", 
         cache: "no-cache",
         signal: controller.signal,

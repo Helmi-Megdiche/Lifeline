@@ -8,6 +8,8 @@ import { PouchModule } from './pouch/pouch.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { GroupsModule } from './groups/groups.module';
 import { InvitationsModule } from './invitations/invitations.module';
+import { VoiceAlertModule } from './voice-alert/voice-alert.module';
+import { ContactsModule } from './contacts/contacts.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { InvitationsModule } from './invitations/invitations.module';
     AlertsModule,
     GroupsModule,
     InvitationsModule,
+    VoiceAlertModule,
+    ContactsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

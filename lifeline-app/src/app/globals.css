@@ -921,3 +921,176 @@ html:not(.dark) .force-light-input {
 html:not(.dark) .force-light-muted {
   color: #6b7280 !important;
 }
+
+/* Force modal centering using fixed positioning relative to viewport - works in all modes */
+html.dark .fixed.inset-0 > div[style*="transform: translate(-50%, -50%)"],
+html:not(.dark) .fixed.inset-0 > div[style*="transform: translate(-50%, -50%)"] {
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+/* Also target by class names */
+html.dark .fixed.inset-0 > div.absolute.top-1\/2.left-1\/2,
+html:not(.dark) .fixed.inset-0 > div.absolute.top-1\/2.left-1\/2 {
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+/* NUCLEAR OPTION - Force centering for ANY div inside fixed inset-0 in dark mode */
+/* Match by style attribute containing transform */
+html.dark div.fixed.inset-0 > div.fixed[style*="transform"],
+html.dark div.fixed.inset-0 > div.absolute[style*="transform"] {
+  top: 50% !important;
+  left: 50% !important;
+  margin: 0 !important;
+}
+
+/* Match by style attribute containing translate */
+html.dark div.fixed.inset-0 > div.fixed[style*="translate"],
+html.dark div.fixed.inset-0 > div.absolute[style*="translate"] {
+  top: 50% !important;
+  left: 50% !important;
+  margin: 0 !important;
+}
+
+/* Match by style attribute containing top: 50% */
+html.dark div.fixed.inset-0 > div.fixed[style*="top: 50%"],
+html.dark div.fixed.inset-0 > div.absolute[style*="top: 50%"] {
+  top: 50% !important;
+  left: 50% !important;
+  margin: 0 !important;
+}
+
+/* Match by style attribute containing top: '50%' */
+html.dark div.fixed.inset-0 > div.fixed[style*="50%"],
+html.dark div.fixed.inset-0 > div.absolute[style*="50%"] {
+  top: 50% !important;
+  left: 50% !important;
+  margin: 0 !important;
+}
+
+/* ULTIMATE FALLBACK - ANY fixed/absolute div inside fixed inset-0 in dark mode */
+html.dark div.fixed.inset-0 > div.fixed,
+html.dark div.fixed.inset-0 > div.absolute {
+  top: 50% !important;
+  left: 50% !important;
+  margin: 0 !important;
+}
+
+html.dark div.fixed.inset-0 > div.fixed:not([style*="transform"]),
+html.dark div.fixed.inset-0 > div.absolute:not([style*="transform"]) {
+  transform: translate(-50%, -50%) !important;
+}
+
+/* Mobile-specific: slightly closer to top (20% margin) */
+@media (max-width: 640px) {
+  html.dark div.fixed.inset-0 > div.fixed[style*="transform"],
+  html.dark div.fixed.inset-0 > div.absolute[style*="transform"] {
+    top: 40% !important; /* 50% - 10% = 40% for better reachability */
+  }
+  
+  html.dark div.fixed.inset-0 > div.fixed:not([style*="transform"]),
+  html.dark div.fixed.inset-0 > div.absolute:not([style*="transform"]) {
+    top: 40% !important;
+  }
+}
+
+/* Ensure no margin or padding interferes */
+html.dark div.fixed.inset-0 {
+  display: block !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Leaflet Popup styling for light/dark mode - High specificity */
+.leaflet-container .leaflet-popup-content-wrapper,
+.leaflet-popup-content-wrapper,
+div.leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dark .leaflet-container .leaflet-popup-content-wrapper,
+.dark .leaflet-popup-content-wrapper,
+.dark div.leaflet-popup-content-wrapper {
+  background: #1f2937 !important;
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+/* Popup content text color */
+.leaflet-popup-content {
+  color: #000000 !important;
+}
+
+.dark .leaflet-popup-content {
+  color: #f9fafb !important;
+}
+
+.leaflet-container .leaflet-popup-tip,
+.leaflet-popup-tip,
+div.leaflet-popup-tip {
+  background: white !important;
+  background-color: white !important;
+}
+
+.dark .leaflet-container .leaflet-popup-tip,
+.dark .leaflet-popup-tip,
+.dark div.leaflet-popup-tip {
+  background: #1f2937 !important;
+  background-color: #1f2937 !important;
+}
+
+.leaflet-container .leaflet-popup-close-button,
+.leaflet-popup-close-button {
+  color: #6b7280 !important;
+}
+
+.dark .leaflet-container .leaflet-popup-close-button,
+.dark .leaflet-popup-close-button {
+  color: #9ca3af !important;
+}
+
+.leaflet-container .leaflet-popup-close-button:hover,
+.leaflet-popup-close-button:hover {
+  color: #374151 !important;
+}
+
+.dark .leaflet-container .leaflet-popup-close-button:hover,
+.dark .leaflet-popup-close-button:hover {
+  color: #d1d5db !important;
+}
+
+/* Force override any inline styles - highest priority */
+.leaflet-popup-content-wrapper[style],
+.leaflet-container .leaflet-popup-content-wrapper[style],
+div.leaflet-popup-content-wrapper[style] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+.dark .leaflet-popup-content-wrapper[style],
+.dark .leaflet-container .leaflet-popup-content-wrapper[style],
+.dark div.leaflet-popup-content-wrapper[style] {
+  background: #1f2937 !important;
+  background-color: #1f2937 !important;
+  background-image: none !important;
+}
+
+/* Override any Leaflet default styles */
+.leaflet-popup-content-wrapper:not(.dark) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+html:not(.dark) .leaflet-popup-content-wrapper,
+html:not(.dark) .leaflet-container .leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}

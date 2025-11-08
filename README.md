@@ -4,6 +4,7 @@
 
 ## 🔥 Latest changes
 
+- **Voice-to-Alert AI (NEW!)**: Record up to 10s audio and auto-create SOS alerts via AI classification. Twilio SMS/WhatsApp and email notifications to emergency contacts. Offline queue support.
 - **OTP-Based Password Reset**: New secure password reset flow using email-based OTP verification. Users can request a 6-digit OTP code, verify it, and reset their password securely. Complete modal interface with multi-step process.
 - **Enhanced Members List UI**: Improved light mode colors and contrast for better readability. White background with darker text, professional styling with better shadows and borders.
 - **Admin Member Management**: Group admins can now remove members from groups permanently (with restrictions: cannot remove owner or themselves).
@@ -115,6 +116,17 @@
   - Full dark/light mode support
   - Mobile-responsive design
 - **Enhanced Auth UI** - Modern, professional login/register interface with improved dark mode support
+
+### 🎙️ Voice-to-Alert AI (NEW!)
+- **Audio Capture**: Up to 10 seconds recording from the browser
+- **STT Adapter**: Whisper (online) or Vosk (offline/mock)
+- **Intent Classification**: Detect SOS/category/severity/confidence
+- **Location**: Send explicit lat/lon or fallback to last known
+- **Alert Creation**: Reuses Alerts schema; stores `aiMetadata` and `notifiedContacts`
+- **Notifications**: Twilio SMS/WhatsApp and email via Nodemailer
+- **Queue & Retry**: Simple queued notifications for failures/offline
+- **Endpoints**: `POST /voice-alert/process`, `POST /voice-alert/testNotify`
+- **Contacts CRUD**: `GET/POST/PUT/DELETE /contacts`
 
 ### 🎨 **User Interface & Experience**
 - **Dark Mode Support** - Complete theme switching with proper contrast
@@ -516,6 +528,15 @@ NEXT_PUBLIC_API_URL=https://your-api-domain.com
 - `PUT /auth/profile` - Update user profile (username/email)
 
 #### Status Management
+#### Voice-to-Alert
+- `POST /voice-alert/process` — multipart form-data: `audio`, optional `latitude`, `longitude`, `userId`
+- `POST /voice-alert/testNotify` — body `{ userId }`
+
+#### Contacts
+- `GET /contacts` — list user's contacts
+- `POST /contacts` — add contact `{ userId, name, phone, email?, methods? }`
+- `PUT /contacts/:id` — update contact
+- `DELETE /contacts/:id` — delete contact
 - `POST /status` - Create/update status
 - `GET /status/user/:userId` - Get user status
 - `GET /status/sync` - Get sync status

@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/ClientAuthContext';
 import InviteMemberModal from '@/components/InviteMemberModal';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 interface GroupDetails {
   _id: string;
@@ -48,6 +49,9 @@ export default function GroupDetailsPage() {
   const [locModal, setLocModal] = useState<{ username: string; coords: { lat: number; lng: number } | null; updatedAt?: number | string | null } | null>(null);
 
   const MemberLocationModal = dynamic(() => import('../MemberLocationModal'), { ssr: false });
+  
+  // Lock body scroll when modals are open
+  useLockBodyScroll(isEditOpen || isInviteModalOpen || !!locModal);
 
   useEffect(() => {
     fetchGroupDetails();
@@ -462,8 +466,8 @@ export default function GroupDetailsPage() {
       <div className="card-surface bg-white dark:bg-gray-800 rounded-2xl shadow-lg dark:shadow-lg p-8 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-700 dark:text-white">
-            Members ({groupDetails.memberCount})
-          </h2>
+          Members ({groupDetails.memberCount})
+        </h2>
           <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 px-4 py-2 rounded-xl border border-blue-200/50 dark:border-blue-800 shadow-sm">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -652,8 +656,8 @@ export default function GroupDetailsPage() {
 
       {/* Edit Group Modal (admins) */}
       {isEditOpen && editForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="card-surface rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-xl w-full max-w-lg">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-hidden" style={{ padding: 0, margin: 0 }}>
+          <div className="fixed card-surface rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ transform: 'translate(-50%, -50%)', position: 'fixed', top: '50%', left: '50%', margin: 0 }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Group</h2>
               <button
