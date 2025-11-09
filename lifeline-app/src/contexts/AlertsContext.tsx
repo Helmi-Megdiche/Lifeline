@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { useAuth } from '@/contexts/ClientAuthContext';
 import { API_CONFIG } from '@/lib/config';
 import { useSync } from '@/components/ClientSyncProvider';
+import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 // PouchDB imports removed - using REST API only
 // import PouchDB from 'pouchdb-browser';
 // import PouchFind from 'pouchdb-find';
@@ -94,6 +95,7 @@ const AlertsContext = createContext<AlertsContextType | undefined>(undefined);
 
 export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
   const { user, token, isAuthenticated, isOnline } = useAuth();
+  const { queueAlert } = useOfflineQueue();
 
   // Note: Removed global error suppression as it wasn't effective
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -260,7 +262,7 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
   }, [fetchAlerts]);
 
   const createAlert = useCallback(async (payload: CreateAlertPayload) => {
-    if (!token || !user?.id || !user?.username) {
+    if (!user?.id || !user?.username) {
       throw new Error('User not authenticated.');
     }
 
@@ -279,6 +281,41 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
       address: payload.location?.address
     };
 
+    const alertPayload = {
+      category: payload.category,
+      title: payload.title,
+      description: payload.description,
+      severity: payload.severity,
+      location: location,
+      ttlHours: payload.ttlHours || 24
+    };
+
+    // Check if offline or no token
+    const isOffline = !navigator.onLine;
+    const hasToken = !!token;
+
+    // If offline or no token, queue the alert
+    if (isOffline || !hasToken) {
+      try {
+        queueAlert(alertPayload);
+        showNotification(
+          isOffline 
+            ? 'Alert queued. Will sync when online.'
+            : 'Alert queued. Will sync when authenticated.',
+          'info'
+        );
+        return; // Don't throw, just queue it
+      } catch (error: any) {
+        if (error.name === 'QuotaExceededError') {
+          showNotification('Storage full. Please clear some data and try again.', 'error');
+        } else {
+          showNotification('Failed to queue alert. Please try again.', 'error');
+        }
+        throw error;
+      }
+    }
+
+    // Online and authenticated - send immediately
     try {
       const response = await fetch(`${API_CONFIG.BASE_URL}/alerts`, {
         method: 'POST',
@@ -286,14 +323,7 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          category: payload.category,
-          title: payload.title,
-          description: payload.description,
-          severity: payload.severity,
-          location: location,
-          ttlHours: payload.ttlHours || 24
-        })
+        body: JSON.stringify(alertPayload)
       });
 
       if (response.ok) {
@@ -301,14 +331,38 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
         showNotification('Alert created successfully!', 'success');
       } else {
         const errorText = await response.text();
+        
+        // If server error or network issue, queue it
+        if (response.status >= 500 || !navigator.onLine) {
+          try {
+            queueAlert(alertPayload);
+            showNotification('Alert queued due to server error. Will retry automatically.', 'warning');
+            return;
+          } catch (queueError) {
+            console.error('Failed to queue alert:', queueError);
+          }
+        }
+        
         throw new Error(errorText || 'Failed to create alert');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Failed to create alert:', error);
+      
+      // If network error, queue it
+      if (error.message?.includes('Failed to fetch') || !navigator.onLine) {
+        try {
+          queueAlert(alertPayload);
+          showNotification('Alert queued (offline). Will sync when connection is restored.', 'info');
+          return;
+        } catch (queueError) {
+          console.error('Failed to queue alert:', queueError);
+        }
+      }
+      
       showNotification('Failed to create alert. Please try again.', 'error');
       throw error;
     }
-  }, [token, user, fetchAlerts, showNotification]);
+  }, [token, user, fetchAlerts, showNotification, queueAlert]);
 
   const updateAlert = useCallback(async (alertId: string, payload: Partial<CreateAlertPayload>) => {
     if (!token || !user?.id) {

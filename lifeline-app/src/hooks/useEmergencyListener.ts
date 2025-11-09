@@ -139,7 +139,13 @@ export function useEmergencyListener(config: Partial<EmergencyListenerConfig> = 
   const sendEmergencyAlert = useCallback(async (blob: Blob, lat?: number, lon?: number, transcriptText?: string) => {
     try {
       if (!token || !user?.id) {
-        await queueVoiceAlert(blob, { latitude: lat, longitude: lon });
+        // Queue with transcript for offline processing
+        await queueVoiceAlert(blob, { 
+          latitude: lat, 
+          longitude: lon,
+          transcript: transcriptText || ''
+        });
+        console.log('📦 Voice alert queued offline with transcript:', transcriptText || 'none');
         return;
       }
       
@@ -169,10 +175,14 @@ export function useEmergencyListener(config: Partial<EmergencyListenerConfig> = 
           const errorText = await res.text();
           console.error('❌ Emergency alert failed:', res.status, errorText);
           
-          // Queue for retry if offline or server error
+          // Queue for retry if offline or server error (include transcript)
           if (!navigator.onLine || res.status >= 500) {
-            await queueVoiceAlert(blob, { latitude: lat, longitude: lon });
-            console.log('📦 Emergency alert queued for retry');
+            await queueVoiceAlert(blob, { 
+              latitude: lat, 
+              longitude: lon,
+              transcript: transcriptText || ''
+            });
+            console.log('📦 Emergency alert queued for retry with transcript:', transcriptText || 'none');
           }
           
           throw new Error(`Failed to send emergency alert: ${res.status} ${errorText}`);
@@ -191,22 +201,40 @@ export function useEmergencyListener(config: Partial<EmergencyListenerConfig> = 
       } catch (error: any) {
         console.error('❌ Emergency alert fetch error:', error);
         
-        // If it's a network error and we're offline, queue it
+        // If it's a network error and we're offline, queue it (include transcript)
         if (!navigator.onLine || error.message?.includes('Failed to fetch')) {
           try {
-            await queueVoiceAlert(blob, { latitude: lat, longitude: lon });
-            console.log('📦 Emergency alert queued for retry (offline/network error)');
+            await queueVoiceAlert(blob, { 
+              latitude: lat, 
+              longitude: lon,
+              transcript: transcriptText || ''
+            });
+            console.log('📦 Emergency alert queued for retry (offline/network error) with transcript:', transcriptText || 'none');
+            // Don't throw - alert is queued, will sync when online
+            return;
           } catch (queueError) {
             console.error('❌ Failed to queue emergency alert:', queueError);
+            // Only throw if queueing also failed
+            throw queueError;
           }
         }
         
-        // Re-throw to let caller handle it
+        // Re-throw only if it's not an offline/network error
         throw error;
       }
     } catch (err) {
       console.error('Failed to send emergency alert:', err);
-      await queueVoiceAlert(blob, { latitude: lat, longitude: lon });
+      // Final fallback - queue with transcript
+      try {
+        await queueVoiceAlert(blob, { 
+          latitude: lat, 
+          longitude: lon,
+          transcript: transcriptText || ''
+        });
+        console.log('📦 Emergency alert queued (final fallback) with transcript:', transcriptText || 'none');
+      } catch (queueError) {
+        console.error('❌ Failed to queue emergency alert (final fallback):', queueError);
+      }
     }
   }, [token, user, queueVoiceAlert]);
   

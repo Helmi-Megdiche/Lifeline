@@ -6,6 +6,7 @@ import { Group, GroupSchema } from '../schemas/group.schema';
 import { GroupMember, GroupMemberSchema } from '../schemas/group.schema';
 import { StatusModule } from '../status/status.module';
 import { Message, MessageSchema } from '../schemas/message.schema';
+import { Alert, AlertSchema } from '../schemas/alert.schema';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { Message, MessageSchema } from '../schemas/message.schema';
       { name: Group.name, schema: GroupSchema },
       { name: GroupMember.name, schema: GroupMemberSchema },
       { name: Message.name, schema: MessageSchema },
+      { name: Alert.name, schema: AlertSchema },
     ]),
     StatusModule,
   ],

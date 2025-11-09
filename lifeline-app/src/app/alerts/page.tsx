@@ -4,10 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/ClientAuthContext';
 import { useAlerts } from '@/contexts/AlertsContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useGroups } from '@/contexts/GroupsContext';
 import dynamic from 'next/dynamic';
 import { useEmergencyListener } from '@/hooks/useEmergencyListener';
+import { useOfflineQueue } from '@/hooks/useOfflineQueue';
+import OfflineQueueBadge from '@/components/OfflineQueueBadge';
 import EmergencyListenerIndicator from '@/components/EmergencyListenerIndicator';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
+import { API_CONFIG } from '@/lib/config';
 
 const getEmergencyDetectionKey = (userId?: string) => {
   return userId ? `lifeline:emergencyDetectionEnabled:${userId}` : 'lifeline:emergencyDetectionEnabled';
@@ -575,16 +579,60 @@ const AlertCard: React.FC<{
   onReply: (alertId: string, commentIndex: number) => void;
   onUpdate: (alert: Alert) => void;
   onDelete: (alertId: string) => void;
+  onShareToGroup?: (alert: Alert) => void;
   currentUserId?: string;
   isOnline: boolean;
-}> = ({ alert, onReport, onAddComment, onUpdateComment, onDeleteComment, onReply, onUpdate, onDelete, currentUserId, isOnline }) => {
+}> = ({ alert, onReport, onAddComment, onUpdateComment, onDeleteComment, onReply, onUpdate, onDelete, onShareToGroup, currentUserId, isOnline }) => {
+  const { theme } = useTheme();
+  
   const getSeverityConfig = (severity: string) => {
+    const isLight = theme === 'light';
     switch (severity) {
-      case 'low': return { color: 'green', icon: '🟢', bg: 'bg-green-100 dark:bg-green-900/20', border: 'border-green-300 dark:border-green-800', text: 'text-green-800 dark:text-green-200' };
-      case 'medium': return { color: 'yellow', icon: '🟡', bg: 'bg-yellow-100 dark:bg-yellow-900/20', border: 'border-yellow-300 dark:border-yellow-800', text: 'text-yellow-800 dark:text-yellow-200' };
-      case 'high': return { color: 'orange', icon: '🟠', bg: 'bg-orange-100 dark:bg-orange-900/20', border: 'border-orange-300 dark:border-orange-800', text: 'text-orange-800 dark:text-orange-200' };
-      case 'critical': return { color: 'red', icon: '🔴', bg: 'bg-red-100 dark:bg-red-900/20', border: 'border-red-300 dark:border-red-800', text: 'text-red-800 dark:text-red-200' };
-      default: return { color: 'gray', icon: '⚪', bg: 'bg-gray-100 dark:bg-gray-900/20', border: 'border-gray-300 dark:border-gray-800', text: 'text-gray-800 dark:text-gray-200' };
+      case 'low': return { 
+        color: 'green', 
+        icon: '🟢', 
+        bg: isLight ? 'bg-green-50' : 'bg-green-900/20', 
+        border: isLight ? 'border-green-400' : 'border-green-800', 
+        text: isLight ? 'text-green-900' : 'text-green-200',
+        badgeBg: isLight ? 'bg-green-100' : 'bg-green-900/30',
+        badgeText: isLight ? 'text-green-900' : 'text-green-200'
+      };
+      case 'medium': return { 
+        color: 'yellow', 
+        icon: '🟡', 
+        bg: isLight ? 'bg-yellow-50' : 'bg-yellow-900/20', 
+        border: isLight ? 'border-yellow-400' : 'border-yellow-800', 
+        text: isLight ? 'text-yellow-900' : 'text-yellow-200',
+        badgeBg: isLight ? 'bg-yellow-100' : 'bg-yellow-900/30',
+        badgeText: isLight ? 'text-yellow-900' : 'text-yellow-200'
+      };
+      case 'high': return { 
+        color: 'orange', 
+        icon: '🟠', 
+        bg: isLight ? 'bg-orange-50' : 'bg-orange-900/20', 
+        border: isLight ? 'border-orange-400' : 'border-orange-800', 
+        text: isLight ? 'text-orange-900' : 'text-orange-200',
+        badgeBg: isLight ? 'bg-orange-100' : 'bg-orange-900/30',
+        badgeText: isLight ? 'text-orange-900' : 'text-orange-200'
+      };
+      case 'critical': return { 
+        color: 'red', 
+        icon: '🔴', 
+        bg: isLight ? 'bg-red-50' : 'bg-red-900/20', 
+        border: isLight ? 'border-red-400' : 'border-red-800', 
+        text: isLight ? 'text-red-900' : 'text-red-200',
+        badgeBg: isLight ? 'bg-red-100' : 'bg-red-900/30',
+        badgeText: isLight ? 'text-red-900' : 'text-red-200'
+      };
+      default: return { 
+        color: 'gray', 
+        icon: '⚪', 
+        bg: isLight ? 'bg-gray-50' : 'bg-gray-900/20', 
+        border: isLight ? 'border-gray-400' : 'border-gray-800', 
+        text: isLight ? 'text-gray-900' : 'text-gray-200',
+        badgeBg: isLight ? 'bg-gray-100' : 'bg-gray-900/30',
+        badgeText: isLight ? 'text-gray-900' : 'text-gray-200'
+      };
     }
   };
 
@@ -604,19 +652,43 @@ const AlertCard: React.FC<{
   const isExpired = new Date(alert.expiresAt) < new Date();
   const timeAgo = new Date(alert.createdAt).toLocaleString();
 
+  const isLight = theme === 'light';
+  
   return (
     <div 
       id={`alert-${alert._id}`}
       className={`group p-5 sm:p-6 rounded-2xl border-2 transition-all duration-300 hover:shadow-2xl w-full max-w-full overflow-hidden ${
         isExpired 
           ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 opacity-60'
-          : `${severityConfig.bg} ${severityConfig.border} hover:scale-[1.02]`
+          : isLight 
+            ? `bg-white ${severityConfig.border} hover:shadow-xl`
+            : `${severityConfig.bg} ${severityConfig.border} hover:scale-[1.02]`
       }`}
+      style={isLight && !isExpired ? {
+        backgroundColor: '#ffffff',
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
+      } : {}}
     >
       {/* Header section with severity, category, and status */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-5">
         <div className="flex items-center gap-3">
-          <div className={`px-4 py-2 rounded-full text-sm font-bold shadow-md ${severityConfig.bg} ${severityConfig.text} ${severityConfig.border} border-2`}>
+          <div 
+            className={`px-4 py-2.5 rounded-full text-sm font-bold shadow-lg ${severityConfig.badgeBg} ${severityConfig.badgeText} ${severityConfig.border} border-2`}
+            style={isLight ? {
+              backgroundColor: severityConfig.badgeBg.includes('green') ? '#dcfce7' :
+                              severityConfig.badgeBg.includes('yellow') ? '#fef9c3' :
+                              severityConfig.badgeBg.includes('orange') ? '#fed7aa' :
+                              severityConfig.badgeBg.includes('red') ? '#fee2e2' : '#f3f4f6',
+              borderColor: severityConfig.border.includes('green') ? '#4ade80' :
+                          severityConfig.border.includes('yellow') ? '#facc15' :
+                          severityConfig.border.includes('orange') ? '#fb923c' :
+                          severityConfig.border.includes('red') ? '#f87171' : '#9ca3af',
+              color: severityConfig.badgeText.includes('green') ? '#166534' :
+                     severityConfig.badgeText.includes('yellow') ? '#854d0e' :
+                     severityConfig.badgeText.includes('orange') ? '#9a3412' :
+                     severityConfig.badgeText.includes('red') ? '#991b1b' : '#374151'
+            } : {}}
+          >
             <span className="text-lg">{severityConfig.icon}</span>
             <span className="ml-2 hidden sm:inline">{alert.severity.toUpperCase()}</span>
             <span className="ml-2 sm:hidden">{alert.severity.charAt(0).toUpperCase()}</span>
@@ -640,28 +712,57 @@ const AlertCard: React.FC<{
       </div>
 
       {/* Title and Description */}
-      <h3 className="font-bold text-lg sm:text-xl text-gray-900 dark:text-white mb-3 line-clamp-2 leading-tight">{alert.title}</h3>
-      <div className="bg-white/60 dark:bg-gray-800/40 rounded-lg p-3 mb-4 border border-gray-200/50 dark:border-gray-700/50">
-        <p className="text-base font-medium text-gray-900 dark:text-gray-300 leading-relaxed line-clamp-3">{alert.description || 'No description provided.'}</p>
+      <h3 className="font-bold text-lg sm:text-xl mb-3 line-clamp-2 leading-tight" style={{ color: isLight ? '#111827' : '#ffffff' }}>
+        {alert.title}
+      </h3>
+      <div 
+        className="rounded-lg p-4 mb-4 border"
+        style={isLight ? {
+          backgroundColor: '#f9fafb',
+          borderColor: '#e5e7eb'
+        } : {
+          backgroundColor: 'rgba(31, 41, 55, 0.4)',
+          borderColor: 'rgba(75, 85, 99, 0.5)'
+        }}
+      >
+        <p 
+          className="text-base font-medium leading-relaxed line-clamp-3"
+          style={{ color: isLight ? '#374151' : '#d1d5db' }}
+        >
+          {alert.description || 'No description provided.'}
+        </p>
       </div>
       
       {/* Metadata */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mb-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 text-sm mb-4">
         <div className="flex items-center gap-2">
           <span className="text-lg">👤</span>
-          <span className="font-medium">{alert.username}</span>
+          <span className="font-semibold" style={{ color: isLight ? '#4b5563' : '#9ca3af' }}>
+            {alert.username}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-lg">🕒</span>
-          <span>{new Date(alert.createdAt).toLocaleString()}</span>
+          <span style={{ color: isLight ? '#4b5563' : '#9ca3af' }}>
+            {new Date(alert.createdAt).toLocaleString()}
+          </span>
         </div>
       </div>
 
       {/* Location */}
       {alert.location.address && (
-        <div className="text-sm text-gray-600 dark:text-gray-400 mb-4 flex items-center gap-2 bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg">
+        <div 
+          className="text-sm mb-4 flex items-center gap-2 px-4 py-2.5 rounded-lg"
+          style={isLight ? {
+            backgroundColor: '#f3f4f6',
+            color: '#374151'
+          } : {
+            backgroundColor: '#374151',
+            color: '#d1d5db'
+          }}
+        >
           <span className="text-lg">📍</span>
-          <span className="truncate">{alert.location.address}</span>
+          <span className="truncate font-medium">{alert.location.address}</span>
         </div>
       )}
 
@@ -788,6 +889,16 @@ const AlertCard: React.FC<{
         )}
         
         <div className="flex gap-3 ml-auto">
+           {/* Share to Group button - available to everyone except on expired alerts */}
+           {!isExpired && (
+             <button
+               onClick={() => onShareToGroup && onShareToGroup(alert)}
+               className="px-5 py-2.5 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-500 border-2 border-purple-600 dark:border-purple-500 hover:bg-purple-50 dark:hover:bg-gray-700 rounded-lg text-sm font-semibold transition-colors shadow-md hover:shadow-lg"
+             >
+               <span className="mr-2">📤</span>
+               Share
+             </button>
+           )}
            {/* Comment button - available to everyone except on expired alerts */}
            {!isExpired && (
              <button
@@ -922,10 +1033,27 @@ const AddCommentModal: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 overflow-hidden" style={{ padding: 0, margin: 0 }}>
-      <div className={`fixed bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''} max-h-[90vh] overflow-y-auto`} style={{ transform: 'translate(-50%, -50%)', position: 'fixed', top: '50%', left: '50%', margin: 0 }}>
+    <div 
+      className="fixed inset-0 z-50 overflow-hidden backdrop-blur-md"
+      style={{ 
+        padding: 0, 
+        margin: 0,
+        backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.3)'
+      }}
+    >
+      <div 
+        className={`fixed rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''} max-h-[90vh] overflow-y-auto`} 
+        style={{ 
+          transform: 'translate(-50%, -50%)', 
+          position: 'fixed', 
+          top: '50%', 
+          left: '50%', 
+          margin: 0,
+          backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff'
+        }}
+      >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>
             <span className="text-3xl">💬</span>
             Add Comment
           </h2>
@@ -939,18 +1067,29 @@ const AddCommentModal: React.FC<{
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+            <label className="block text-sm font-semibold mb-3" style={{ color: theme === 'dark' ? '#d1d5db' : '#374151' }}>
               Your Comment
             </label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Enter your comment here... Share additional information, provide updates, or ask questions..."
-              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-colors resize-none h-32"
+              className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition-colors resize-none h-32"
+              style={{
+                borderColor: theme === 'dark' ? '#4b5563' : '#d1d5db',
+                color: theme === 'dark' ? '#ffffff' : '#111827',
+                backgroundColor: theme === 'dark' ? '#374151' : '#ffffff'
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = '#3b82f6';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = theme === 'dark' ? '#4b5563' : '#d1d5db';
+              }}
               maxLength={500}
               required
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            <p className="text-xs mt-2" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
               {comment.length}/500 characters
             </p>
           </div>
@@ -959,7 +1098,17 @@ const AddCommentModal: React.FC<{
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              className="flex-1 px-6 py-3 rounded-lg font-semibold transition-colors"
+              style={{
+                backgroundColor: theme === 'dark' ? '#374151' : '#e5e7eb',
+                color: theme === 'dark' ? '#f9fafb' : '#1f2937'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme === 'dark' ? '#4b5563' : '#d1d5db';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = theme === 'dark' ? '#374151' : '#e5e7eb';
+              }}
             >
               Cancel
             </button>
@@ -1060,6 +1209,126 @@ const UpdateCommentModal: React.FC<{
   );
 };
 
+const ShareAlertModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onShare: (groupId: string) => void;
+  groups: any[];
+  alert: Alert | null;
+  sharingToGroup: string | null;
+}> = ({ isOpen, onClose, onShare, groups, alert, sharingToGroup }) => {
+  const { theme } = useTheme();
+  useLockBodyScroll(isOpen);
+
+  if (!isOpen || !alert) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 overflow-hidden backdrop-blur-md"
+      style={{ 
+        padding: 0, 
+        margin: 0,
+        backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.3)'
+      }}
+    >
+      <div 
+        className={`fixed rounded-2xl shadow-2xl max-w-lg w-full p-6 sm:p-8 animate-fade-in ${theme === 'dark' ? 'border-2 border-gray-700' : ''} max-h-[90vh] overflow-y-auto`} 
+        style={{ 
+          transform: 'translate(-50%, -50%)', 
+          position: 'fixed', 
+          top: '50%', 
+          left: '50%', 
+          margin: 0,
+          backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff'
+        }}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>
+            <span className="text-3xl">📤</span>
+            Share Alert to Group
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>Alert:</h3>
+          <div className="p-4 rounded-lg" style={{ backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6' }}>
+            <p className="font-bold" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>{alert.title}</p>
+            <p className="text-sm mt-1" style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }}>{alert.description || 'No description'}</p>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-4" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>Select a Group:</h3>
+          {groups.length === 0 ? (
+            <p style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }}>You don't have any groups yet. Create a group first!</p>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {groups.map((group) => (
+                <button
+                  key={group._id}
+                  onClick={() => onShare(group._id)}
+                  disabled={sharingToGroup === group._id}
+                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                    sharingToGroup === group._id
+                      ? 'bg-purple-100 dark:bg-purple-900 border-purple-500 cursor-wait'
+                      : 'border-gray-300 dark:border-gray-600 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 cursor-pointer'
+                  }`}
+                  style={{
+                    backgroundColor: sharingToGroup === group._id
+                      ? (theme === 'dark' ? 'rgba(88, 28, 135, 0.9)' : '#f3e8ff')
+                      : (theme === 'dark' ? '#374151' : '#ffffff'),
+                    borderColor: sharingToGroup === group._id
+                      ? '#a855f7'
+                      : (theme === 'dark' ? '#4b5563' : '#d1d5db')
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>{group.name}</p>
+                      {group.description && (
+                        <p className="text-sm mt-1" style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }}>{group.description}</p>
+                      )}
+                    </div>
+                    {sharingToGroup === group._id && (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-6 py-3 rounded-lg font-semibold transition-colors"
+            style={{
+              backgroundColor: theme === 'dark' ? '#374151' : '#e5e7eb',
+              color: theme === 'dark' ? '#f9fafb' : '#1f2937'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = theme === 'dark' ? '#4b5563' : '#d1d5db';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = theme === 'dark' ? '#374151' : '#e5e7eb';
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ReplyModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -1152,6 +1421,7 @@ const ReplyModal: React.FC<{
 export default function AlertsPage() {
   const { user, isOnline, isLoading: isAuthLoading } = useAuth();
   const { alerts, isLoadingAlerts, createAlert, updateAlert, reportAlert, addComment, updateComment, deleteComment, deleteAlert } = useAlerts();
+  const { syncQueuedAlerts, queueCount, isSyncing } = useOfflineQueue();
   
   // Emergency detection state
   const [emergencyDetectionEnabled, setEmergencyDetectionEnabled] = useState(false);
@@ -1216,9 +1486,14 @@ export default function AlertsPage() {
     );
   }
   const { theme } = useTheme();
+  const { groups } = useGroups();
+  const { token } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedAlertForShare, setSelectedAlertForShare] = useState<Alert | null>(null);
+  const [sharingToGroup, setSharingToGroup] = useState<string | null>(null);
 
   // Fix Leaflet popup background color for light/dark mode - AGGRESSIVE APPROACH
   useEffect(() => {
@@ -1555,6 +1830,42 @@ export default function AlertsPage() {
     }
   };
 
+  const handleOpenShareModal = (alert: Alert) => {
+    setSelectedAlertForShare(alert);
+    setShowShareModal(true);
+  };
+
+  const handleShareToGroup = async (groupId: string) => {
+    if (!selectedAlertForShare || !token) return;
+    
+    setSharingToGroup(groupId);
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/groups/${groupId}/share-alert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ alertId: selectedAlertForShare._id }),
+      });
+
+      if (response.ok) {
+        setShowShareModal(false);
+        setSelectedAlertForShare(null);
+        // Show success message (you can add a toast notification here)
+        alert('Alert shared to group successfully!');
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to share alert');
+      }
+    } catch (error: any) {
+      console.error('Failed to share alert:', error);
+      alert(`Failed to share alert: ${error.message || 'Unknown error'}`);
+    } finally {
+      setSharingToGroup(null);
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
@@ -1588,7 +1899,7 @@ export default function AlertsPage() {
               </h1>
               <p className={`mt-2 text-sm sm:text-base text-center sm:text-left ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Stay informed about local incidents and emergencies</p>
             </div>
-            <div className="flex justify-center sm:justify-start">
+            <div className="flex justify-center sm:justify-start items-center gap-2">
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="w-full sm:w-auto px-6 py-3 sm:py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 font-semibold shadow-lg hover:shadow-xl transition-all text-base sm:text-sm"
@@ -1596,6 +1907,7 @@ export default function AlertsPage() {
               >
                 🚨 Create Alert
               </button>
+              <OfflineQueueBadge />
             </div>
           </div>
         </div>
@@ -1934,13 +2246,41 @@ export default function AlertsPage() {
           )}
 
           {/* Alerts List */}
-          <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-xl sm:rounded-2xl shadow-xl overflow-hidden`}>
-            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+          <div 
+            className={`rounded-xl sm:rounded-2xl shadow-xl overflow-hidden`}
+            style={theme === 'light' ? {
+              backgroundColor: '#ffffff',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+            } : {
+              backgroundColor: '#1f2937'
+            }}
+          >
+            <div 
+              className="p-4 sm:p-6 border-b"
+              style={theme === 'light' ? {
+                borderColor: '#e5e7eb',
+                backgroundColor: '#ffffff'
+              } : {
+                borderColor: '#374151'
+              }}
+            >
               <div className="flex items-center justify-between">
-                <h2 className={`text-xl sm:text-2xl font-bold flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                <h2 
+                  className="text-xl sm:text-2xl font-bold flex items-center gap-2"
+                  style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}
+                >
                   <span className="text-2xl">📋</span>
                   <span>Recent Alerts</span>
-                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm font-semibold">
+                  <span 
+                    className="px-3 py-1 rounded-full text-sm font-semibold"
+                    style={theme === 'light' ? {
+                      backgroundColor: '#dbeafe',
+                      color: '#1e40af'
+                    } : {
+                      backgroundColor: '#1e3a8a',
+                      color: '#93c5fd'
+                    }}
+                  >
                     {filteredAlerts.length}
                   </span>
                 </h2>
@@ -1950,16 +2290,23 @@ export default function AlertsPage() {
             {isLoadingAlerts ? (
               <div className="text-center py-12 sm:py-16">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                <p className={`text-base ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Loading alerts...</p>
+                <p style={{ color: theme === 'dark' ? '#9ca3af' : '#4b5563' }}>Loading alerts...</p>
               </div>
             ) : filteredAlerts.length === 0 ? (
               <div className="text-center py-12 sm:py-16">
                 <div className="text-5xl sm:text-6xl mb-4">🔍</div>
-                <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>No alerts found</h3>
-                <p className={`text-base ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>No alerts match your current filters.</p>
+                <h3 style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }} className="text-lg font-semibold mb-2">No alerts found</h3>
+                <p style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>No alerts match your current filters.</p>
               </div>
             ) : (
-              <div className="p-4 sm:p-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 400px)', minHeight: '400px' }}>
+              <div 
+                className="p-4 sm:p-6 overflow-y-auto" 
+                style={{ 
+                  maxHeight: 'calc(100vh - 400px)', 
+                  minHeight: '400px',
+                  backgroundColor: theme === 'light' ? '#f9fafb' : 'transparent'
+                }}
+              >
                 <div className="space-y-4 sm:space-y-6">
                   {filteredAlerts.map(alert => (
                     <AlertCard
@@ -1972,6 +2319,7 @@ export default function AlertsPage() {
                       onReply={handleOpenReplyModal}
                       onUpdate={handleOpenUpdateModal}
                       onDelete={handleDeleteAlert}
+                      onShareToGroup={handleOpenShareModal}
                       currentUserId={user.id}
                       isOnline={isOnline}
                     />
@@ -2033,6 +2381,18 @@ export default function AlertsPage() {
         commentIndex={selectedReplyTarget?.commentIndex || -1}
         targetUsername={selectedReplyTarget?.username}
         targetComment={selectedReplyTarget?.comment}
+      />
+
+      <ShareAlertModal
+        isOpen={showShareModal}
+        onClose={() => {
+          setShowShareModal(false);
+          setSelectedAlertForShare(null);
+        }}
+        onShare={handleShareToGroup}
+        groups={groups}
+        alert={selectedAlertForShare}
+        sharingToGroup={sharingToGroup}
       />
 
     </div>

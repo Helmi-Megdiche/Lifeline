@@ -83,5 +83,21 @@ export class GroupsController {
   async sendMessage(@Param('id') id: string, @Body() body: any, @Req() req: any) {
     return this.groupsService.sendMessage(id, req.user.userId, req.user.username, body.text);
   }
+
+  @Post(':id/share-alert')
+  async shareAlert(@Param('id') id: string, @Body() body: { alertId: string }, @Req() req: any) {
+    return this.groupsService.shareAlertToGroup(id, req.user.userId, req.user.username, body.alertId);
+  }
+
+  @Patch(':id/messages/:messageId')
+  async updateMessage(@Param('id') id: string, @Param('messageId') messageId: string, @Body() body: { text: string }, @Req() req: any) {
+    return this.groupsService.updateMessage(id, messageId, req.user.userId, body.text);
+  }
+
+  @Delete(':id/messages/:messageId')
+  async deleteMessage(@Param('id') id: string, @Param('messageId') messageId: string, @Req() req: any) {
+    await this.groupsService.deleteMessage(id, messageId, req.user.userId);
+    return { message: 'Message deleted successfully' };
+  }
 }
 

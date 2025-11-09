@@ -6,6 +6,7 @@ import { GroupMember, GroupMemberDocument } from '../schemas/group.schema';
 import { CreateGroupDto, UpdateGroupDto, AddMemberDto, UpdateMemberRoleDto, UpdateMemberStatusDto } from '../dto/group.dto';
 import { StatusService } from '../status/status.service';
 import { Message } from '../schemas/message.schema';
+import { Alert, AlertDocument } from '../schemas/alert.schema';
 
 @Injectable()
 export class GroupsService {
@@ -13,6 +14,7 @@ export class GroupsService {
     @InjectModel(Group.name) private groupModel: Model<GroupDocument>,
     @InjectModel(GroupMember.name) private memberModel: Model<GroupMemberDocument>,
     @InjectModel(Message.name) private messageModel: Model<any>,
+    @InjectModel(Alert.name) private alertModel: Model<AlertDocument>,
     private readonly statusService: StatusService,
   ) {}
 
@@ -71,6 +73,8 @@ export class GroupsService {
       username: m.username,
       text: m.text,
       createdAt: m.createdAt,
+      alertId: (m as any).alertId,
+      alertData: (m as any).alertData,
     }));
   }
 
@@ -103,6 +107,155 @@ export class GroupsService {
       username: doc.username,
       text: doc.text,
       createdAt: doc.createdAt,
+      alertId: doc.alertId,
+      alertData: doc.alertData,
+    };
+  }
+
+  async updateMessage(groupId: string, messageId: string, userId: string, text: string) {
+    // Verify group exists and user is a member
+    const group = await this.groupModel.findById(groupId);
+    if (!group) throw new NotFoundException('Group not found');
+    
+    const userIdStr = userId.toString();
+    const isOwner = (group.ownerId as any).toString() === userIdStr;
+    const member = await this.memberModel.findOne({
+      $or: [
+        { groupId: groupId, userId: userIdStr },
+        { groupId: groupId, userId: new Types.ObjectId(userIdStr) },
+        { groupId: new Types.ObjectId(groupId), userId: userIdStr },
+        { groupId: new Types.ObjectId(groupId), userId: new Types.ObjectId(userIdStr) },
+        { groupId: group._id, userId: userIdStr },
+      ],
+    });
+    if (!isOwner && !member) throw new ForbiddenException('You are not a member of this group');
+
+    // Find the message
+    const message = await this.messageModel.findById(messageId);
+    if (!message) throw new NotFoundException('Message not found');
+
+    // Verify the message belongs to this group
+    if (message.groupId.toString() !== groupId) {
+      throw new ForbiddenException('Message does not belong to this group');
+    }
+
+    // Verify the user owns the message
+    if (message.userId !== userIdStr) {
+      throw new ForbiddenException('You can only edit your own messages');
+    }
+
+    // Update the message (only text, not alert messages)
+    if (message.alertId) {
+      throw new BadRequestException('Cannot edit shared alert messages');
+    }
+
+    if (!text || !text.trim()) throw new BadRequestException('Message is empty');
+
+    message.text = text.trim().slice(0, 2000);
+    await message.save();
+
+    return {
+      id: (message._id as any).toString(),
+      userId: message.userId,
+      username: message.username,
+      text: message.text,
+      createdAt: message.createdAt,
+      alertId: message.alertId,
+      alertData: message.alertData,
+    };
+  }
+
+  async deleteMessage(groupId: string, messageId: string, userId: string) {
+    // Verify group exists and user is a member
+    const group = await this.groupModel.findById(groupId);
+    if (!group) throw new NotFoundException('Group not found');
+    
+    const userIdStr = userId.toString();
+    const isOwner = (group.ownerId as any).toString() === userIdStr;
+    const member = await this.memberModel.findOne({
+      $or: [
+        { groupId: groupId, userId: userIdStr },
+        { groupId: groupId, userId: new Types.ObjectId(userIdStr) },
+        { groupId: new Types.ObjectId(groupId), userId: userIdStr },
+        { groupId: new Types.ObjectId(groupId), userId: new Types.ObjectId(userIdStr) },
+        { groupId: group._id, userId: userIdStr },
+      ],
+    });
+    if (!isOwner && !member) throw new ForbiddenException('You are not a member of this group');
+
+    // Find the message
+    const message = await this.messageModel.findById(messageId);
+    if (!message) throw new NotFoundException('Message not found');
+
+    // Verify the message belongs to this group
+    if (message.groupId.toString() !== groupId) {
+      throw new ForbiddenException('Message does not belong to this group');
+    }
+
+    // Verify the user owns the message
+    if (message.userId !== userIdStr) {
+      throw new ForbiddenException('You can only delete your own messages');
+    }
+
+    // Delete the message (this only deletes the chat message, not the alert itself if it's a shared alert)
+    await this.messageModel.deleteOne({ _id: messageId });
+    return { message: 'Message deleted successfully' };
+  }
+
+  async shareAlertToGroup(groupId: string, userId: string, username: string, alertId: string) {
+    // Verify group exists and user is a member
+    const group = await this.groupModel.findById(groupId);
+    if (!group) throw new NotFoundException('Group not found');
+    
+    const userIdStr = userId.toString();
+    const isOwner = (group.ownerId as any).toString() === userIdStr;
+    const member = await this.memberModel.findOne({
+      $or: [
+        { groupId: groupId, userId: userIdStr },
+        { groupId: groupId, userId: new Types.ObjectId(userIdStr) },
+        { groupId: new Types.ObjectId(groupId), userId: userIdStr },
+        { groupId: new Types.ObjectId(groupId), userId: new Types.ObjectId(userIdStr) },
+        { groupId: group._id, userId: userIdStr },
+      ],
+    });
+    if (!isOwner && !member) throw new ForbiddenException('You are not a member of this group');
+
+    // Fetch the alert
+    const alert = await this.alertModel.findById(alertId).lean();
+    if (!alert) throw new NotFoundException('Alert not found');
+
+    // Prepare alert data for sharing
+    const alertData = {
+      _id: alert._id,
+      category: alert.category,
+      title: alert.title,
+      description: alert.description,
+      location: alert.location,
+      severity: alert.severity,
+      username: alert.username,
+      createdAt: alert.createdAt?.toISOString() || new Date().toISOString(),
+    };
+
+    // Create a message with alert data
+    const messageText = `🚨 Shared Alert: ${alert.title}\n\n${alert.description || 'No description'}\n\n📍 Location: ${alert.location?.address || `${alert.location?.lat}, ${alert.location?.lng}`}\n\nSeverity: ${alert.severity.toUpperCase()}`;
+
+    const doc = await this.messageModel.create({
+      groupId: new Types.ObjectId(groupId),
+      userId: userIdStr,
+      username,
+      text: messageText,
+      alertId: alert._id,
+      alertData: alertData,
+    });
+
+    return {
+      id: (doc._id as any).toString(),
+      userId: doc.userId,
+      username: doc.username,
+      text: doc.text,
+      createdAt: doc.createdAt,
+      alertId: doc.alertId,
+      alertData: doc.alertData,
     };
   }
 
