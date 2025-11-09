@@ -1,8 +1,9 @@
-import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Alert, AlertDocument } from '../schemas/alert.schema';
 import { CreateAlertDto, ReportAlertDto, AlertListDto } from '../dto';
+import { MapSnapshotDto } from '../dto/map-snapshot.dto';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -290,6 +291,30 @@ export class AlertsService {
     } catch (error) {
       return null;
     }
+  }
+
+  async addMapSnapshot(alertId: string, userId: string, mapSnapshotDto: MapSnapshotDto): Promise<Alert> {
+    const alert = await this.alertModel.findOne({ _id: alertId }).exec();
+    
+    if (!alert) {
+      throw new NotFoundException('Alert not found');
+    }
+
+    // Verify user owns the alert
+    if (alert.userId !== userId) {
+      throw new ForbiddenException('You can only add map snapshots to your own alerts');
+    }
+
+    // Update alert with map snapshot data
+    alert.mapSnapshot = {
+      lat: mapSnapshotDto.lat,
+      lng: mapSnapshotDto.lng,
+      mapImage: mapSnapshotDto.mapImage || undefined,
+      locationSyncedAt: new Date(),
+      locationUnavailable: mapSnapshotDto.locationUnavailable || false,
+    };
+
+    return await alert.save();
   }
 
   private generateDedupHash(createAlertDto: CreateAlertDto): string {

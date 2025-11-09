@@ -4,7 +4,9 @@
 
 ## 🔥 Latest changes
 
-- **Voice-to-Alert AI (NEW!)**: Record up to 10s audio and auto-create SOS alerts via AI classification. Email notifications to emergency contacts with comprehensive alert details. Offline queue support.
+- **Unified Emergency Contacts System (NEW!)**: Emergency contacts from the Socialize page now work for both notifications AND offline calling. Single source of truth with offline-first support, auto-sync, and call functionality. No more duplicate contact systems!
+- **Offline Mode Page (NEW!)**: Dedicated offline mode page accessible from Profile, allowing users to view and call emergency contacts even without internet connection.
+- **Voice-to-Alert AI**: Record up to 10s audio and auto-create SOS alerts via AI classification. Email notifications to emergency contacts with comprehensive alert details. Offline queue support.
 - **OTP-Based Password Reset**: New secure password reset flow using email-based OTP verification. Users can request a 6-digit OTP code, verify it, and reset their password securely. Complete modal interface with multi-step process.
 - **Enhanced Members List UI**: Improved light mode colors and contrast for better readability. White background with darker text, professional styling with better shadows and borders.
 - **Admin Member Management**: Group admins can now remove members from groups permanently (with restrictions: cannot remove owner or themselves).
@@ -87,7 +89,7 @@
   - Alert creator moderation controls
   - Professional UI with avatars and badges
 
-### 👥 **Groups & Collaboration** (NEW!)
+### 👥 **Groups & Collaboration** (ENHANCED!)
 - **Group Management**: Create, edit, and delete groups with customizable names, descriptions, and types (Family, Friends, Work, Other)
 - **Member Invitations**: Send invitations to other users to join your groups
 - **Invitation System**: View, accept, decline, and preview invitations before joining
@@ -98,10 +100,26 @@
   - Full member management capabilities
 - **Member Location Viewing**: Click any member card to view their last known location with interactive map modal
 - **Group Chat**: Dedicated chat page for group communication (`groups/[id]/chat`)
+  - Edit and delete your own messages
+  - Share alerts to group chats
+  - Delete shared alerts from chat (without deleting original alert)
+  - Responsive design for mobile and web
+  - Auto-refresh with scroll position preservation
 - **Leave Group**: Members can leave groups (owners restricted if other members exist)
 - **Status Tracking**: View member statuses (Safe, Need Help, In Danger, Offline, Unknown) in real-time
 - **Member Status Icons**: Visual indicators for each member's current status
 - **Unified Status System**: Member statuses sync from global MongoDB status collection
+
+### 📞 **Emergency Contacts** (NEW! - Unified System)
+- **Dual Purpose**: Same contacts used for both emergency notifications AND offline calling
+- **Offline-First**: Contacts stored locally in localStorage for offline access
+- **Call Functionality**: "Call" button on each contact card opens native dialer
+- **Auto-Sync**: Contacts automatically sync when connection is restored
+- **Offline Support**: Add, edit, delete contacts while offline - syncs when online
+- **Notification Integration**: These contacts receive emergency alerts via email when you create alerts
+- **Manage in Socialize**: All contact management happens in the Socialize page
+- **Offline Mode Page**: View and call contacts from dedicated offline mode page (accessible from Profile)
+- **No Duplication**: Single unified system eliminates confusion between notification and calling contacts
 
 ### 🔐 **Security & Authentication**
 - **JWT Authentication** - Secure user sessions
@@ -453,6 +471,14 @@ lifeline-backend/
 - [ ] Character limit and real-time counter
 - [ ] Professional UI with avatars and badges
 
+#### ✅ **Emergency Contacts (Unified System)**
+- [ ] Add contacts in Socialize page
+- [ ] Call contacts using "Call" button
+- [ ] View contacts in offline mode page
+- [ ] Add/edit/delete contacts while offline
+- [ ] Contacts sync automatically when online
+- [ ] Contacts receive emergency alert notifications via email
+
 #### ✅ **Mobile Features**
 - [ ] Responsive design on mobile
 - [ ] Hamburger menu navigation
@@ -532,11 +558,12 @@ NEXT_PUBLIC_API_URL=https://your-api-domain.com
 - `POST /voice-alert/process` — multipart form-data: `audio`, optional `latitude`, `longitude`, `userId`
 - `POST /voice-alert/testNotify` — body `{ userId }`
 
-#### Contacts
-- `GET /contacts` — list user's contacts
+#### Contacts (Unified System)
+- `GET /contacts` — list user's contacts (used for both notifications and offline calling)
 - `POST /contacts` — add contact `{ userId, name, phone, email?, methods? }`
 - `PUT /contacts/:id` — update contact
 - `DELETE /contacts/:id` — delete contact
+- **Note**: Contacts are cached locally in `localStorage` for offline access and automatically sync when online
 - `POST /status` - Create/update status
 - `GET /status/user/:userId` - Get user status
 - `GET /status/sync` - Get sync status

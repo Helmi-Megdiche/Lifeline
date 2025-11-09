@@ -157,18 +157,94 @@ export default function GroupsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
 
+  // Sync offline contacts when coming back online
+  useEffect(() => {
+    const handleOnline = async () => {
+      if (!token || !user) return;
+      
+      // Check for unsynced contacts
+      const cached = localStorage.getItem('lifeline:contacts');
+      if (cached) {
+        try {
+          const contacts = JSON.parse(cached);
+          const unsynced = contacts.filter((c: any) => c._id?.startsWith('temp_') || c.synced === false);
+          
+          if (unsynced.length > 0) {
+            // Try to sync each unsynced contact
+            for (const contact of unsynced) {
+              try {
+                const response = await fetch(`${API_CONFIG.BASE_URL}/contacts`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({
+                    name: contact.name,
+                    phone: contact.phone,
+                    email: contact.email,
+                    methods: contact.methods || ['sms', 'whatsapp'],
+                  }),
+                });
+                
+                if (response.ok) {
+                  const saved = await response.json();
+                  // Update in localStorage
+                  const updated = contacts.map((c: any) => 
+                    c._id === contact._id ? saved : c
+                  );
+                  localStorage.setItem('lifeline:contacts', JSON.stringify(updated));
+                }
+              } catch (error) {
+                console.error('Failed to sync contact:', error);
+              }
+            }
+            
+            // Reload contacts to get latest from server
+            await loadContacts();
+          }
+        } catch (error) {
+          console.error('Failed to sync offline contacts:', error);
+        }
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [token, user]);
+
   const loadContacts = async () => {
-    if (!token) return;
     setLoadingContacts(true);
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/contacts`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setContacts(data);
+      // Try to load from backend if online and authenticated
+      if (token && navigator.onLine) {
+        try {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/contacts`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setContacts(data);
+            // Save to localStorage for offline access
+            localStorage.setItem('lifeline:contacts', JSON.stringify(data));
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to load contacts from server:', error);
+        }
+      }
+      
+      // Fallback to localStorage if offline or server fails
+      const cached = localStorage.getItem('lifeline:contacts');
+      if (cached) {
+        try {
+          const data = JSON.parse(cached);
+          setContacts(data);
+        } catch (error) {
+          console.error('Failed to parse cached contacts:', error);
+        }
       }
     } catch (error) {
       console.error('Failed to load contacts:', error);
@@ -198,6 +274,25 @@ export default function GroupsPage() {
       });
 
       if (response.ok) {
+        const savedContact = await response.json();
+        // Update local storage immediately
+        const cached = localStorage.getItem('lifeline:contacts');
+        if (cached) {
+          try {
+            const contacts = JSON.parse(cached);
+            if (editingContact) {
+              const index = contacts.findIndex((c: any) => c._id === editingContact._id);
+              if (index >= 0) {
+                contacts[index] = savedContact;
+              }
+            } else {
+              contacts.push(savedContact);
+            }
+            localStorage.setItem('lifeline:contacts', JSON.stringify(contacts));
+          } catch (error) {
+            console.error('Failed to update cached contacts:', error);
+          }
+        }
         await loadContacts();
         setShowContactModal(false);
         setEditingContact(null);
@@ -207,7 +302,32 @@ export default function GroupsPage() {
         alert(error.message || 'Failed to save contact');
       }
     } catch (error: any) {
-      alert(error.message || 'Failed to save contact');
+      // If offline, save to localStorage for later sync
+      if (!navigator.onLine) {
+        const newContact = {
+          _id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          ...contactForm,
+          synced: false,
+        };
+        const cached = localStorage.getItem('lifeline:contacts');
+        const contacts = cached ? JSON.parse(cached) : [];
+        if (editingContact) {
+          const index = contacts.findIndex((c: any) => c._id === editingContact._id);
+          if (index >= 0) {
+            contacts[index] = { ...newContact, _id: editingContact._id };
+          }
+        } else {
+          contacts.push(newContact);
+        }
+        localStorage.setItem('lifeline:contacts', JSON.stringify(contacts));
+        setContacts(contacts);
+        setShowContactModal(false);
+        setEditingContact(null);
+        setContactForm({ name: '', phone: '', email: '', methods: ['sms', 'whatsapp'] });
+        alert('Contact saved locally. Will sync when online.');
+      } else {
+        alert(error.message || 'Failed to save contact');
+      }
     }
   };
 
@@ -224,12 +344,48 @@ export default function GroupsPage() {
       });
 
       if (response.ok) {
+        // Update local storage
+        const cached = localStorage.getItem('lifeline:contacts');
+        if (cached) {
+          try {
+            const contacts = JSON.parse(cached).filter((c: any) => c._id !== id);
+            localStorage.setItem('lifeline:contacts', JSON.stringify(contacts));
+          } catch (error) {
+            console.error('Failed to update cached contacts:', error);
+          }
+        }
         await loadContacts();
       } else {
         alert('Failed to delete contact');
       }
     } catch (error) {
-      alert('Failed to delete contact');
+      // If offline, remove from localStorage
+      if (!navigator.onLine) {
+        const cached = localStorage.getItem('lifeline:contacts');
+        if (cached) {
+          try {
+            const contacts = JSON.parse(cached).filter((c: any) => c._id !== id);
+            localStorage.setItem('lifeline:contacts', JSON.stringify(contacts));
+            setContacts(contacts);
+            alert('Contact deleted locally. Will sync when online.');
+          } catch (error) {
+            console.error('Failed to update cached contacts:', error);
+          }
+        }
+      } else {
+        alert('Failed to delete contact');
+      }
+    }
+  };
+
+  const handleCallContact = (phone: string) => {
+    try {
+      window.location.href = `tel:${phone}`;
+    } catch (error) {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(phone).then(() => {
+        alert(`Phone number copied to clipboard: ${phone}`);
+      });
     }
   };
 
@@ -389,7 +545,7 @@ export default function GroupsPage() {
               Emergency Contacts
             </h2>
             <p className="text-sm text-gray-700 dark:text-gray-500 mt-2 font-semibold">
-              Quick access to important people during emergencies
+              Quick access to important people during emergencies • Works offline • Auto-syncs when online
             </p>
           </div>
           <button
@@ -492,6 +648,13 @@ export default function GroupsPage() {
                 )}
 
                 <div className="flex gap-2.5 pt-4 border-t border-gray-200/80 dark:border-gray-700/80">
+                  <button
+                    onClick={() => handleCallContact(contact.phone)}
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-xl hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/50 dark:hover:to-emerald-900/50 transition-all text-sm font-bold shadow-sm hover:shadow-md border border-green-200/50 dark:border-green-700/50"
+                    style={{ color: theme === 'dark' ? '#86efac' : '#065f46' }}
+                  >
+                    📞 Call
+                  </button>
                   <button
                     onClick={() => handleEditContact(contact)}
                     className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900/50 dark:hover:to-indigo-900/50 transition-all text-sm font-bold shadow-sm hover:shadow-md border border-blue-200/50 dark:border-blue-700/50"

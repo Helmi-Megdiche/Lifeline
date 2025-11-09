@@ -208,9 +208,23 @@ export function useOfflineQueue() {
         });
 
         if (response.ok) {
+          const result = await response.json();
+          const createdAlertId = result.alert?._id;
+          
           console.log(`✅ Successfully synced alert ${alert.alertId}`);
           alertsToRemove.push(alert.alertId);
           successCount++;
+          
+          // Try to sync any cached map snapshot for this alert
+          // Check if there's a temp ID that matches this alert's timestamp
+          if (createdAlertId) {
+            // Dispatch event to sync map snapshot for this alert ID
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('lifeline-alert-synced', {
+                detail: { alertId: createdAlertId, tempId: alert.alertId }
+              }));
+            }
+          }
         } else {
           const errorText = await response.text();
           console.error(`❌ Failed to sync alert ${alert.alertId}:`, response.status, errorText);

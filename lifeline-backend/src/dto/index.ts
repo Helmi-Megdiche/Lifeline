@@ -74,3 +74,5 @@ export class UpdateProfileDto {
 
 // Export alert DTOs
 export * from './alert.dto';
+export * from './map-snapshot.dto';
+export * from './emergency-contact.dto';

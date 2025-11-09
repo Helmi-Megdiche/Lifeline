@@ -1,6 +1,7 @@
-import { Controller, Post, Get, Put, Delete, Body, Query, Param, UseGuards, Request, HttpCode, HttpStatus, NotFoundException, Res } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Query, Param, UseGuards, Request, HttpCode, HttpStatus, NotFoundException, Res, BadRequestException } from '@nestjs/common';
 import { AlertsService } from './alerts.service';
 import { CreateAlertDto, ReportAlertDto, AlertListDto, AddCommentDto } from '../dto';
+import { MapSnapshotDto } from '../dto/map-snapshot.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
 
@@ -94,6 +95,33 @@ export class AlertsController {
   async deleteAlert(@Request() req, @Param('id') alertId: string) {
     await this.alertsService.deleteAlert(alertId, req.user.userId);
     return { success: true, message: 'Alert deleted successfully' };
+  }
+
+  @Post(':id/map')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 requests per minute
+  @HttpCode(HttpStatus.OK)
+  async addMapSnapshot(
+    @Request() req,
+    @Param('id') alertId: string,
+    @Body() mapSnapshotDto: MapSnapshotDto
+  ) {
+    // Validate base64 image size if provided
+    if (mapSnapshotDto.mapImage) {
+      // Approximate size: base64 is ~33% larger than binary
+      const sizeInBytes = (mapSnapshotDto.mapImage.length * 3) / 4;
+      if (sizeInBytes > 500 * 1024) {
+        throw new BadRequestException('Map image exceeds 500KB limit');
+      }
+    }
+
+    const alert = await this.alertsService.addMapSnapshot(
+      alertId,
+      req.user.userId,
+      mapSnapshotDto
+    );
+    
+    return { success: true, alert };
   }
 
   // PouchDB-compatible endpoints

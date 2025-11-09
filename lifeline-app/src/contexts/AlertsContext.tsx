@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/ClientAuthContext';
 import { API_CONFIG } from '@/lib/config';
 import { useSync } from '@/components/ClientSyncProvider';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
+import { useMapSnapshotCache } from '@/hooks/useMapSnapshotCache';
+import { captureMapSnapshot } from '@/lib/mapSnapshot';
 // PouchDB imports removed - using REST API only
 // import PouchDB from 'pouchdb-browser';
 // import PouchFind from 'pouchdb-find';
@@ -96,6 +98,7 @@ const AlertsContext = createContext<AlertsContextType | undefined>(undefined);
 export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
   const { user, token, isAuthenticated, isOnline } = useAuth();
   const { queueAlert } = useOfflineQueue();
+  const { cacheMapSnapshot } = useMapSnapshotCache();
 
   // Note: Removed global error suppression as it wasn't effective
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -290,6 +293,22 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
       ttlHours: payload.ttlHours || 24
     };
 
+    // Capture map snapshot (async, don't block alert creation)
+    const captureMap = async () => {
+      try {
+        const snapshot = await captureMapSnapshot(lat, lng);
+        if (snapshot) {
+          return snapshot;
+        }
+      } catch (error) {
+        console.error('Failed to capture map snapshot:', error);
+      }
+      return null;
+    };
+
+    // Start capturing map snapshot (non-blocking)
+    const mapSnapshotPromise = captureMap();
+
     // Check if offline or no token
     const isOffline = !navigator.onLine;
     const hasToken = !!token;
@@ -297,7 +316,17 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
     // If offline or no token, queue the alert
     if (isOffline || !hasToken) {
       try {
-        queueAlert(alertPayload);
+        // Queue alert and get the queued alert ID
+        const queuedAlertId = queueAlert(alertPayload);
+        
+        // Cache map snapshot if available, using the same queued alert ID
+        const snapshot = await mapSnapshotPromise;
+        if (snapshot && queuedAlertId) {
+          // Use the queued alert ID so we can map it when the alert syncs
+          cacheMapSnapshot(queuedAlertId, snapshot);
+          console.log(`🗺️ Cached map snapshot for queued alert: ${queuedAlertId}`);
+        }
+        
         showNotification(
           isOffline 
             ? 'Alert queued. Will sync when online.'
@@ -327,6 +356,40 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (response.ok) {
+        const result = await response.json();
+        const createdAlert = result.alert;
+        
+        // Wait for map snapshot and sync it
+        const snapshot = await mapSnapshotPromise;
+        if (snapshot && createdAlert?._id) {
+          if (navigator.onLine && token) {
+            // Try to sync immediately
+            try {
+              await fetch(`${API_CONFIG.BASE_URL}/alerts/${createdAlert._id}/map`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  lat: snapshot.lat,
+                  lng: snapshot.lng,
+                  mapImage: snapshot.mapImage,
+                  timestamp: snapshot.timestamp,
+                  locationUnavailable: snapshot.locationUnavailable,
+                }),
+              });
+            } catch (error) {
+              // If sync fails, cache it for later
+              console.warn('Failed to sync map snapshot immediately, caching for later:', error);
+              cacheMapSnapshot(createdAlert._id, snapshot);
+            }
+          } else {
+            // Offline - cache it
+            cacheMapSnapshot(createdAlert._id, snapshot);
+          }
+        }
+        
         await fetchAlerts();
         showNotification('Alert created successfully!', 'success');
       } else {
@@ -335,7 +398,15 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
         // If server error or network issue, queue it
         if (response.status >= 500 || !navigator.onLine) {
           try {
-            queueAlert(alertPayload);
+            const queuedAlertId = queueAlert(alertPayload);
+            
+            // Cache map snapshot if available, using the queued alert ID
+            const snapshot = await mapSnapshotPromise;
+            if (snapshot && queuedAlertId) {
+              cacheMapSnapshot(queuedAlertId, snapshot);
+              console.log(`🗺️ Cached map snapshot for queued alert: ${queuedAlertId}`);
+            }
+            
             showNotification('Alert queued due to server error. Will retry automatically.', 'warning');
             return;
           } catch (queueError) {
@@ -351,7 +422,15 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
       // If network error, queue it
       if (error.message?.includes('Failed to fetch') || !navigator.onLine) {
         try {
-          queueAlert(alertPayload);
+          const queuedAlertId = queueAlert(alertPayload);
+          
+          // Cache map snapshot if available, using the queued alert ID
+          const snapshot = await mapSnapshotPromise;
+          if (snapshot && queuedAlertId) {
+            cacheMapSnapshot(queuedAlertId, snapshot);
+            console.log(`🗺️ Cached map snapshot for queued alert: ${queuedAlertId}`);
+          }
+          
           showNotification('Alert queued (offline). Will sync when connection is restored.', 'info');
           return;
         } catch (queueError) {
@@ -362,7 +441,7 @@ export const AlertsProvider = ({ children }: { children: React.ReactNode }) => {
       showNotification('Failed to create alert. Please try again.', 'error');
       throw error;
     }
-  }, [token, user, fetchAlerts, showNotification, queueAlert]);
+  }, [token, user, fetchAlerts, showNotification, queueAlert, cacheMapSnapshot]);
 
   const updateAlert = useCallback(async (alertId: string, payload: Partial<CreateAlertPayload>) => {
     if (!token || !user?.id) {

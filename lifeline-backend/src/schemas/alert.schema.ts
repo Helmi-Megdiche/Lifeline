@@ -82,6 +82,24 @@ export class Alert {
     comment: string;
     createdAt: Date;
   }>;
+
+  @Prop({
+    type: {
+      lat: { type: Number, required: false },
+      lng: { type: Number, required: false },
+      mapImage: { type: String, required: false },
+      locationSyncedAt: { type: Date, required: false },
+      locationUnavailable: { type: Boolean, required: false, default: false },
+    },
+    required: false,
+  })
+  mapSnapshot?: {
+    lat: number;
+    lng: number;
+    mapImage?: string; // base64 PNG
+    locationSyncedAt?: Date;
+    locationUnavailable?: boolean;
+  };
 }
 
 export const AlertSchema = SchemaFactory.createForClass(Alert);

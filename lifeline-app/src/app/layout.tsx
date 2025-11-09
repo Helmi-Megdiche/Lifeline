@@ -12,6 +12,8 @@ import { AlertsProvider } from "@/contexts/AlertsContext";
 import { GroupsProvider } from "@/contexts/GroupsContext";
 import GlobalEmergencyListener from "@/components/GlobalEmergencyListener";
 import OfflineQueueSync from "@/components/OfflineQueueSync";
+import MapSnapshotSync from "@/components/MapSnapshotSync";
+import OfflineContactsSync from "@/components/OfflineContactsSync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -104,6 +106,8 @@ export default function RootLayout({
                         <GroupsProvider>
                           <GlobalEmergencyListener />
                           <OfflineQueueSync />
+                          <MapSnapshotSync />
+                          <OfflineContactsSync />
                           <InstallPrompt />
                           {children}
                         </GroupsProvider>

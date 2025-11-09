@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Request } from '@nestjs/common';
 import { ContactsService } from './contacts.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { EmergencyContactDto } from '../dto/emergency-contact.dto';
 
 @Controller('contacts')
 export class ContactsController {
@@ -28,6 +29,19 @@ export class ContactsController {
   @UseGuards(JwtAuthGuard)
   async remove(@Param('id') id: string, @Request() req: any) {
     return this.svc.remove(req.user?.userId, id);
+  }
+
+  // Emergency Contacts Sync Endpoints
+  @Get('sync')
+  @UseGuards(JwtAuthGuard)
+  async getEmergencyContacts(@Request() req: any) {
+    return this.svc.getEmergencyContacts(req.user?.userId);
+  }
+
+  @Post('sync')
+  @UseGuards(JwtAuthGuard)
+  async syncEmergencyContacts(@Body() body: EmergencyContactDto[], @Request() req: any) {
+    return this.svc.syncEmergencyContacts(req.user?.userId, body);
   }
 }
 

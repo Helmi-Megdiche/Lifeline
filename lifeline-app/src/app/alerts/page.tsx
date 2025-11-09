@@ -8,6 +8,7 @@ import { useGroups } from '@/contexts/GroupsContext';
 import dynamic from 'next/dynamic';
 import { useEmergencyListener } from '@/hooks/useEmergencyListener';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
+import { useMapSnapshotCache } from '@/hooks/useMapSnapshotCache';
 import OfflineQueueBadge from '@/components/OfflineQueueBadge';
 import EmergencyListenerIndicator from '@/components/EmergencyListenerIndicator';
 import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
@@ -63,6 +64,13 @@ interface Alert {
   expiresAt: string;
   synced: boolean;
   hidden: boolean;
+  mapSnapshot?: {
+    lat: number;
+    lng: number;
+    mapImage?: string;
+    locationSyncedAt?: string;
+    locationUnavailable?: boolean;
+  };
   comments?: Array<{
     userId: string;
     username: string;
@@ -584,6 +592,17 @@ const AlertCard: React.FC<{
   isOnline: boolean;
 }> = ({ alert, onReport, onAddComment, onUpdateComment, onDeleteComment, onReply, onUpdate, onDelete, onShareToGroup, currentUserId, isOnline }) => {
   const { theme } = useTheme();
+  const { getCachedSnapshot } = useMapSnapshotCache();
+  
+  // Check if map snapshot is cached for this alert
+  const cachedMap = getCachedSnapshot(alert._id);
+  const hasMapSnapshot = alert.mapSnapshot && alert.mapSnapshot.mapImage;
+  const isMapCached = !!cachedMap;
+  
+  // Debug logging (remove in production)
+  if (cachedMap) {
+    console.log(`🗺️ Found cached map snapshot for alert ${alert._id}`);
+  }
   
   const getSeverityConfig = (severity: string) => {
     const isLight = theme === 'light';
@@ -701,6 +720,16 @@ const AlertCard: React.FC<{
           {!alert.synced && (
             <span className="px-3 py-1.5 bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 rounded-full text-sm font-semibold shadow-sm">
               📤 Queued
+            </span>
+          )}
+          {isMapCached && (
+            <span className="px-3 py-1.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full text-sm font-semibold shadow-sm" title="Map snapshot cached offline">
+              📍 Location Cached
+            </span>
+          )}
+          {hasMapSnapshot && !isMapCached && (
+            <span className="px-3 py-1.5 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-sm font-semibold shadow-sm" title="Map snapshot synced">
+              🗺️ Map Synced
             </span>
           )}
           {isExpired && (
@@ -1422,6 +1451,7 @@ export default function AlertsPage() {
   const { user, isOnline, isLoading: isAuthLoading } = useAuth();
   const { alerts, isLoadingAlerts, createAlert, updateAlert, reportAlert, addComment, updateComment, deleteComment, deleteAlert } = useAlerts();
   const { syncQueuedAlerts, queueCount, isSyncing } = useOfflineQueue();
+  const { cachedSnapshots } = useMapSnapshotCache();
   
   // Emergency detection state
   const [emergencyDetectionEnabled, setEmergencyDetectionEnabled] = useState(false);

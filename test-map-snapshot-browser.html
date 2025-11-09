@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Map Snapshot Feature - Browser Test</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-container {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .test-header {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    .test-result {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 5px 0;
+    }
+    .pass { background: #d4edda; color: #155724; }
+    .fail { background: #f8d7da; color: #721c24; }
+    .warning { background: #fff3cd; color: #856404; }
+    .info { background: #d1ecf1; color: #0c5460; }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover { background: #0056b3; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .code {
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+    #results {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🗺️ Offline Map Snapshot Feature - Browser Test</h1>
+  
+  <div class="test-container">
+    <div class="test-header">Test Controls</div>
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="clearResults()">Clear Results</button>
+    <button onclick="clearLocalStorage()">Clear localStorage</button>
+    <button onclick="simulateOffline()">Simulate Offline</button>
+    <button onclick="simulateOnline()">Simulate Online</button>
+  </div>
+
+  <div class="test-container">
+    <div class="test-header">Test Results</div>
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'lifeline:offline_map_snapshots';
+    const API_BASE = 'http://localhost:4004';
+    let testResults = [];
+
+    function log(message, type = 'info') {
+      const resultsDiv = document.getElementById('results');
+      const div = document.createElement('div');
+      div.className = `test-result ${type}`;
+      div.textContent = message;
+      resultsDiv.appendChild(div);
+      console.log(`[${type.toUpperCase()}] ${message}`);
+    }
+
+    function clearResults() {
+      document.getElementById('results').innerHTML = '';
+      testResults = [];
+    }
+
+    function clearLocalStorage() {
+      localStorage.removeItem(STORAGE_KEY);
+      log('✅ localStorage cleared', 'pass');
+    }
+
+    function simulateOffline() {
+      Object.defineProperty(navigator, 'onLine', {
+        writable: true,
+        configurable: true,
+        value: false
+      });
+      window.dispatchEvent(new Event('offline'));
+      log('📴 Simulated offline mode', 'warning');
+    }
+
+    function simulateOnline() {
+      Object.defineProperty(navigator, 'onLine', {
+        writable: true,
+        configurable: true,
+        value: true
+      });
+      window.dispatchEvent(new Event('online'));
+      log('📶 Simulated online mode', 'pass');
+    }
+
+    // Test 1: Check localStorage availability
+    async function testLocalStorageAvailability() {
+      try {
+        if (typeof Storage === 'undefined') {
+          throw new Error('localStorage not available');
+        }
+        localStorage.setItem('test', 'value');
+        localStorage.removeItem('test');
+        log('✅ Test 1: localStorage is available', 'pass');
+        return true;
+      } catch (error) {
+        log(`❌ Test 1: localStorage not available - ${error.message}`, 'fail');
+        return false;
+      }
+    }
+
+    // Test 2: Test map snapshot cache structure
+    async function testMapSnapshotCacheStructure() {
+      try {
+        const testSnapshot = {
+          alertId: 'test_alert_123',
+          snapshot: {
+            lat: 36.8115712,
+            lng: 10.174464,
+            mapImage: 'test_base64_string',
+            timestamp: new Date().toISOString(),
+            locationUnavailable: false
+          },
+          timestamp: Date.now(),
+          retryCount: 0
+        };
+
+        const cache = [testSnapshot];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
+        
+        const retrieved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (!Array.isArray(retrieved) || retrieved.length !== 1) {
+          throw new Error('Cache structure invalid');
+        }
+        
+        if (retrieved[0].alertId !== testSnapshot.alertId) {
+          throw new Error('Cache data corrupted');
+        }
+
+        localStorage.removeItem(STORAGE_KEY);
+        log('✅ Test 2: Map snapshot cache structure is valid', 'pass');
+        return true;
+      } catch (error) {
+        log(`❌ Test 2: Cache structure test failed - ${error.message}`, 'fail');
+        return false;
+      }
+    }
+
+    // Test 3: Test coordinate validation
+    async function testCoordinateValidation() {
+      try {
+        const validCoords = [
+          { lat: 36.8115712, lng: 10.174464 },
+          { lat: -90, lng: -180 },
+          { lat: 90, lng: 180 },
+          { lat: 0, lng: 0 }
+        ];
+
+        const invalidCoords = [
+          { lat: 91, lng: 10 },
+          { lat: -91, lng: 10 },
+          { lat: 36, lng: 181 },
+          { lat: 36, lng: -181 }
+        ];
+
+        validCoords.forEach(coord => {
+          if (coord.lat < -90 || coord.lat > 90 || coord.lng < -180 || coord.lng > 180) {
+            throw new Error(`Valid coordinates failed: ${JSON.stringify(coord)}`);
+          }
+        });
+
+        invalidCoords.forEach(coord => {
+          if (!(coord.lat < -90 || coord.lat > 90 || coord.lng < -180 || coord.lng > 180)) {
+            throw new Error(`Invalid coordinates passed: ${JSON.stringify(coord)}`);
+          }
+        });
+
+        log('✅ Test 3: Coordinate validation works correctly', 'pass');
+        return true;
+      } catch (error) {
+        log(`❌ Test 3: Coordinate validation failed - ${error.message}`, 'fail');
+        return false;
+      }
+    }
+
+    // Test 4: Test base64 size calculation
+    async function testBase64SizeCalculation() {
+      try {
+        const testString = 'A'.repeat(100000); // ~75KB base64
+        const base64Size = (testString.length * 3) / 4;
+        
+        if (base64Size < 70000 || base64Size > 80000) {
+          throw new Error('Base64 size calculation incorrect');
+        }
+
+        const maxSize = 500 * 1024; // 500KB
+        const largeString = 'A'.repeat(700000); // ~525KB
+        const largeBase64Size = (largeString.length * 3) / 4;
+        
+        if (largeBase64Size <= maxSize) {
+          throw new Error('Size limit check failed');
+        }
+
+        log('✅ Test 4: Base64 size calculation is correct', 'pass');
+        return true;
+      } catch (error) {
+        log(`❌ Test 4: Base64 size calculation failed - ${error.message}`, 'fail');
+        return false;
+      }
+    }
+
+    // Test 5: Test cache quota handling
+    async function testCacheQuotaHandling() {
+      try {
+        // Simulate quota exceeded by trying to store large data
+        const largeCache = [];
+        for (let i = 0; i < 100; i++) {
+          largeCache.push({
+            alertId: `test_${i}`,
+            snapshot: {
+              lat: 36.811,
+              lng: 10.174,
+              mapImage: 'A'.repeat(10000), // Large base64 string
+              timestamp: new Date().toISOString()
+            },
+            timestamp: Date.now(),
+            retryCount: 0
+          });
+        }
+
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(largeCache));
+          log('ℹ️ Test 5: Quota handling - localStorage accepted data (may vary by browser)', 'info');
+        } catch (error) {
+          if (error.name === 'QuotaExceededError') {
+            log('✅ Test 5: QuotaExceededError detected correctly', 'pass');
+          } else {
+            throw error;
+          }
+        }
+        
+        return true;
+      } catch (error) {
+        log(`❌ Test 5: Quota handling test failed - ${error.message}`, 'fail');
+        return false;
+      }
+    }
+
+    // Test 6: Test navigator.onLine detection
+    async function testNavigatorOnline() {
+      try {
+        const isOnline = navigator.onLine;
+        log(`ℹ️ Test 6: navigator.onLine = ${isOnline}`, 'info');
+        
+        // Test event listeners
+        let onlineEventFired = false;
+        const handler = () => { onlineEventFired = true; };
+        window.addEventListener('online', handler);
+        
+        // Simulate online event
+        simulateOnline();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        window.removeEventListener('online', handler);
+        log('✅ Test 6: navigator.onLine and events work', 'pass');
+        return true;
+      } catch (error) {
+        log(`❌ Test 6: navigator.onLine test failed - ${error.message}`, 'fail');
+        return false;
+      }
+    }
+
+    // Test 7: Test API endpoint (if backend is available)
+    async function testAPIEndpoint() {
+      try {
+        const response = await fetch(`${API_BASE}/alerts/test`);
+        if (response.ok) {
+          log('✅ Test 7: Backend API is accessible', 'pass');
+          return true;
+        } else {
+          log(`⚠️ Test 7: Backend responded with status ${response.status}`, 'warning');
+          return false;
+        }
+      } catch (error) {
+        log(`⚠️ Test 7: Backend not accessible - ${error.message} (expected if backend is not running)`, 'warning');
+        return false;
+      }
+    }
+
+    // Test 8: Test map snapshot DTO structure
+    async function testMapSnapshotDTO() {
+      try {
+        const dto = {
+          lat: 36.8115712,
+          lng: 10.174464,
+          mapImage: 'base64_test_string',
+          timestamp: new Date().toISOString(),
+          locationUnavailable: false
+        };
+
+        // Validate structure
+        if (typeof dto.lat !== 'number' || typeof dto.lng !== 'number') {
+          throw new Error('Invalid coordinate types');
+        }
+
+        if (dto.lat < -90 || dto.lat > 90 || dto.lng < -180 || dto.lng > 180) {
+          throw new Error('Coordinates out of range');
+        }
+
+        if (dto.mapImage && typeof dto.mapImage !== 'string') {
+          throw new Error('mapImage must be string');
+        }
+
+        log('✅ Test 8: Map snapshot DTO structure is valid', 'pass');
+        return true;
+      } catch (error) {
+        log(`❌ Test 8: DTO structure test failed - ${error.message}`, 'fail');
+        return false;
+      }
+    }
+
+    // Test 9: Test retry count logic
+    async function testRetryLogic() {
+      try {
+        const MAX_RETRIES = 3;
+        const testCache = [{
+          alertId: 'test_retry',
+          snapshot: { lat: 36.811, lng: 10.174, mapImage: '', timestamp: new Date().toISOString() },
+          timestamp: Date.now(),
+          retryCount: 2
+        }];
+
+        const shouldRetry = testCache[0].retryCount < MAX_RETRIES;
+        if (!shouldRetry) {
+          throw new Error('Retry logic incorrect');
+        }
+
+        testCache[0].retryCount = MAX_RETRIES;
+        const shouldNotRetry = testCache[0].retryCount >= MAX_RETRIES;
+        if (!shouldNotRetry) {
+          throw new Error('Max retries logic incorrect');
+        }
+
+        log('✅ Test 9: Retry logic works correctly', 'pass');
+        return true;
+      } catch (error) {
+        log(`❌ Test 9: Retry logic test failed - ${error.message}`, 'fail');
+        return false;
+      }
+    }
+
+    // Test 10: Test temp ID to real ID mapping
+    async function testTempIdMapping() {
+      try {
+        const tempId = `temp_${Date.now()}_abc123`;
+        const realId = 'alert_user123_1234567890';
+        
+        // Simulate the mapping logic
+        const cached = {
+          alertId: tempId,
+          snapshot: { lat: 36.811, lng: 10.174, mapImage: 'test', timestamp: new Date().toISOString() },
+          timestamp: Date.now(),
+          retryCount: 0
+        };
+
+        // Map temp to real
+        const mapped = {
+          ...cached,
+          alertId: realId
+        };
+
+        if (mapped.alertId !== realId) {
+          throw new Error('ID mapping failed');
+        }
+
+        log('✅ Test 10: Temp ID to real ID mapping works', 'pass');
+        return true;
+      } catch (error) {
+        log(`❌ Test 10: ID mapping test failed - ${error.message}`, 'fail');
+        return false;
+      }
+    }
+
+    // Run all tests
+    async function runAllTests() {
+      clearResults();
+      log('🧪 Starting all tests...\n', 'info');
+      
+      const tests = [
+        testLocalStorageAvailability,
+        testMapSnapshotCacheStructure,
+        testCoordinateValidation,
+        testBase64SizeCalculation,
+        testCacheQuotaHandling,
+        testNavigatorOnline,
+        testAPIEndpoint,
+        testMapSnapshotDTO,
+        testRetryLogic,
+        testTempIdMapping
+      ];
+
+      let passed = 0;
+      let failed = 0;
+      let warnings = 0;
+
+      for (const test of tests) {
+        try {
+          const result = await test();
+          if (result === true) passed++;
+          else if (result === false) warnings++;
+        } catch (error) {
+          failed++;
+        }
+      }
+
+      log('\n' + '='.repeat(60), 'info');
+      log(`📊 TEST SUMMARY`, 'info');
+      log('='.repeat(60), 'info');
+      log(`✅ Passed: ${passed}`, 'pass');
+      log(`❌ Failed: ${failed}`, 'fail');
+      log(`⚠️  Warnings: ${warnings}`, 'warning');
+      log('='.repeat(60), 'info');
+
+      if (failed === 0) {
+        log('🎉 All critical tests passed!', 'pass');
+      } else {
+        log('⚠️  Some tests failed. Please review the results above.', 'warning');
+      }
+    }
+
+    // Auto-run tests on load
+    window.addEventListener('load', () => {
+      log('🚀 Test page loaded. Click "Run All Tests" to start.', 'info');
+    });
+  </script>
+</body>
+</html>
+

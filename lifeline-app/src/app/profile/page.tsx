@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/ClientAuthContext";
 import { API_CONFIG } from "@/lib/config";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const getEmergencyDetectionKey = (userId?: string) => {
   return userId ? `lifeline:emergencyDetectionEnabled:${userId}` : 'lifeline:emergencyDetectionEnabled';
@@ -344,6 +345,32 @@ export default function ProfilePage() {
                 </button>
               </div>
             </div>
+
+            {/* Offline Mode Section */}
+            <Link
+              href="/offline"
+              className="block bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border-2 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-200 hover:shadow-lg"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">📵</span>
+                    <h3 className="text-lg font-bold text-black dark:text-white">
+                      Offline Mode
+                    </h3>
+                  </div>
+                  <p className="text-sm font-semibold text-black dark:text-gray-300 mb-2 leading-relaxed">
+                    Access your emergency contacts even without internet connection
+                  </p>
+                  <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">
+                    📞 Manage up to 5 trusted emergency contacts • Works offline • Auto-syncs when online
+                  </p>
+                </div>
+                <div className="ml-4">
+                  <span className="text-2xl">→</span>
+                </div>
+              </div>
+            </Link>
 
             <div className="flex gap-3 pt-4">
               <button
