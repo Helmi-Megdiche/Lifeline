@@ -1,3 +1,10 @@
+// Load environment variables from .env file FIRST, before anything else
+import * as dotenv from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env file from the backend directory
+dotenv.config({ path: resolve(__dirname, '../.env') });
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import * as bodyParser from 'body-parser';

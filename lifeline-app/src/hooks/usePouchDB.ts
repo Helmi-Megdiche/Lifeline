@@ -1,16 +1,47 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { initializeDB, setActiveDatabases } from '@/lib/pouchdb';
 import { useAuth } from '@/contexts/ClientAuthContext';
+
+// Synchronous check for IndexedDB health and corruption flag - runs BEFORE any imports
+const checkIndexedDBHealth = (): boolean => {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    const indexedDBCorrupted = localStorage.getItem('lifeline:indexeddb_corrupted');
+    if (indexedDBCorrupted === 'true') {
+      return false; // IndexedDB is corrupted, skip PouchDB
+    }
+  } catch (e) {
+    // If we can't read localStorage, assume corruption and skip
+    return false;
+  }
+
+  if (!window.indexedDB) {
+    return false; // IndexedDB not available
+  }
+
+  // IndexedDB is available and not marked as corrupted
+  return true;
+};
 
 export const usePouchDB = () => {
   const [isClient, setIsClient] = useState(false);
   const [localDB, setLocalDB] = useState<PouchDB.Database<any> | null>(null);
   const [remoteDB, setRemoteDB] = useState<PouchDB.Database<any> | null>(null);
   const { user, token } = useAuth();
+  const pouchDBInitializedRef = useRef(false);
+
+  // Synchronous check BEFORE useEffect - prevents any PouchDB imports if IndexedDB is corrupted
+  const isIndexedDBHealthy = typeof window !== 'undefined' ? checkIndexedDBHealth() : false;
 
   useEffect(() => {
     setIsClient(true); // Mark as client-side
+
+    // CRITICAL: Skip entire initialization if IndexedDB is not healthy or already initialized
+    if (!isIndexedDBHealthy || pouchDBInitializedRef.current) {
+      return;
+    }
 
     if (typeof window !== 'undefined') {
       const initPouch = async () => {
@@ -20,20 +51,13 @@ export const usePouchDB = () => {
           return;
         }
 
-        // Check if IndexedDB is available
-        if (!window.indexedDB) {
-          return;
-        }
-
-        // Check localStorage flag FIRST - if IndexedDB was previously detected as corrupted, skip entirely
-        // This prevents any imports or operations
+        // Re-check localStorage flag (in case it changed)
         try {
           const indexedDBCorrupted = localStorage.getItem('lifeline:indexeddb_corrupted');
           if (indexedDBCorrupted === 'true') {
             return;
           }
         } catch (e) {
-          // If we can't read localStorage, assume corruption and skip
           return;
         }
 
@@ -104,6 +128,32 @@ export const usePouchDB = () => {
           // Only proceed with import if health check passed
           if (!healthCheckPassed) {
             return;
+          }
+
+          // Check storage quota before attempting import
+          try {
+            if ('storage' in navigator && 'estimate' in navigator.storage) {
+              const estimate = await navigator.storage.estimate();
+              // If quota is very low (< 1MB), skip PouchDB to avoid QuotaExceededError
+              if (estimate.quota && estimate.quota < 1024 * 1024) {
+                try {
+                  localStorage.setItem('lifeline:indexeddb_corrupted', 'true');
+                } catch (e) {
+                  // Ignore
+                }
+                return;
+              }
+            }
+          } catch (quotaCheckError: any) {
+            // If quota check fails, mark as corrupted and skip
+            if (quotaCheckError.name === 'QuotaExceededError') {
+              try {
+                localStorage.setItem('lifeline:indexeddb_corrupted', 'true');
+              } catch (e) {
+                // Ignore
+              }
+              return;
+            }
           }
 
           let PouchDB: any;
@@ -234,12 +284,21 @@ export const usePouchDB = () => {
               error.name === 'indexed_db_went_bad' ||
               error.message?.includes('indexed_db_went_bad') ||
               error.message?.includes('QuotaExceededError')) {
+            // Mark as corrupted for future attempts
+            try {
+              localStorage.setItem('lifeline:indexeddb_corrupted', 'true');
+            } catch (e) {
+              // Ignore
+            }
             // Silently return - app can continue without PouchDB
             return;
           }
           // Only log non-IndexedDB errors
           console.error('Failed to initialize PouchDB:', error);
           // Don't throw - app can continue without PouchDB
+        } finally {
+          // Mark as initialized to prevent re-initialization
+          pouchDBInitializedRef.current = true;
         }
       };
       
@@ -253,7 +312,9 @@ export const usePouchDB = () => {
         const message = args.join(' ');
         if (message.includes('indexed_db_went_bad') || 
             message.includes('QuotaExceededError') ||
-            message.includes('PouchDB')) {
+            message.includes('QuotaExceeded') ||
+            message.includes('PouchDB') ||
+            args.some(arg => arg?.name === 'QuotaExceededError' || arg?.message?.includes('QuotaExceededError'))) {
           return; // Suppress
         }
         originalError.apply(console, args);
@@ -263,7 +324,9 @@ export const usePouchDB = () => {
         const message = args.join(' ');
         if (message.includes('indexed_db_went_bad') || 
             message.includes('QuotaExceededError') ||
-            message.includes('PouchDB')) {
+            message.includes('QuotaExceeded') ||
+            message.includes('PouchDB') ||
+            args.some(arg => arg?.name === 'QuotaExceededError' || arg?.message?.includes('QuotaExceededError'))) {
           return; // Suppress
         }
         originalWarn.apply(console, args);
@@ -318,7 +381,7 @@ export const usePouchDB = () => {
         });
       }
     };
-  }, [user?.id, token]);
+  }, [user?.id, token, isIndexedDBHealthy]);
 
   return { isClient, localDB, remoteDB };
 };

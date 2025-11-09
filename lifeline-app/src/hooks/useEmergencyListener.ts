@@ -156,26 +156,53 @@ export function useEmergencyListener(config: Partial<EmergencyListenerConfig> = 
       }
       
       const apiUrl = getApiUrl('/voice-alert/process');
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      });
+      console.log('📡 Sending emergency alert to:', apiUrl);
       
-      if (!res.ok) {
-        if (!navigator.onLine) {
-          await queueVoiceAlert(blob, { latitude: lat, longitude: lon });
+      try {
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        });
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('❌ Emergency alert failed:', res.status, errorText);
+          
+          // Queue for retry if offline or server error
+          if (!navigator.onLine || res.status >= 500) {
+            await queueVoiceAlert(blob, { latitude: lat, longitude: lon });
+            console.log('📦 Emergency alert queued for retry');
+          }
+          
+          throw new Error(`Failed to send emergency alert: ${res.status} ${errorText}`);
+        } else {
+          const data = await res.json();
+          console.log('✅ Emergency alert sent successfully:', data);
+          
+          // Show notification
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Emergency Alert Sent', {
+              body: `AI detected: ${data.ai?.category || 'Emergency'} - Notifications sent to contacts`,
+              icon: '/icon-192x192.png',
+            });
+          }
         }
-      } else {
-        const data = await res.json();
-        console.log('✅ Emergency alert sent:', data);
-        // Show notification
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Emergency Alert Sent', {
-            body: `AI detected: ${data.ai?.intent || 'Emergency'} - ${data.ai?.category || 'Unknown'}`,
-            icon: '/icon-192x192.png',
-          });
+      } catch (error: any) {
+        console.error('❌ Emergency alert fetch error:', error);
+        
+        // If it's a network error and we're offline, queue it
+        if (!navigator.onLine || error.message?.includes('Failed to fetch')) {
+          try {
+            await queueVoiceAlert(blob, { latitude: lat, longitude: lon });
+            console.log('📦 Emergency alert queued for retry (offline/network error)');
+          } catch (queueError) {
+            console.error('❌ Failed to queue emergency alert:', queueError);
+          }
         }
+        
+        // Re-throw to let caller handle it
+        throw error;
       }
     } catch (err) {
       console.error('Failed to send emergency alert:', err);

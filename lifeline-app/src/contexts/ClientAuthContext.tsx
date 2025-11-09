@@ -71,22 +71,31 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    // Prevent multiple initializations - use ref to track if already started
-    let isInitializing = false;
-    
     // Only run once on client side
     if (typeof window !== 'undefined' && !isInitialized) {
-      isInitializing = true;
-      
       const initializeAuth = async () => {
         try {
-          // Load stored user data immediately without waiting for online check
+          // Load stored user data IMMEDIATELY and SYNCHRONOUSLY to prevent flash
           const storedToken = localStorage.getItem('lifeline:token');
           const storedUser = localStorage.getItem('lifeline:user');
           
           if (storedToken && storedUser) {
+            // Set state immediately before any async operations
             setToken(storedToken);
-            setUser(JSON.parse(storedUser));
+            try {
+              setUser(JSON.parse(storedUser));
+            } catch (e) {
+              // If user data is corrupted, clear it
+              localStorage.removeItem('lifeline:user');
+              localStorage.removeItem('lifeline:token');
+            }
+            // Mark as initialized immediately to prevent redirects
+            setIsInitialized(true);
+            setIsLoading(false);
+          } else {
+            // No stored auth - mark as initialized immediately
+            setIsInitialized(true);
+            setIsLoading(false);
           }
           
           // Check online status in the background (don't wait for it, don't log errors)
@@ -99,12 +108,13 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
           
         } catch (error) {
           console.error('❌ Auth initialization error:', error);
-        } finally {
-          setIsLoading(false);
+          // Even on error, mark as initialized to prevent infinite loading
           setIsInitialized(true);
+          setIsLoading(false);
         }
       };
 
+      // Run synchronously for immediate state
       initializeAuth();
 
       // Check online status periodically (with longer interval to avoid spam)
@@ -119,7 +129,7 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
 
       return () => clearInterval(interval);
     }
-  }, []); // Empty dependency array - only run once on mount
+  }, [isInitialized]); // Only depend on isInitialized to prevent re-runs
 
   const login = async (username: string, password: string) => {
     const response = await fetch(`${API_CONFIG.BASE_URL}/auth/login`, {

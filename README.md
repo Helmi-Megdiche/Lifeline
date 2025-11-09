@@ -4,7 +4,7 @@
 
 ## 🔥 Latest changes
 
-- **Voice-to-Alert AI (NEW!)**: Record up to 10s audio and auto-create SOS alerts via AI classification. Twilio SMS/WhatsApp and email notifications to emergency contacts. Offline queue support.
+- **Voice-to-Alert AI (NEW!)**: Record up to 10s audio and auto-create SOS alerts via AI classification. Email notifications to emergency contacts with comprehensive alert details. Offline queue support.
 - **OTP-Based Password Reset**: New secure password reset flow using email-based OTP verification. Users can request a 6-digit OTP code, verify it, and reset their password securely. Complete modal interface with multi-step process.
 - **Enhanced Members List UI**: Improved light mode colors and contrast for better readability. White background with darker text, professional styling with better shadows and borders.
 - **Admin Member Management**: Group admins can now remove members from groups permanently (with restrictions: cannot remove owner or themselves).
@@ -123,7 +123,7 @@
 - **Intent Classification**: Detect SOS/category/severity/confidence
 - **Location**: Send explicit lat/lon or fallback to last known
 - **Alert Creation**: Reuses Alerts schema; stores `aiMetadata` and `notifiedContacts`
-- **Notifications**: Twilio SMS/WhatsApp and email via Nodemailer
+- **Email Notifications**: Professional HTML email alerts via Nodemailer with location, transcript, category, and urgency level
 - **Queue & Retry**: Simple queued notifications for failures/offline
 - **Endpoints**: `POST /voice-alert/process`, `POST /voice-alert/testNotify`
 - **Contacts CRUD**: `GET/POST/PUT/DELETE /contacts`

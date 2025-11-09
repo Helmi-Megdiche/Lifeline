@@ -4,7 +4,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { SttService } from '../src/voice-alert/stt/stt.service';
 import { ClassifierService } from '../src/voice-alert/intents/classifier.service';
 import { ContactsService } from '../src/contacts/contacts.service';
-import { TwilioNotifierService } from '../src/notifier/twilio-notifier.service';
+import { EmailNotifierService } from '../src/notifier/email-notifier.service';
 
 describe('VoiceAlertService', () => {
   let svc: VoiceAlertService;
@@ -15,7 +15,7 @@ describe('VoiceAlertService', () => {
         VoiceAlertService,
         SttService,
         ClassifierService,
-        TwilioNotifierService,
+        EmailNotifierService,
         {
           provide: ContactsService,
           useValue: {

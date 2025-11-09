@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/ClientAuthContext';
 
@@ -11,20 +11,27 @@ export const AuthGuard = ({ children }: AuthGuardProps) => {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const hasRedirected = useRef(false);
 
   // Routes that don't require authentication
   const publicRoutes = ['/auth'];
   const isPublicRoute = publicRoutes.includes(pathname);
 
   useEffect(() => {
-    if (!isLoading) {
+    // Only redirect once per authentication state change, not on every render
+    if (!isLoading && !hasRedirected.current) {
       if (!isAuthenticated && !isPublicRoute) {
         // Redirect to auth page if not authenticated and not on a public route
+        hasRedirected.current = true;
         router.push('/auth');
       }
-      // Removed redirect for authenticated users on auth page - they can stay for profile management
     }
-  }, [isAuthenticated, isLoading, pathname, router]);
+    
+    // Reset redirect flag when authentication state changes
+    if (isAuthenticated) {
+      hasRedirected.current = false;
+    }
+  }, [isAuthenticated, isLoading, pathname, router, isPublicRoute]);
 
   // Show loading spinner while checking authentication
   if (isLoading) {
