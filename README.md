@@ -2,24 +2,27 @@
 
 **Offline-first emergency communication and resource app** - A Progressive Web App (PWA) that works seamlessly online and offline, with real-time location tracking and emergency resource management.
 
-## 🔥 Latest changes
+## 🔥 Latest Changes
 
-- **Unified Emergency Contacts System (NEW!)**: Emergency contacts from the Socialize page now work for both notifications AND offline calling. Single source of truth with offline-first support, auto-sync, and call functionality. No more duplicate contact systems!
-- **Offline Mode Page (NEW!)**: Dedicated offline mode page accessible from Profile, allowing users to view and call emergency contacts even without internet connection.
+### Code Cleanup & Optimization
+- **Removed unused code**: Cleaned up unused components, functions, and dependencies
+  - Removed unused `InstallPrompt` component
+  - Removed unused `testNotify` function
+  - Removed unused Twilio dependency
+  - Cleaned up empty directories
+- **Improved codebase maintainability**: Streamlined codebase for better performance and easier maintenance
+
+### Recent Features
+- **Unified Emergency Contacts System**: Emergency contacts from the Socialize page work for both notifications AND offline calling. Single source of truth with offline-first support, auto-sync, and call functionality.
+- **Offline Mode Page**: Dedicated offline mode page accessible from Profile, allowing users to view and call emergency contacts even without internet connection.
 - **Voice-to-Alert AI**: Record up to 10s audio and auto-create SOS alerts via AI classification. Email notifications to emergency contacts with comprehensive alert details. Offline queue support.
-- **OTP-Based Password Reset**: New secure password reset flow using email-based OTP verification. Users can request a 6-digit OTP code, verify it, and reset their password securely. Complete modal interface with multi-step process.
-- **Enhanced Members List UI**: Improved light mode colors and contrast for better readability. White background with darker text, professional styling with better shadows and borders.
-- **Admin Member Management**: Group admins can now remove members from groups permanently (with restrictions: cannot remove owner or themselves).
+- **OTP-Based Password Reset**: Secure password reset flow using email-based OTP verification. Users can request a 6-digit OTP code, verify it, and reset their password securely.
+- **Enhanced Members List UI**: Improved light mode colors and contrast for better readability. Professional styling with better shadows and borders.
+- **Admin Member Management**: Group admins can remove members from groups permanently (with restrictions: cannot remove owner or themselves).
 - **Member Location Viewing**: Click any member card to view their last known location with interactive map modal.
 - **Enhanced Authentication UI**: Complete redesign of login/register page with modern styling, improved dark mode support, and better user experience.
 - **Professional Dark Mode**: Upgraded to black-based dark theme with improved contrast and visibility across all components.
-- Unified member status comes from global MongoDB status; removed per‑group updates.
-- Invitations: list, accept/decline, navigate to group details from modal, preview before joining.
-- Group management: admins/owners can edit name, description, and type.
-- Leaving groups: any member can leave; owner blocked if other members remain.
-- Performance: reduced dev memory usage; dynamic import for invitations modal; quieter backend logs.
-- Group chat: Dedicated page at `groups/[id]/chat` with REST endpoints (`GET/POST /groups/:id/messages`).
-- Light/Dark UX: fixed chat light-mode backgrounds; compact Invite/Back buttons.
+- **Group Chat**: Dedicated chat page at `groups/[id]/chat` with REST endpoints (`GET/POST /groups/:id/messages`).
 
 ## 🌟 Features
 
@@ -556,7 +559,6 @@ NEXT_PUBLIC_API_URL=https://your-api-domain.com
 #### Status Management
 #### Voice-to-Alert
 - `POST /voice-alert/process` — multipart form-data: `audio`, optional `latitude`, `longitude`, `userId`
-- `POST /voice-alert/testNotify` — body `{ userId }`
 
 #### Contacts (Unified System)
 - `GET /contacts` — list user's contacts (used for both notifications and offline calling)

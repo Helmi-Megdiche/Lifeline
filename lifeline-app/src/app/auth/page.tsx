@@ -1,7 +1,8 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/ClientAuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 
@@ -15,12 +16,17 @@ export default function AuthPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editUsername, setEditUsername] = useState('');
-  const [editEmail, setEditEmail] = useState('');
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
-  const { login, register, forgotPassword, updateProfile, isAuthenticated, logout, isLoading, isOnline, user, refreshOnlineStatus } = useAuth();
+  const { login, register, forgotPassword, isAuthenticated, isLoading, isOnline, refreshOnlineStatus } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const router = useRouter();
+
+  // Redirect authenticated users to profile page
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.push('/profile');
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,27 +49,6 @@ export default function AuthPage() {
     }
   };
 
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setMessage(null);
-    try {
-      await updateProfile(editUsername, editEmail);
-      setMessage('Profile updated successfully!');
-      setIsEditingProfile(false);
-    } catch (err: any) {
-      setError(err.message || 'Failed to update profile.');
-    }
-  };
-
-  const startEditing = () => {
-    setEditUsername(user?.username || '');
-    setEditEmail(user?.email || '');
-    setIsEditingProfile(true);
-    setError(null);
-    setMessage(null);
-  };
-
   if (isLoading) {
     return (
       <div className="max-w-md mx-auto bg-white dark:bg-dark-surface-primary backdrop-blur-sm rounded-2xl p-8 border border-gray-200 dark:border-dark-border shadow-xl text-center">
@@ -73,171 +58,12 @@ export default function AuthPage() {
     );
   }
 
+  // Show loading while redirecting authenticated users
   if (isAuthenticated) {
     return (
-      <div className="max-w-md mx-auto bg-white dark:bg-dark-surface-primary backdrop-blur-sm rounded-2xl p-8 border border-gray-200 dark:border-dark-border shadow-xl">
-        <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-dark-text-primary mb-6">Profile</h1>
-        
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 dark:from-emergency-green-500 dark:to-emergency-green-600 rounded-full mb-4">
-            <span className="text-white font-bold text-xl">👤</span>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-dark-text-primary mb-2">Welcome back!</h2>
-          <p className="text-gray-600 dark:text-dark-text-secondary">Logged in as: <span className="font-medium text-blue-600 dark:text-emergency-blue-400">{user?.username}</span></p>
-        </div>
-
-        <div className="space-y-4 mb-8">
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-surface-secondary rounded-lg border border-gray-200 dark:border-dark-border">
-            <span className="font-bold text-base profile-label" style={{ color: '#000000' }}>Account Status</span>
-            <span className="px-3 py-1 bg-green-500 text-white dark:bg-green-600 dark:text-white rounded-full text-sm font-semibold shadow-sm">Active</span>
-          </div>
-          
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-surface-secondary rounded-lg border border-gray-200 dark:border-dark-border">
-            <span className="font-bold text-base profile-label" style={{ color: '#000000' }}>Connection</span>
-            <span className={`px-3 py-1 rounded-full text-sm font-semibold shadow-sm ${
-              isOnline 
-                ? 'bg-green-500 text-white dark:bg-green-600 dark:text-white' 
-                : 'bg-orange-500 text-white dark:bg-orange-600 dark:text-white'
-            }`}>
-              {isOnline ? 'Online' : 'Offline'}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-surface-secondary rounded-lg border border-gray-200 dark:border-dark-border">
-            <span className="font-bold text-base profile-label" style={{ color: '#000000' }}>Theme</span>
-            <button
-              onClick={toggleTheme}
-              className="flex items-center gap-2 px-3 py-1 bg-blue-500 text-white dark:bg-blue-600 dark:text-white rounded-full text-sm font-semibold hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              {theme === 'light' ? (
-                <>
-                  <span>☀️</span>
-                  <span>Light</span>
-                </>
-              ) : (
-                <>
-                  <span>🌙</span>
-                  <span>Dark</span>
-                </>
-              )}
-            </button>
-        </div>
-
-        {/* Profile Update Form */}
-        {isEditingProfile ? (
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-text-primary mb-4">Update Profile</h3>
-            <form onSubmit={handleProfileUpdate} className="space-y-4">
-              <div>
-                <label htmlFor="editUsername" className="block text-sm font-medium text-gray-700 dark:text-dark-text-secondary mb-2">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  id="editUsername"
-                  value={editUsername}
-                  onChange={(e) => setEditUsername(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-emergency-blue-400 focus:border-transparent bg-white dark:bg-dark-surface-secondary text-gray-900 dark:text-dark-text-primary"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="editEmail" className="block text-sm font-medium text-gray-700 dark:text-dark-text-secondary mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  id="editEmail"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-emergency-blue-400 focus:border-transparent bg-white dark:bg-dark-surface-secondary text-gray-900 dark:text-dark-text-primary"
-                  required
-                />
-              </div>
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={!isOnline}
-                  className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Save Changes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditingProfile(false)}
-                  className="flex-1 py-2 px-4 bg-gray-500 hover:bg-gray-600 dark:bg-gray-500 dark:hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        ) : (
-          <div className="mb-8">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-surface-secondary rounded-lg border border-gray-200 dark:border-dark-border profile-info-section">
-              <div>
-                <span className="font-bold text-base profile-label" style={{ color: '#000000' }}>Profile Info</span>
-                <div className="mt-2 text-sm text-black dark:text-black" style={{ color: '#000000' }}>
-                  <div>Username: <span className="font-medium text-black dark:text-black" style={{ color: '#000000' }}>{user?.username}</span></div>
-                  <div>Email: <span className="font-medium text-black dark:text-black" style={{ color: '#000000' }}>{user?.email || 'Not set'}</span></div>
-                </div>
-              </div>
-              <button
-                onClick={startEditing}
-                disabled={!isOnline}
-                className="px-3 py-1 bg-blue-500 text-white dark:bg-blue-600 dark:text-white rounded-full text-sm font-semibold hover:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-              >
-                Edit
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Error and Success Messages */}
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg text-red-700 dark:text-red-400 text-sm">
-            {error}
-          </div>
-        )}
-        {message && (
-          <div className="mb-4 p-3 bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-lg text-green-700 dark:text-green-400 text-sm">
-            {message}
-          </div>
-        )}
-          <Link 
-            href="/"
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-          >
-            Go to Dashboard
-          </Link>
-          <button
-            onClick={async () => {
-              if (!isOnline) return;
-              try {
-                const targetEmail = user?.email || '';
-                if (!targetEmail) {
-                  alert('No email found on your account. Please re-register with an email.');
-                  return;
-                }
-                await forgotPassword(targetEmail);
-                alert('Password reset email sent. Please check your inbox.');
-              } catch (e: any) {
-                alert(e?.message || 'Failed to send reset email');
-              }
-            }}
-            disabled={!isOnline}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:hover:bg-gray-400 transition-colors"
-          >
-            Forgot password (email)
-          </button>
-          
-          <button
-            onClick={logout}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-red-500 hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-          >
-            Logout
-          </button>
-        </div>
+      <div className="max-w-md mx-auto bg-white dark:bg-dark-surface-primary backdrop-blur-sm rounded-2xl p-8 border border-gray-200 dark:border-dark-border shadow-xl text-center">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 dark:border-emergency-blue-400 border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+        <p className="mt-4 text-gray-600 dark:text-dark-text-tertiary">Redirecting...</p>
       </div>
     );
   }

@@ -40,7 +40,13 @@ const withPWA = require('next-pwa')({
       },
     },
     {
-      urlPattern: ({ url }: any) => url.href.includes('10.133.250.197:4004/status') || url.pathname.startsWith('/api/status'),
+      // Match status endpoints - use environment variable or match any backend URL pattern
+      urlPattern: ({ url }: any) => {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4004';
+        return url.href.includes(`${apiUrl}/status`) || 
+               url.pathname.startsWith('/api/status') ||
+               url.pathname.includes('/status');
+      },
       handler: 'NetworkOnly',
       options: {
         backgroundSync: {
@@ -53,7 +59,12 @@ const withPWA = require('next-pwa')({
     },
     // PouchDB sync endpoints
     {
-      urlPattern: ({ url }: any) => url.href.includes('10.133.250.197:4004/pouch/'),
+      // Match PouchDB sync endpoints - use environment variable or match any backend URL pattern
+      urlPattern: ({ url }: any) => {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4004';
+        return url.href.includes(`${apiUrl}/pouch/`) || 
+               url.pathname.includes('/pouch/');
+      },
       handler: 'NetworkFirst',
       options: {
         cacheName: 'lifeline-pouch-sync',

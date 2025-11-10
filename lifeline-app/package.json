@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "dev:https": "next dev --turbopack --experimental-https --experimental-https-key ./certs/key.pem --experimental-https-cert ./certs/cert.pem",
+    "dev": "next dev --turbopack -H 0.0.0.0",
+    "dev:https": "next dev --turbopack --experimental-https --experimental-https-key ./certs/key.pem --experimental-https-cert ./certs/cert.pem -H 0.0.0.0",
     "build": "next build --turbopack",
     "start": "next start",
     "setup-https": "node setup-https.js"
