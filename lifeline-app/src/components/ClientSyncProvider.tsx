@@ -40,9 +40,21 @@ export const useSync = () => {
           })
           .on('paused', (err: any) => {
             if (err) {
-              console.error('Status sync paused with error:', err);
-              setSyncStatus('error');
-              setError(err);
+              // Suppress network transition errors
+              const isNetworkError = err?.message === 'Failed to fetch' || 
+                                    err?.message?.includes('fetch') ||
+                                    err?.name === 'TypeError' ||
+                                    err?.name === 'NetworkError';
+              
+              if (!isNetworkError) {
+                console.error('Status sync paused with error:', err);
+                setSyncStatus('error');
+                setError(err);
+              } else {
+                // Network error - just pause, don't set error state
+                setSyncStatus('paused');
+                setLastSyncTime(new Date());
+              }
             } else {
               setSyncStatus('paused');
               setLastSyncTime(new Date());
@@ -52,18 +64,36 @@ export const useSync = () => {
             setSyncStatus('syncing');
           })
           .on('denied', (err: any) => {
-            console.error('Status sync denied:', err);
-            setSyncStatus('error');
-            setError(err);
+            // Suppress network transition errors
+            const isNetworkError = err?.message === 'Failed to fetch' || 
+                                  err?.message?.includes('fetch') ||
+                                  err?.name === 'TypeError' ||
+                                  err?.name === 'NetworkError';
+            
+            if (!isNetworkError) {
+              console.error('Status sync denied:', err);
+              setSyncStatus('error');
+              setError(err);
+            }
+            // Silently ignore network errors during transitions
           })
           .on('complete', () => {
             setSyncStatus('idle');
             setLastSyncTime(new Date());
           })
           .on('error', (err: any) => {
-            console.error('Status sync error:', err);
-            setSyncStatus('error');
-            setError(err);
+            // Suppress network transition errors
+            const isNetworkError = err?.message === 'Failed to fetch' || 
+                                  err?.message?.includes('fetch') ||
+                                  err?.name === 'TypeError' ||
+                                  err?.name === 'NetworkError';
+            
+            if (!isNetworkError) {
+              console.error('Status sync error:', err);
+              setSyncStatus('error');
+              setError(err);
+            }
+            // Silently ignore network errors during transitions
           });
       } catch (indexError) {
         console.error('Error ensuring PouchDB indexes:', indexError);

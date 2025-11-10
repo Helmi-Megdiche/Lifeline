@@ -234,19 +234,64 @@ export const usePouchDB = () => {
           const REMOTE_DB_URL = process.env.NEXT_PUBLIC_COUCH_SYNC_URL || getApiUrl('/pouch/status');
           if (token && local) {
             try {
-              const remote = new PouchDB(REMOTE_DB_URL, {
-                fetch: (url: any, opts: any = {}) => {
-                  const headers = new Headers(opts.headers || {});
-                  headers.set('Authorization', `Bearer ${token}`);
-                  headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-                  headers.set('Pragma', 'no-cache');
-                  headers.set('Expires', '0');
-                  
-                  const urlWithTimestamp = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
-                  
-                  return (PouchDB as any).fetch(urlWithTimestamp, { ...opts, headers });
+              // Enhanced fetch with better error handling for network transitions
+              const customFetch = (url: any, opts: any = {}) => {
+                // Check if we're online before attempting fetch
+                if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                  return Promise.reject(new Error('Offline'));
                 }
+                
+                const headers = new Headers(opts.headers || {});
+                headers.set('Authorization', `Bearer ${token}`);
+                headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+                headers.set('Pragma', 'no-cache');
+                headers.set('Expires', '0');
+                
+                const urlWithTimestamp = `${url}${url.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+                
+                // Add timeout and retry logic for network transitions
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                
+                return (PouchDB as any).fetch(urlWithTimestamp, { 
+                  ...opts, 
+                  headers,
+                  signal: controller.signal,
+                }).then((response: any) => {
+                  clearTimeout(timeoutId);
+                  return response;
+                }).catch((error: any) => {
+                  clearTimeout(timeoutId);
+                  // Suppress "Failed to fetch" errors during network transitions
+                  if (error.message === 'Failed to fetch' || 
+                      error.message === 'NetworkError' ||
+                      error.name === 'TypeError' ||
+                      error.message?.includes('fetch')) {
+                    // Silently handle network errors - don't log during transitions
+                    return Promise.reject(new Error('Network unavailable'));
+                  }
+                  throw error;
+                });
+              };
+              
+              const remote = new PouchDB(REMOTE_DB_URL, {
+                fetch: customFetch
               } as any);
+              
+              // Add error handler to suppress network transition errors
+              remote.on('error', (err: any) => {
+                // Suppress "Failed to fetch" errors during network transitions
+                if (err.message === 'Failed to fetch' || 
+                    err.message === 'NetworkError' ||
+                    err.name === 'TypeError' ||
+                    err.message?.includes('fetch')) {
+                  // Silently ignore network errors during transitions
+                  return;
+                }
+                // Only log non-network errors
+                console.warn('PouchDB remote error:', err);
+              });
+              
               setRemoteDB(remote);
               // Publish as active DBs for library helpers
               setActiveDatabases(local, remote);
@@ -307,14 +352,21 @@ export const usePouchDB = () => {
       const originalError = console.error;
       const originalWarn = console.warn;
       
-      // Temporarily suppress IndexedDB-related console errors
+      // Temporarily suppress IndexedDB-related console errors and network transition errors
       console.error = (...args: any[]) => {
         const message = args.join(' ');
         if (message.includes('indexed_db_went_bad') || 
             message.includes('QuotaExceededError') ||
             message.includes('QuotaExceeded') ||
             message.includes('PouchDB') ||
-            args.some(arg => arg?.name === 'QuotaExceededError' || arg?.message?.includes('QuotaExceededError'))) {
+            message.includes('Failed to fetch') ||
+            message.includes('NetworkError') ||
+            args.some(arg => 
+              arg?.name === 'QuotaExceededError' || 
+              arg?.message?.includes('QuotaExceededError') ||
+              arg?.message === 'Failed to fetch' ||
+              arg?.name === 'TypeError'
+            )) {
           return; // Suppress
         }
         originalError.apply(console, args);
@@ -326,7 +378,14 @@ export const usePouchDB = () => {
             message.includes('QuotaExceededError') ||
             message.includes('QuotaExceeded') ||
             message.includes('PouchDB') ||
-            args.some(arg => arg?.name === 'QuotaExceededError' || arg?.message?.includes('QuotaExceededError'))) {
+            message.includes('Failed to fetch') ||
+            message.includes('NetworkError') ||
+            args.some(arg => 
+              arg?.name === 'QuotaExceededError' || 
+              arg?.message?.includes('QuotaExceededError') ||
+              arg?.message === 'Failed to fetch' ||
+              arg?.name === 'TypeError'
+            )) {
           return; // Suppress
         }
         originalWarn.apply(console, args);

@@ -138,4 +138,40 @@ export class StatusService {
     const docs = await this.statusModel.find({ userId: { $in: userIds } }).lean();
     return docs as any;
   }
+
+  // Remove a specific history item by timestamp
+  async removeHistoryItem(userId: string, timestamp: number): Promise<CheckInStatus | null> {
+    const _id = `user_${userId}_status`;
+    const doc = await this.statusModel.findOne({ _id }).exec();
+    if (!doc) return null;
+
+    // Remove the history item with matching timestamp
+    if (doc.statusHistory && doc.statusHistory.length > 0) {
+      const originalLength = doc.statusHistory.length;
+      doc.statusHistory = doc.statusHistory.filter(item => item.timestamp !== timestamp);
+      
+      // Only save if something was actually removed
+      if (doc.statusHistory.length < originalLength) {
+        const nextRev = this.bumpRev(doc._rev);
+        doc._rev = nextRev;
+        return doc.save();
+      }
+      // If nothing was removed, return the doc as-is (item not found in history)
+      return doc;
+    }
+
+    return doc;
+  }
+
+  // Clear all history for a user
+  async clearHistory(userId: string): Promise<CheckInStatus | null> {
+    const _id = `user_${userId}_status`;
+    const doc = await this.statusModel.findOne({ _id }).exec();
+    if (!doc) return null;
+
+    doc.statusHistory = [];
+    const nextRev = this.bumpRev(doc._rev);
+    doc._rev = nextRev;
+    return doc.save();
+  }
 }

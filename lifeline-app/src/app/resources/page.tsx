@@ -1,5 +1,7 @@
 "use client";
 import { useMemo, useState, useEffect } from "react";
+import Link from "next/link";
+import { useTheme } from "@/contexts/ThemeContext";
 import MapPreview from "./MapPreview";
 import { upsertResourcesForOffline, getLatestSavedResources, getAllSavedResources, deleteSavedResources, StoredResource } from "@/lib/indexedDB";
 
@@ -18,6 +20,7 @@ const RESOURCES_DEV: Resource[] = [];
 const TABS: Array<Resource["type"] | "All"> = ["All", "Hospital", "Shelter", "Police", "Fire"];
 
 export default function ResourcesPage() {
+  const { theme } = useTheme();
   const [active, setActive] = useState<Resource["type"] | "All">("All");
   const [query, setQuery] = useState<string>("");
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
@@ -399,155 +402,211 @@ export default function ResourcesPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mb-4 shadow-lg">
-          <span className="text-white text-2xl">🏥</span>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6">
+      <div className="text-center mb-8 sm:mb-10">
+        {/* Header Icon */}
+        <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-3xl mb-5 sm:mb-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+          <span className="text-white text-3xl sm:text-4xl">🏥</span>
         </div>
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-3">
-                  Emergency Resources
-                </h1>
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-4">
-                  Find nearby emergency services. All data is cached for offline access after first load.
-                </p>
+        
+        {/* Title */}
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-gray-900 via-blue-600 to-gray-700 bg-clip-text text-transparent mb-3 sm:mb-4 px-2">
+          Emergency Resources
+        </h1>
+        
+        {/* Description */}
+        <p className="text-sm sm:text-base md:text-lg text-gray-800 dark:text-gray-800 max-w-2xl mx-auto mb-6 sm:mb-8 px-4 leading-relaxed ">
+          Find nearby emergency services. All data is cached for offline access after first load.
+        </p>
                 
-                {isOnline ? (
-                  <div className="flex items-center justify-center gap-3 mb-4">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500 rounded-full text-sm text-white border border-emerald-600 font-semibold">
-                      <span>🟢</span>
-                      Online
-                    </div>
+        {/* Status and Actions */}
+        {isOnline ? (
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-6 sm:mb-8 px-4">
+            {/* Online Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full text-sm sm:text-base text-white border-2 border-emerald-400 font-semibold shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+              <span className="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></span>
+              <span>Online</span>
+            </div>
+            
+            {/* Live Map Button - Primary Action */}
+            <Link
+              href="/map"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 via-green-600 to-emerald-600 hover:from-green-600 hover:via-green-700 hover:to-emerald-700 text-white text-sm sm:text-base font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105 whitespace-nowrap"
+            >
+              <span className="text-lg">🗺️</span>
+              <span>Live Map</span>
+            </Link>
+            
+            {/* Save for Offline Button */}
+            <button
+              onClick={downloadAreaForOffline}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm sm:text-base font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+            >
+              <span className="text-lg">⬇️</span>
+              <span className="whitespace-nowrap">Save this area for offline</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-4 mb-6 sm:mb-8 px-4">
+            {/* Offline Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900/20 dark:to-orange-800/20 rounded-full text-sm sm:text-base text-orange-700 dark:text-orange-300 border-2 border-orange-200 dark:border-orange-700 font-semibold shadow-md">
+              <span className="w-2.5 h-2.5 bg-orange-500 rounded-full"></span>
+              <span>Offline - showing previously saved resources</span>
+            </div>
+            
+            {/* Saved Areas Card */}
+            <div className="w-full max-w-2xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-2 border-gray-200/70 dark:border-gray-700/70 rounded-2xl p-4 sm:p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-200">Saved Areas</div>
+                <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full font-semibold">
+                  {allSaved.length} saved
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 max-h-32 sm:max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                {allSaved.length === 0 && (
+                  <div className="text-sm sm:text-base text-gray-500 dark:text-gray-400 w-full text-center py-4">
+                    No areas saved yet. Go online and use "Save this area for offline".
+                  </div>
+                )}
+                {allSaved.map(area => (
+                  <div key={area.id} className="inline-flex items-center gap-2">
                     <button
-                      onClick={downloadAreaForOffline}
-                      className="inline-flex items-center gap-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors"
+                      onClick={() => {
+                        setSavedResources(area);
+                        setResources(area.resources as any);
+                        setUserLocation({ lat: area.centerLat, lng: area.centerLng });
+                        setActiveSavedId(area.id ?? null);
+                      }}
+                      className={`group px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm border-2 transition-all duration-200 ${
+                        activeSavedId === area.id 
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white border-blue-500 shadow-lg scale-105' 
+                          : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:shadow-md'
+                      }`}
+                      title={`Saved ${new Date(area.savedAt).toLocaleString()} • ${area.resources.length} places`}
+                      aria-label={`Open saved area ${area.areaName || 'unnamed'}`}
                     >
-                      <span>⬇️</span>
-                      Save this area for offline
+                      <span className="mr-1.5">📍</span>
+                      <span className="font-semibold">{area.areaName || `${area.centerLat.toFixed(3)}, ${area.centerLng.toFixed(3)}`}</span>
+                      <span className={`ml-2 inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        activeSavedId === area.id 
+                          ? 'bg-white/30 text-white' 
+                          : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                      }`}>
+                        {area.resources.length}
+                      </span>
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!area.id) return;
+                        const ok = window.confirm(`Delete saved area "${area.areaName || `${area.centerLat.toFixed(3)}, ${area.centerLng.toFixed(3)}`}"?`);
+                        if (!ok) return;
+                        await deleteSavedResources(area.id).catch(() => {});
+                        await dedupeSavedAreas();
+                        if (activeSavedId === area.id) {
+                          setActiveSavedId(null);
+                          setSavedResources(null);
+                          setResources([]);
+                        }
+                      }}
+                      className="px-2.5 py-1.5 text-xs rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 transition-colors font-semibold"
+                      title="Remove saved area"
+                    >
+                      ✕
                     </button>
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center gap-3 mb-4">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-50 rounded-full text-sm text-orange-700 border border-orange-200">
-                      <span>🔶</span>
-                      Offline - showing previously saved resources
-                    </div>
-                    <div className="w-full max-w-2xl bg-white/90 border border-gray-200/70 rounded-2xl p-4 shadow-sm">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="text-sm font-semibold text-gray-700">Saved areas</div>
-                        <div className="text-xs text-gray-500">{allSaved.length} saved</div>
-                      </div>
-                      <div className="flex flex-wrap gap-2 max-h-28 overflow-auto pr-1">
-                        {allSaved.length === 0 && (
-                          <div className="text-sm text-gray-500">No areas saved yet. Go online and use “Save this area for offline”.</div>
-                        )}
-                        {allSaved.map(area => (
-                          <div key={area.id} className="inline-flex items-center gap-1">
-                            <button
-                              onClick={() => {
-                                setSavedResources(area);
-                                setResources(area.resources as any);
-                                setUserLocation({ lat: area.centerLat, lng: area.centerLng });
-                                setActiveSavedId(area.id ?? null);
-                              }}
-                              className={`group px-3 py-1.5 rounded-full text-sm border transition-colors ${activeSavedId === area.id ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'}`}
-                              title={`Saved ${new Date(area.savedAt).toLocaleString()} • ${area.resources.length} places`}
-                              aria-label={`Open saved area ${area.areaName || 'unnamed'}`}
-                            >
-                              <span className="mr-1">📍</span>
-                              <span className="font-medium">{area.areaName || `${area.centerLat.toFixed(3)}, ${area.centerLng.toFixed(3)}`}</span>
-                              <span className={`ml-2 inline-block px-2 py-[2px] rounded-full text-[10px] ${activeSavedId === area.id ? 'bg-white/20' : 'bg-gray-200 text-gray-700'}`}>{area.resources.length}</span>
-                            </button>
-                            <button
-                              onClick={async () => {
-                                if (!area.id) return;
-                                const ok = window.confirm(`Delete saved area "${area.areaName || `${area.centerLat.toFixed(3)}, ${area.centerLng.toFixed(3)}`}"?`);
-                                if (!ok) return;
-                                await deleteSavedResources(area.id).catch(() => {});
-                                await dedupeSavedAreas();
-                                if (activeSavedId === area.id) {
-                                  setActiveSavedId(null);
-                                  setSavedResources(null);
-                                  setResources([]);
-                                }
-                              }}
-                              className="px-2 py-1 text-xs rounded-full bg-red-50 hover:bg-red-100 text-red-600"
-                              title="Remove saved area"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {isOnline && userLocation && (
-                  <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-gray-200/60 shadow-lg max-w-4xl mx-auto w-full">
-                    {/* Top Row: Radius and Refresh */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
-                      {/* Radius Selector - More Prominent */}
-                      <div className="w-full sm:w-auto">
-                        <div className="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 rounded-xl shadow-md">
-                          <span className="text-white font-semibold text-sm sm:text-base whitespace-nowrap">
-                            🔍 Search Radius:
-                          </span>
-                          <select
-                            value={radius}
-                            onChange={(e) => setRadius(Number(e.target.value))}
-                            className="px-4 py-2 bg-white border-2 border-white rounded-lg text-sm font-bold text-blue-600 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 cursor-pointer shadow-sm"
-                          >
-                            <option value="5">5 km</option>
-                            <option value="10">10 km</option>
-                            <option value="15">15 km</option>
-                            <option value="25">25 km</option>
-                            <option value="50">50 km</option>
-                            <option value="100">100 km</option>
-                          </select>
-                        </div>
-                      </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Search Controls Card */}
+        {isOnline && userLocation && (
+          <div 
+            className="backdrop-blur-sm rounded-3xl p-5 sm:p-6 border-2 shadow-xl max-w-5xl mx-auto w-full mb-6 sm:mb-8"
+            style={{ 
+              backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+              borderColor: theme === 'dark' ? '#374151' : '#e5e7eb'
+            }}
+          >
+            {/* Top Row: Controls */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mb-4">
+              {/* Search Radius Selector */}
+              <div className="flex-1 sm:flex-none">
+                <div className="flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200">
+                  <span className="text-white font-bold text-sm sm:text-base whitespace-nowrap flex-shrink-0">
+                    🔍 Search Radius:
+                  </span>
+                  <select
+                    value={radius}
+                    onChange={(e) => setRadius(Number(e.target.value))}
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-white border-2 border-white rounded-xl text-sm sm:text-base font-bold text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 cursor-pointer shadow-sm hover:shadow-md transition-all"
+                  >
+                    <option value="5">5 km</option>
+                    <option value="10">10 km</option>
+                    <option value="15">15 km</option>
+                    <option value="25">25 km</option>
+                    <option value="50">50 km</option>
+                    <option value="100">100 km</option>
+                  </select>
+                </div>
+              </div>
 
-                      {/* Location Refresh Button */}
-                      <button
-                        onClick={async () => {
-                          try {
-                            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                              navigator.geolocation.getCurrentPosition(resolve, reject, {
-                                enableHighAccuracy: true,
-                                timeout: 10000
-                              });
-                            });
-                            const lat = position.coords.latitude;
-                            const lng = position.coords.longitude;
-                            setUserLocation({ lat, lng });
-                            generateNearbyResources(lat, lng);
-                          } catch (error) {
-                            console.log("Could not refresh location:", error);
-                          }
-                        }}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-white hover:bg-gray-50 text-blue-600 border-2 border-blue-600 text-sm font-semibold rounded-xl transition-all whitespace-nowrap shadow-md hover:shadow-lg hover:scale-105 w-full sm:w-auto"
-                      >
-                        <span className="text-lg">🔄</span>
-                        <span className="hidden sm:inline text-blue-600">Refresh Location</span>
-                        <span className="sm:hidden text-blue-600">Refresh</span>
-                      </button>
-                    </div>
-                    
-                    {/* Bottom: Resource Count and Location */}
-                    <div className="bg-gray-50 px-4 py-3 rounded-xl border border-gray-200">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600 font-bold text-lg">📍</span>
-                          <span className="text-sm sm:text-base font-semibold text-gray-900">
-                            Showing <span className="text-blue-600 font-bold">{resources.length}</span> resources within <span className="text-blue-600 font-bold">{radius} km</span>
-                          </span>
-                        </div>
-                        <span className="text-xs sm:text-sm text-gray-900 font-mono font-semibold bg-gray-200 px-3 py-1 rounded-md">
-                          {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              {/* Refresh Location Button */}
+              <button
+                onClick={async () => {
+                  try {
+                    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                      navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 10000
+                      });
+                    });
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    setUserLocation({ lat, lng });
+                    generateNearbyResources(lat, lng);
+                  } catch (error) {
+                    console.log("Could not refresh location:", error);
+                  }
+                }}
+                className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3 sm:py-3.5 text-sm sm:text-base font-bold rounded-2xl transition-all duration-200 whitespace-nowrap shadow-md hover:shadow-lg hover:scale-105 w-full sm:w-auto border-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400"
+              >
+                <span className="text-lg sm:text-xl">🔄</span>
+                <span className="hidden sm:inline">Refresh Location</span>
+                <span className="sm:hidden">Refresh</span>
+              </button>
+            </div>
+            
+            {/* Bottom: Resource Count and Location */}
+            <div 
+              className="px-4 sm:px-5 py-3 sm:py-4 rounded-2xl border-2"
+              style={{ 
+                backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
+                borderColor: theme === 'dark' ? '#4b5563' : '#e5e7eb'
+              }}
+            >
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <span className="text-green-600 dark:text-green-400 font-bold text-xl sm:text-2xl">📍</span>
+                  <span className="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-gray-100">
+                    Showing <span className="text-blue-600 dark:text-blue-400 font-extrabold">{resources.length}</span> resources within <span className="text-blue-600 dark:text-blue-400 font-extrabold">{radius} km</span>
+                  </span>
+                </div>
+                <span 
+                  className="text-xs sm:text-sm md:text-base font-mono font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border shadow-sm"
+                  style={{
+                    color: theme === 'dark' ? '#e5e7eb' : '#1f2937',
+                    backgroundColor: theme === 'dark' ? '#4b5563' : '#f3f4f6',
+                    borderColor: theme === 'dark' ? '#6b7280' : '#d1d5db'
+                  }}
+                >
+                  {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-6 mb-8 border border-gray-200/60 shadow-lg">

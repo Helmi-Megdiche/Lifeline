@@ -15,8 +15,21 @@ const withPWA = require('next-pwa')({
       handler: 'NetworkFirst',
       options: {
         cacheName: 'lifeline-pages',
-        networkTimeoutSeconds: 3,
+        networkTimeoutSeconds: 1, // Reduced timeout for faster offline fallback
         expiration: { maxEntries: 50, maxAgeSeconds: 7 * 24 * 60 * 60 },
+        // Fallback to cache immediately if offline
+        fallbackOnNetworkError: true,
+      },
+    },
+    // Handle Next.js RSC (React Server Components) requests
+    {
+      urlPattern: ({ url }: any) => url.pathname.includes('_rsc') || url.searchParams.has('_rsc'),
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'lifeline-rsc',
+        networkTimeoutSeconds: 1,
+        expiration: { maxEntries: 100, maxAgeSeconds: 7 * 24 * 60 * 60 },
+        fallbackOnNetworkError: true,
       },
     },
     {

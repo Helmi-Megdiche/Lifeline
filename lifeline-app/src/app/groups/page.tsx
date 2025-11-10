@@ -1,111 +1,32 @@
 'use client';
 
+// ============================================================================
+// IMPORTS
+// ============================================================================
 import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useGroups } from '@/contexts/GroupsContext';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { GroupType } from '@/types/group';
+import { useRouter } from 'next/navigation';
+import { useGroups } from '@/contexts/GroupsContext';
 import { useAuth } from '@/contexts/ClientAuthContext';
-import { API_CONFIG } from '@/lib/config';
 import { useTheme } from '@/contexts/ThemeContext';
-
-// Country codes with flags (emoji) and dial codes
-const countries: Array<{ code: string; name: string; dialCode: string; flag: string }> = [
-  { code: 'US', name: 'United States', dialCode: '+1', flag: '🇺🇸' },
-  { code: 'GB', name: 'United Kingdom', dialCode: '+44', flag: '🇬🇧' },
-  { code: 'CA', name: 'Canada', dialCode: '+1', flag: '🇨🇦' },
-  { code: 'AU', name: 'Australia', dialCode: '+61', flag: '🇦🇺' },
-  { code: 'DE', name: 'Germany', dialCode: '+49', flag: '🇩🇪' },
-  { code: 'FR', name: 'France', dialCode: '+33', flag: '🇫🇷' },
-  { code: 'IT', name: 'Italy', dialCode: '+39', flag: '🇮🇹' },
-  { code: 'ES', name: 'Spain', dialCode: '+34', flag: '🇪🇸' },
-  { code: 'NL', name: 'Netherlands', dialCode: '+31', flag: '🇳🇱' },
-  { code: 'BE', name: 'Belgium', dialCode: '+32', flag: '🇧🇪' },
-  { code: 'CH', name: 'Switzerland', dialCode: '+41', flag: '🇨🇭' },
-  { code: 'AT', name: 'Austria', dialCode: '+43', flag: '🇦🇹' },
-  { code: 'SE', name: 'Sweden', dialCode: '+46', flag: '🇸🇪' },
-  { code: 'NO', name: 'Norway', dialCode: '+47', flag: '🇳🇴' },
-  { code: 'DK', name: 'Denmark', dialCode: '+45', flag: '🇩🇰' },
-  { code: 'FI', name: 'Finland', dialCode: '+358', flag: '🇫🇮' },
-  { code: 'PL', name: 'Poland', dialCode: '+48', flag: '🇵🇱' },
-  { code: 'PT', name: 'Portugal', dialCode: '+351', flag: '🇵🇹' },
-  { code: 'GR', name: 'Greece', dialCode: '+30', flag: '🇬🇷' },
-  { code: 'IE', name: 'Ireland', dialCode: '+353', flag: '🇮🇪' },
-  { code: 'NZ', name: 'New Zealand', dialCode: '+64', flag: '🇳🇿' },
-  { code: 'JP', name: 'Japan', dialCode: '+81', flag: '🇯🇵' },
-  { code: 'CN', name: 'China', dialCode: '+86', flag: '🇨🇳' },
-  { code: 'KR', name: 'South Korea', dialCode: '+82', flag: '🇰🇷' },
-  { code: 'IN', name: 'India', dialCode: '+91', flag: '🇮🇳' },
-  { code: 'SG', name: 'Singapore', dialCode: '+65', flag: '🇸🇬' },
-  { code: 'MY', name: 'Malaysia', dialCode: '+60', flag: '🇲🇾' },
-  { code: 'TH', name: 'Thailand', dialCode: '+66', flag: '🇹🇭' },
-  { code: 'PH', name: 'Philippines', dialCode: '+63', flag: '🇵🇭' },
-  { code: 'ID', name: 'Indonesia', dialCode: '+62', flag: '🇮🇩' },
-  { code: 'VN', name: 'Vietnam', dialCode: '+84', flag: '🇻🇳' },
-  { code: 'BR', name: 'Brazil', dialCode: '+55', flag: '🇧🇷' },
-  { code: 'MX', name: 'Mexico', dialCode: '+52', flag: '🇲🇽' },
-  { code: 'AR', name: 'Argentina', dialCode: '+54', flag: '🇦🇷' },
-  { code: 'CL', name: 'Chile', dialCode: '+56', flag: '🇨🇱' },
-  { code: 'CO', name: 'Colombia', dialCode: '+57', flag: '🇨🇴' },
-  { code: 'PE', name: 'Peru', dialCode: '+51', flag: '🇵🇪' },
-  { code: 'ZA', name: 'South Africa', dialCode: '+27', flag: '🇿🇦' },
-  { code: 'EG', name: 'Egypt', dialCode: '+20', flag: '🇪🇬' },
-  { code: 'NG', name: 'Nigeria', dialCode: '+234', flag: '🇳🇬' },
-  { code: 'KE', name: 'Kenya', dialCode: '+254', flag: '🇰🇪' },
-  { code: 'SA', name: 'Saudi Arabia', dialCode: '+966', flag: '🇸🇦' },
-  { code: 'AE', name: 'UAE', dialCode: '+971', flag: '🇦🇪' },
-  { code: 'IL', name: 'Israel', dialCode: '+972', flag: '🇮🇱' },
-  { code: 'TR', name: 'Turkey', dialCode: '+90', flag: '🇹🇷' },
-  { code: 'RU', name: 'Russia', dialCode: '+7', flag: '🇷🇺' },
-  { code: 'UA', name: 'Ukraine', dialCode: '+380', flag: '🇺🇦' },
-  { code: 'RO', name: 'Romania', dialCode: '+40', flag: '🇷🇴' },
-  { code: 'CZ', name: 'Czech Republic', dialCode: '+420', flag: '🇨🇿' },
-  { code: 'HU', name: 'Hungary', dialCode: '+36', flag: '🇭🇺' },
-  { code: 'BG', name: 'Bulgaria', dialCode: '+359', flag: '🇧🇬' },
-  { code: 'HR', name: 'Croatia', dialCode: '+385', flag: '🇭🇷' },
-  { code: 'RS', name: 'Serbia', dialCode: '+381', flag: '🇷🇸' },
-  { code: 'SK', name: 'Slovakia', dialCode: '+421', flag: '🇸🇰' },
-  { code: 'SI', name: 'Slovenia', dialCode: '+386', flag: '🇸🇮' },
-  { code: 'LT', name: 'Lithuania', dialCode: '+370', flag: '🇱🇹' },
-  { code: 'LV', name: 'Latvia', dialCode: '+371', flag: '🇱🇻' },
-  { code: 'EE', name: 'Estonia', dialCode: '+372', flag: '🇪🇪' },
-  { code: 'TN', name: 'Tunisia', dialCode: '+216', flag: '🇹🇳' },
-  { code: 'DZ', name: 'Algeria', dialCode: '+213', flag: '🇩🇿' },
-  { code: 'MA', name: 'Morocco', dialCode: '+212', flag: '🇲🇦' },
-  { code: 'GH', name: 'Ghana', dialCode: '+233', flag: '🇬🇭' },
-  { code: 'ET', name: 'Ethiopia', dialCode: '+251', flag: '🇪🇹' },
-  { code: 'TZ', name: 'Tanzania', dialCode: '+255', flag: '🇹🇿' },
-  { code: 'UG', name: 'Uganda', dialCode: '+256', flag: '🇺🇬' },
-  { code: 'PK', name: 'Pakistan', dialCode: '+92', flag: '🇵🇰' },
-  { code: 'BD', name: 'Bangladesh', dialCode: '+880', flag: '🇧🇩' },
-  { code: 'LK', name: 'Sri Lanka', dialCode: '+94', flag: '🇱🇰' },
-  { code: 'NP', name: 'Nepal', dialCode: '+977', flag: '🇳🇵' },
-  { code: 'MM', name: 'Myanmar', dialCode: '+95', flag: '🇲🇲' },
-  { code: 'KH', name: 'Cambodia', dialCode: '+855', flag: '🇰🇭' },
-  { code: 'LA', name: 'Laos', dialCode: '+856', flag: '🇱🇦' },
-  { code: 'BN', name: 'Brunei', dialCode: '+673', flag: '🇧🇳' },
-  { code: 'MN', name: 'Mongolia', dialCode: '+976', flag: '🇲🇳' },
-  { code: 'KZ', name: 'Kazakhstan', dialCode: '+7', flag: '🇰🇿' },
-  { code: 'UZ', name: 'Uzbekistan', dialCode: '+998', flag: '🇺🇿' },
-  { code: 'AZ', name: 'Azerbaijan', dialCode: '+994', flag: '🇦🇿' },
-  { code: 'GE', name: 'Georgia', dialCode: '+995', flag: '🇬🇪' },
-  { code: 'AM', name: 'Armenia', dialCode: '+374', flag: '🇦🇲' },
-  { code: 'IQ', name: 'Iraq', dialCode: '+964', flag: '🇮🇶' },
-  { code: 'IR', name: 'Iran', dialCode: '+98', flag: '🇮🇷' },
-  { code: 'JO', name: 'Jordan', dialCode: '+962', flag: '🇯🇴' },
-  { code: 'LB', name: 'Lebanon', dialCode: '+961', flag: '🇱🇧' },
-  { code: 'SY', name: 'Syria', dialCode: '+963', flag: '🇸🇾' },
-  { code: 'YE', name: 'Yemen', dialCode: '+967', flag: '🇾🇪' },
-  { code: 'OM', name: 'Oman', dialCode: '+968', flag: '🇴🇲' },
-  { code: 'KW', name: 'Kuwait', dialCode: '+965', flag: '🇰🇼' },
-  { code: 'QA', name: 'Qatar', dialCode: '+974', flag: '🇶🇦' },
-  { code: 'BH', name: 'Bahrain', dialCode: '+973', flag: '🇧🇭' },
-].sort((a, b) => a.name.localeCompare(b.name));
+import { GroupType } from '@/types/group';
+import { API_CONFIG } from '@/lib/config';
+import { countries } from '@/lib/countries';
 
 export default function GroupsPage() {
+  // ============================================================================
+  // HOOKS & CONTEXTS
+  // ============================================================================
   const { groups, isLoading, createGroup, deleteGroup, listMyInvitations, acceptInvitation, declineInvitation } = useGroups();
+  const { user, token } = useAuth();
+  const { theme } = useTheme();
   const router = useRouter();
+  const InvitationsModal = dynamic(() => import('./InvitationsModal'), { ssr: false });
+
+  // ============================================================================
+  // GROUP STATE
+  // ============================================================================
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newGroup, setNewGroup] = useState({
     name: '',
@@ -114,14 +35,17 @@ export default function GroupsPage() {
   });
   const [isCreating, setIsCreating] = useState(false);
   const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+
+  // ============================================================================
+  // INVITATIONS STATE
+  // ============================================================================
   const [invites, setInvites] = useState<{ id: string; groupName?: string }[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(false);
   const [showInvites, setShowInvites] = useState(false);
-  const InvitationsModal = dynamic(() => import('./InvitationsModal'), { ssr: false });
-  
-  // Contacts state
-  const { user, token } = useAuth();
-  const { theme } = useTheme();
+
+  // ============================================================================
+  // CONTACTS STATE
+  // ============================================================================
   const [contacts, setContacts] = useState<any[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
@@ -136,6 +60,9 @@ export default function GroupsPage() {
   const [selectedCountry, setSelectedCountry] = useState<{ code: string; dialCode: string; flag: string; name: string } | null>(null);
   const [countrySearch, setCountrySearch] = useState('');
 
+  // ============================================================================
+  // EFFECTS - INVITATIONS
+  // ============================================================================
   useEffect(() => {
     const loadInvites = async () => {
       setLoadingInvites(true);
@@ -149,7 +76,9 @@ export default function GroupsPage() {
     loadInvites();
   }, [listMyInvitations]);
 
-  // Load contacts
+  // ============================================================================
+  // EFFECTS - CONTACTS
+  // ============================================================================
   useEffect(() => {
     if (token && user) {
       loadContacts();
@@ -213,6 +142,9 @@ export default function GroupsPage() {
     return () => window.removeEventListener('online', handleOnline);
   }, [token, user]);
 
+  // ============================================================================
+  // CONTACT MANAGEMENT FUNCTIONS
+  // ============================================================================
   const loadContacts = async () => {
     setLoadingContacts(true);
     try {
@@ -424,6 +356,9 @@ export default function GroupsPage() {
     setShowContactModal(true);
   };
 
+  // ============================================================================
+  // GROUP MANAGEMENT FUNCTIONS
+  // ============================================================================
   const getTypeGradient = (type: GroupType) => {
     switch (type) {
       case GroupType.FAMILY:
@@ -489,6 +424,9 @@ export default function GroupsPage() {
     }
   };
 
+  // ============================================================================
+  // RENDER
+  // ============================================================================
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -498,24 +436,41 @@ export default function GroupsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header actions */}
-      <div className="flex justify-end gap-3">
-        <button
-          onClick={() => setShowInvites(true)}
-          className="relative bg-white/80 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 px-4 py-2 rounded-xl shadow hover:shadow-md transition flex items-center gap-2"
-          title="View invitations"
-        >
-          <span>Invitations</span>
-          {loadingInvites ? (
-            <span className="text-xs text-gray-500">...</span>
-          ) : invites.length > 0 ? (
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-semibold">{invites.length}</span>
-          ) : null}
-        </button>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 sm:space-y-10">
+      {/* ========================================================================
+          PAGE HEADER
+          ======================================================================== */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-gray-200 dark:border-gray-700">
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 mb-2">
+            Socialize
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
+            Manage your emergency contacts and coordinate with groups
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowInvites(true)}
+            className="relative bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 text-black dark:text-gray-100 px-4 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 font-medium hover:scale-105"
+            title="View invitations"
+          >
+            <span>🔔</span>
+            <span>Invitations</span>
+            {loadingInvites ? (
+              <span className="text-xs text-gray-500">...</span>
+            ) : invites.length > 0 ? (
+              <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold shadow-sm">
+                {invites.length}
+              </span>
+            ) : null}
+          </button>
+        </div>
       </div>
 
-      {/* Invitations Modal (code-split) */}
+      {/* ========================================================================
+          INVITATIONS MODAL
+          ======================================================================== */}
       {showInvites && (
         <InvitationsModal
           invites={invites}
@@ -536,24 +491,30 @@ export default function GroupsPage() {
           }}
         />
       )}
-      {/* Emergency Contacts Section */}
-      <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 rounded-2xl p-6 border-2 border-indigo-200/50 dark:border-indigo-800/50 shadow-xl backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 flex items-center gap-3">
-              <span className="text-3xl">📞</span>
-              Emergency Contacts
-            </h2>
-            <p className="text-sm text-gray-700 dark:text-gray-500 mt-2 font-semibold">
+      {/* ========================================================================
+          EMERGENCY CONTACTS SECTION
+          ======================================================================== */}
+      <section className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 rounded-3xl p-6 sm:p-8 border-2 border-indigo-200/50 dark:border-indigo-800/50 shadow-xl backdrop-blur-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
+                <span className="text-2xl sm:text-3xl">📞</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400">
+                Emergency Contacts
+              </h2>
+            </div>
+            <p className="text-sm sm:text-base text-black dark:text-gray-300 ml-16 sm:ml-0 font-medium leading-relaxed">
               Quick access to important people during emergencies • Works offline • Auto-syncs when online
             </p>
           </div>
           <button
             onClick={handleAddContact}
-            className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2 text-sm"
+            className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white px-5 sm:px-6 py-3 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2 text-sm sm:text-base whitespace-nowrap"
           >
-            <span className="text-lg">+</span>
-            Add Contact
+            <span className="text-lg sm:text-xl">+</span>
+            <span>Add Contact</span>
           </button>
         </div>
 
@@ -674,33 +635,50 @@ export default function GroupsPage() {
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="flex justify-between items-start gap-3 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Groups</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Create private circles to coordinate quickly with family, friends or coworkers.</p>
-        </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-blue-600/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900"
-        >
-          + New Group
-        </button>
-      </div>
-
-      {groups.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
-          <p className="text-gray-600 dark:text-gray-400">You don't have any groups yet.</p>
+      {/* ========================================================================
+          MY GROUPS SECTION
+          ======================================================================== */}
+      <section className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg">
+              <span className="text-2xl sm:text-3xl">👥</span>
+            </div>
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">My Groups</h2>
+              <p className="mt-1 text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                Create private circles to coordinate quickly with family, friends or coworkers
+              </p>
+            </div>
+          </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 sm:px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-blue-600/30 hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2 text-sm sm:text-base whitespace-nowrap"
           >
-            Create your first group
+            <span className="text-lg sm:text-xl">+</span>
+            <span>New Group</span>
           </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7">
+
+        {groups.length === 0 ? (
+          <div className="text-center py-16 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center">
+              <span className="text-4xl">👥</span>
+            </div>
+            <p className="text-gray-700 dark:text-gray-300 font-semibold mb-2">You don't have any groups yet</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Create your first group to start coordinating</p>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-105"
+            >
+              <span>+</span>
+              <span>Create your first group</span>
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
           {groups.map((group) => (
             <div key={group._id} className="card-surface relative rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-lg hover:shadow-2xl transition-all hover:-translate-y-1">
               {/* Accent bar */}
@@ -765,22 +743,39 @@ export default function GroupsPage() {
               )}
             </div>
           ))}
-        </div>
-      )}
+          </div>
+        )}
+      </section>
 
-      {/* Floating Action Button (mobile/desktop) */}
+      {/* ========================================================================
+          FLOATING ACTION BUTTON (Mobile Only)
+          ======================================================================== */}
       <button
         onClick={() => setShowCreateModal(true)}
-        className="fixed bottom-6 right-6 z-40 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xl shadow-blue-600/40 w-14 h-14 flex items-center justify-center text-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="fixed bottom-6 right-6 z-40 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xl shadow-blue-600/40 w-14 h-14 flex items-center justify-center text-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 sm:hidden transition-all hover:scale-110"
         aria-label="Create new group"
       >
         +
       </button>
 
-      {/* Create Group Modal */}
+      {/* ========================================================================
+          CREATE GROUP MODAL
+          ======================================================================== */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 force-light-surface rounded-lg max-w-md w-full p-6">
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-md"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.3)',
+          }}
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div 
+            className="force-light-surface rounded-lg max-w-md w-full p-6 shadow-2xl"
+            style={{
+              backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
               Create New Group
             </h2>
@@ -852,14 +847,23 @@ export default function GroupsPage() {
         </div>
       )}
 
-      {/* Contact Modal */}
+      {/* ========================================================================
+          CONTACT MODAL
+          ======================================================================== */}
       {showContactModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-md"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.3)',
+          }}
+          onClick={() => setShowContactModal(false)}
+        >
           <div 
             className="rounded-xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700"
             style={{ 
               backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff'
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
               {editingContact ? 'Edit Contact' : 'Add Emergency Contact'}

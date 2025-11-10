@@ -14,6 +14,7 @@ import GlobalEmergencyListener from "@/components/GlobalEmergencyListener";
 import OfflineQueueSync from "@/components/OfflineQueueSync";
 import MapSnapshotSync from "@/components/MapSnapshotSync";
 import OfflineContactsSync from "@/components/OfflineContactsSync";
+import "@/lib/offlineNavigation"; // Import to initialize offline navigation handler
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

@@ -32,32 +32,42 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Client-side only online check function
 const isOnlineClient = async (): Promise<boolean> => {
   try {
-    // First check navigator.onLine
+    // First check navigator.onLine - this is fast and doesn't block
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       return false;
     }
     
-    // Try to reach the backend
+    // If navigator says we're offline, don't even try to fetch
+    // This prevents blocking navigation when offline
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return false;
+    }
+    
+    // Try to reach the backend with very short timeout to avoid blocking
     const apiUrl = API_CONFIG.BASE_URL;
     
-    // Try with a short timeout
+    // Use very short timeout to avoid blocking navigation
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000); // Increased to 2 seconds for better connection
+    const timeoutId = setTimeout(() => controller.abort(), 500); // Reduced to 500ms
     
     try {
       const response = await fetch(`${apiUrl}/health`, { 
         method: "GET", 
         cache: "no-cache",
         signal: controller.signal,
+        // Don't block navigation - this is just a status check
+        keepalive: false,
       });
       
       clearTimeout(timeoutId);
       return response.ok;
     } catch (fetchError) {
       clearTimeout(timeoutId);
+      // If fetch fails, assume offline but don't throw - just return false
       return false;
     }
   } catch (error) {
+    // Any error means we're offline - return false without throwing
     return false;
   }
 };
@@ -117,17 +127,40 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
       // Run synchronously for immediate state
       initializeAuth();
 
-      // Check online status periodically (with longer interval to avoid spam)
+      // Listen to browser online/offline events (faster and doesn't block)
+      const handleOnline = () => {
+        setOnlineStatus(true);
+        // Optionally verify with a quick check, but don't wait for it
+        isOnlineClient().then(setOnlineStatus).catch(() => setOnlineStatus(true));
+      };
+      
+      const handleOffline = () => {
+        setOnlineStatus(false);
+      };
+      
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      
+      // Also check periodically, but less frequently
       const interval = setInterval(async () => {
-        try {
-          const online = await isOnlineClient();
-          setOnlineStatus(online);
-        } catch (error) {
-          // Silently fail for periodic checks - no logging
+        // Only check if navigator says we're online (to avoid blocking)
+        if (navigator.onLine) {
+          try {
+            const online = await isOnlineClient();
+            setOnlineStatus(online);
+          } catch (error) {
+            // Silently fail for periodic checks - no logging
+          }
+        } else {
+          setOnlineStatus(false);
         }
       }, 60000); // Check every 60 seconds to reduce spam
-
-      return () => clearInterval(interval);
+      
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
     }
   }, [isInitialized]); // Only depend on isInitialized to prevent re-runs
 

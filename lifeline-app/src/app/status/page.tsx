@@ -1,42 +1,70 @@
 "use client";
-import { useEffect, useState } from "react";
-import { usePouchDB } from "@/hooks/usePouchDB";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/ClientAuthContext";
-import { useSync } from "@/hooks/useSync";
+import { API_CONFIG } from "@/lib/config";
 
 type LocalStatus = {
   status: "safe" | "help";
   timestamp: number;
   synced?: boolean;
+  latitude?: number;
+  longitude?: number;
 };
 
 export default function MyStatusPage() {
   const [last, setLast] = useState<LocalStatus | null>(null);
-  const { isClient, localDB } = usePouchDB();
-  const { user } = useAuth();
-  const { manualSync } = useSync();
+  const [isLoading, setIsLoading] = useState(true);
+  const { user, token } = useAuth();
+
+  const loadLatestStatus = useCallback(async () => {
+    if (!user || !token) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/status/user/${user.id}/latest`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          // No status found - this is okay
+          setLast(null);
+          return;
+        }
+        throw new Error(`Failed to fetch status: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const statusData = result.data;
+
+      if (statusData) {
+        setLast({
+          status: statusData.status,
+          timestamp: statusData.timestamp,
+          synced: true, // Data from server is always synced
+          latitude: statusData.latitude,
+          longitude: statusData.longitude,
+        });
+      } else {
+        setLast(null);
+      }
+    } catch (error) {
+      console.error('Error fetching status from API:', error);
+      setLast(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, token]);
 
   useEffect(() => {
-    (async () => {
-      if (!isClient || !localDB || !user?.id) return;
-
-      try {
-        // Get the single status document for this user from PouchDB
-        const docId = `user_${user.id}_status`;
-        const doc = await localDB.get(docId).catch(() => null);
-        
-        if (doc) {
-          setLast({
-            status: doc.status,
-            timestamp: doc.timestamp,
-            synced: doc.synced || false,
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching status from PouchDB:', error);
-      }
-    })();
-  }, [isClient, localDB, user]);
+    loadLatestStatus();
+  }, [loadLatestStatus]);
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -52,7 +80,12 @@ export default function MyStatusPage() {
         </p>
       </div>
 
-      {!last ? (
+      {isLoading ? (
+        <div className="bg-white/70 dark:bg-dark-surface-primary/70 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-dark-border-primary/60 p-8 text-center shadow-lg">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent mb-4"></div>
+          <p className="text-gray-600 dark:text-dark-text-secondary">Loading status...</p>
+        </div>
+      ) : !last ? (
         <div className="bg-white/70 dark:bg-dark-surface-primary/70 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-dark-border-primary/60 p-8 text-center shadow-lg">
           <div className="text-gray-400 dark:text-dark-text-tertiary text-4xl mb-4">📱</div>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-dark-text-primary mb-2">No Status Yet</h2>
@@ -111,67 +144,37 @@ export default function MyStatusPage() {
             </div>
           </div>
 
-          {(last as any).latitude != null && (last as any).longitude != null && (
-            <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-200/60">
-              <div className="flex items-center gap-2 text-blue-600 text-sm mb-2">
+          {last.latitude != null && last.longitude != null && (
+            <div className="bg-blue-50/50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200/60 dark:border-blue-800/60">
+              <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-sm mb-2">
                 <span>📍</span>
                 Location Captured
               </div>
-              <div className="font-mono text-sm text-gray-700">
-                {(last as any).latitude?.toFixed(5)}, {(last as any).longitude?.toFixed(5)}
+              <div className="font-mono text-sm text-black dark:text-gray-300">
+                {last.latitude.toFixed(5)}, {last.longitude.toFixed(5)}
               </div>
-              <div className="text-xs text-blue-600 mt-1">
+              <div className="text-xs text-blue dark:text-blue-400 mt-1">
                 This helps emergency responders locate you
               </div>
             </div>
           )}
 
-                  <div className="mt-6 pt-6 border-t border-gray-200/60 flex flex-wrap gap-4">
-                    <a
-                      href="/"
-                      className="inline-flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors"
-                    >
-                      <span>↻</span>
-                      Update Status
-                    </a>
-                    <button
-                      onClick={() => {
-                        console.log('Force sync button clicked');
-                        manualSync();
-                      }}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium text-sm rounded-lg transition-colors"
-                    >
-                      <span>📡</span>
-                      Force Sync
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (confirm("This will clear all saved data. Are you sure?")) {
-                          // Clear everything
-                          localStorage.clear();
-                          try {
-                            // Clear IndexedDB
-                            const dbRequest = indexedDB.deleteDatabase("lifeline-db");
-                            dbRequest.onsuccess = () => {
-                              console.log("IndexedDB cleared");
-                              window.location.href = "/";
-                            };
-                            dbRequest.onerror = () => {
-                              console.log("IndexedDB clear failed, redirecting anyway");
-                              window.location.href = "/";
-                            };
-                          } catch (error) {
-                            console.log("Error clearing IndexedDB:", error);
-                            window.location.href = "/";
-                          }
-                        }
-                      }}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium text-sm rounded-lg transition-colors"
-                    >
-                      <span>🗑️</span>
-                      Clear All Data
-                    </button>
-                  </div>
+          <div className="mt-6 pt-6 border-t border-gray-200/60 dark:border-dark-border-primary/60 flex flex-wrap gap-4">
+            <a
+              href="/"
+              className="inline-flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold text-sm rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              <span className="text-lg">↻</span>
+              Update Status
+            </a>
+            <a
+              href="/history"
+              className="inline-flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold text-sm rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              <span className="text-lg">📜</span>
+              View History
+            </a>
+          </div>
         </div>
       )}
     </div>

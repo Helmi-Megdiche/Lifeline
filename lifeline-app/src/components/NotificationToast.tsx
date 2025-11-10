@@ -75,23 +75,27 @@ export default function NotificationToast({
   const styles = getTypeStyles();
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
-        onClick={onClose}
-      ></div>
-      
+    <div 
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-md"
+      style={{
+        backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.3)',
+      }}
+      onClick={onClose}
+    >
       {/* Notification Toast */}
-      <div className={`
-        relative flex items-center gap-3 p-6 rounded-lg shadow-xl border max-w-md w-full mx-auto
-        ${theme === 'dark' 
-          ? 'bg-gray-800 border-gray-700 text-white' 
-          : 'bg-white border-gray-200 text-gray-900'
-        }
-        transform transition-all duration-300 ease-out
-        ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}
-      `}>
+      <div 
+        className={`
+          relative flex items-center gap-3 p-6 rounded-lg shadow-xl border max-w-md w-full mx-auto
+          transform transition-all duration-300 ease-out
+          ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}
+        `}
+        style={{
+          backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+          borderColor: theme === 'dark' ? '#374151' : '#e5e7eb',
+          color: theme === 'dark' ? '#ffffff' : '#111827',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Icon */}
         <div className={`
           w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0

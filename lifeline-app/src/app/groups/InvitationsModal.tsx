@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type Invitation = { id: string; groupName?: string; groupId?: string };
 
@@ -19,9 +20,23 @@ export default function InvitationsModal({
   onAccept: (id: string) => Promise<void> | void;
   onDecline: (id: string) => Promise<void> | void;
 }) {
+  const { theme } = useTheme();
+
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg card-surface rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-xl">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md"
+      style={{
+        backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.3)',
+      }}
+      onClick={onClose}
+    >
+      <div 
+        className="w-full max-w-lg rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-xl"
+        style={{
+          backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Pending Invitations</h2>
           <button
