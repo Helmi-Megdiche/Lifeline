@@ -90,7 +90,7 @@ export class SttService {
 
   async mockVosk(): Promise<string> {
     this.logger.debug('Mock Vosk called');
-    return 'help me lifeline i have been in a car accident';
+    return 'help me lifeline';
   }
 
   keywordFallback(): string {
